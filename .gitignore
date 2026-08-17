@@ -1,0 +1,11 @@
+.venv
+.env
+auditorias/
+cache_boe_v2/
+data_academia/
+data_academia_texto/
+data_informatica/
+data_preguntas/
+db/copias_seguridad/
+logs/
+registros/

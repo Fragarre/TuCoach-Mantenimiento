@@ -1,0 +1,246 @@
+"""
+OpoCoach — reglas deterministas de normalización de normas jurídicas.
+
+Este archivo es exclusivamente un módulo de reglas. No abre la base de datos,
+no modifica registros, no crea copias de seguridad y no elimina preguntas.
+
+La función pública utilizada por el mantenimiento es:
+
+    normalizar(tipo_original, nombre_original) -> Resultado
+
+Los casos cubiertos devuelven estado ``PROPUESTO``. Los casos que no pueden
+resolverse mediante una regla explícita devuelven estado ``PENDIENTE``.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+
+
+NUMERO_ANO_RE = re.compile(r"(?<!\d)(\d{1,3})\s*/\s*(\d{4})(?!\d)")
+
+
+def limpiar(valor: object) -> str:
+    if valor is None:
+        return ""
+    return " ".join(str(valor).strip().split())
+
+
+def clave(valor: object) -> str:
+    return limpiar(valor).upper()
+
+
+@dataclass(frozen=True)
+class Resultado:
+    estado: str
+    tipo_normalizado: str | None
+    nombre_normalizado: str | None
+    regla: str
+
+
+TIPOS_FORMALES = {
+    "LEY": "LEY",
+    "LEY_ORGÁNICA": "LEY_ORGANICA",
+    "LEY_ORGANICA": "LEY_ORGANICA",
+    "L_O": "LEY_ORGANICA",
+    "LO": "LEY_ORGANICA",
+    "REAL_DECRETO": "REAL_DECRETO",
+    "RD": "REAL_DECRETO",
+    "REAL_DECRETO_LEGISLATIVO": "REAL_DECRETO_LEGISLATIVO",
+    "DECRETO_LEGISLATIVO": "DECRETO_LEGISLATIVO",
+    "DECRETO": "DECRETO",
+    "DECRETO_LEY": "DECRETO_LEY",
+}
+
+
+REGLAS_EXACTAS: dict[tuple[str, str], tuple[str, str, str]] = {
+    # Constitución
+    ("CONSTITUCIÓN_ESPAÑOLA_DE_1978", "CONSTITUCIÓN ESPAÑOLA DE 1978"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+    ("CONSTITUCIÓN_ESPAÑOLA", "CONSTITUCIÓN ESPAÑOLA DE 1978"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+    ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+    ("CONSTITUCIÓN", "CONSTITUCIÓN ESPAÑOLA DE 1978"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+    ("ARTÍCULO", "CONSTITUCIÓN ESPAÑOLA DE 1978"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+    ("CONSTITUCIÓN_ESPAÑOLA", "1978"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+    ("CONSTITUCIÓN_ESPAÑOLA", "DE 1978"):
+        ("CONSTITUCION", "CONSTITUCIÓN ESPAÑOLA DE 1978", "CONSTITUCION"),
+
+    # Estatuto CV
+    ("ESTATUTO_AUTONOMÍA", "COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ESTATUTO_AUTONOMÍA", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ESTATUTO_AUTONOMÍA_COMUNIDAD_VALENCIANA", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ESTATUTO_AUTONOMÍA_COMUNIDAD_VALENCIANA", "COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ARTÍCULO", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ESTATUTO_DE_AUTONOMÍA", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ESTATUTO", "AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("ESTATUTO", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+    ("LEY_ORGÁNICA", "ESTATUTO AUTONOMÍA COMUNIDAD VALENCIANA"):
+        ("ESTATUTO_AUTONOMIA", "ESTATUTO DE AUTONOMÍA DE LA COMUNITAT VALENCIANA", "ESTATUTO_CV"),
+
+    # TUE / TFUE
+    ("TRATADO_DE_FUNCIONAMIENTO_DE_LA_UE", "TRATADO DE FUNCIONAMIENTO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE FUNCIONAMIENTO DE LA UNIÓN EUROPEA", "TFUE"),
+    ("TRATADO_DE_FUNCIONAMIENTO_DE_LA_UE", "PARTE 6 DE TRATADO DE FUNCIONAMIENTO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE FUNCIONAMIENTO DE LA UNIÓN EUROPEA", "TFUE"),
+    ("ARTÍCULO", "TRATADO DE FUNCIONAMIENTO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE FUNCIONAMIENTO DE LA UNIÓN EUROPEA", "TFUE"),
+    ("ARTÍCULO", "PARTE 6 DE TRATADO DE FUNCIONAMIENTO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE FUNCIONAMIENTO DE LA UNIÓN EUROPEA", "TFUE"),
+    ("TRATADO", "TRATADO DE FUNCIONAMIENTO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE FUNCIONAMIENTO DE LA UNIÓN EUROPEA", "TFUE"),
+    ("TRATADO_DE_LA_UE", "TRATADO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE LA UNIÓN EUROPEA", "TUE"),
+    ("ARTÍCULO", "TRATADO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE LA UNIÓN EUROPEA", "TUE"),
+    ("TRATADO", "TRATADO DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE LA UNIÓN EUROPEA", "TUE"),
+    ("TRATADO", "DE LA UE"):
+        ("TRATADO_UE", "TRATADO DE LA UNIÓN EUROPEA", "TUE"),
+
+    # Textos refundidos
+    ("TR", "5/2015 EBEP"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 5/2015", "RDL_5_2015"),
+    ("TR", "TR 5/2015 EBEP"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 5/2015", "RDL_5_2015"),
+    ("", "TR 5/2015 EBEP"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 5/2015", "RDL_5_2015"),
+    ("TR_5_2015", "EBEP"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 5/2015", "RDL_5_2015"),
+    ("TR_5_2015_EBEP", "EBEP"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 5/2015", "RDL_5_2015"),
+    ("TR_5_2015_EBEP", "TR 5/2015 EBEP"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 5/2015", "RDL_5_2015"),
+    ("TR", "2/2015 ESTATUTO TRABAJADORES"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 2/2015", "RDL_2_2015"),
+    ("TR_2_2015", "ESTATUTO TRABAJADORES"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 2/2015", "RDL_2_2015"),
+    ("ARTÍCULO", "TR 2/2015 ESTATUTO TRABAJADORES"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 2/2015", "RDL_2_2015"),
+    ("TR", "8/2015 SEGURIDAD SOCIAL"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 8/2015", "RDL_8_2015"),
+    ("TR_8_2015", "SEGURIDAD SOCIAL"):
+        ("REAL_DECRETO_LEGISLATIVO", "REAL_DECRETO_LEGISLATIVO 8/2015", "RDL_8_2015"),
+
+    # Leyes
+    ("LEY_39_2015", "PROCEDIMIENTO"):
+        ("LEY", "LEY 39/2015", "LEY_39_2015"),
+    ("LEY_39_2015", "LEY 39/2015"):
+        ("LEY", "LEY 39/2015", "LEY_39_2015"),
+    ("LEY_1_2015", "HACIENDA GVA"):
+        ("LEY", "LEY 1/2015", "LEY_1_2015"),
+    ("LEY_1_2015", "LEY 1/2015 HACIENDA GVA"):
+        ("LEY", "LEY 1/2015", "LEY_1_2015"),
+    ("LEY_4_2021", "FUNCIÓN PÚBLICA VALENCIANA"):
+        ("LEY", "LEY 4/2021", "LEY_4_2021"),
+    ("LEY_9_2017", "CONTRATOS"):
+        ("LEY", "LEY 9/2017", "LEY_9_2017"),
+    ("LEY_9_2017", "LEY 9/2017 CONTRATOS"):
+        ("LEY", "LEY 9/2017", "LEY_9_2017"),
+    ("LEY_9_2017_CONTRATOS", "LEY 9/2017 CONTRATOS"):
+        ("LEY", "LEY 9/2017", "LEY_9_2017"),
+    ("ARTÍCULO", "LEY 9/2017 CONTRATOS"):
+        ("LEY", "LEY 9/2017", "LEY_9_2017"),
+    ("ARTICULO", "LEY 9/2017 CONTRATOS"):
+        ("LEY", "LEY 9/2017", "LEY_9_2017"),
+    ("LEY_19_2013", "TRANSPARENCIA"):
+        ("LEY", "LEY 19/2013", "LEY_19_2013"),
+    ("LEY_20_2017", "TASAS DE OTRAS NORMAS GESTIÓN PRESUPUESTARIA"):
+        ("LEY", "LEY 20/2017", "LEY_20_2017"),
+    ("LEY_29_1998", "JURISDICCIÓN C-A"):
+        ("LEY", "LEY 29/1998", "LEY_29_1998"),
+    ("LEY_38_2003", "SUBVENCIONES"):
+        ("LEY", "LEY 38/2003", "LEY_38_2003"),
+    ("LEY_40_2015", "RJSP"):
+        ("LEY", "LEY 40/2015", "LEY_40_2015"),
+    ("LEY_40_2015", "LEY 40/2015 RJSP"):
+        ("LEY", "LEY 40/2015", "LEY_40_2015"),
+    ("LEY_40_2015", "LEY 40/2015 RJSP (TP)"):
+        ("LEY", "LEY 40/2015", "LEY_40_2015"),
+    ("LEY_40_2015", "RJSP (TP)"):
+        ("LEY", "LEY 40/2015", "LEY_40_2015"),
+    ("LEY_40_2015_RJSP", "LEY 40/2015 RJSP"):
+        ("LEY", "LEY 40/2015", "LEY_40_2015"),
+    ("LEY_40_2015_RJSP_TP", "LEY 40/2015 RJSP (TP)"):
+        ("LEY", "LEY 40/2015", "LEY_40_2015"),
+    ("LEY", "LEY EXPROPIACIONES 1954"):
+        ("LEY", "LEY DE EXPROPIACIÓN FORZOSA DE 1954", "LEY_EXPROPIACION_1954"),
+    ("LEY", "EXPROPIACIONES 1954"):
+        ("LEY", "LEY DE EXPROPIACIÓN FORZOSA DE 1954", "LEY_EXPROPIACION_1954"),
+    ("LEY_EXPROPIACIONES_1954", "LEY EXPROPIACIONES 1954"):
+        ("LEY", "LEY DE EXPROPIACIÓN FORZOSA DE 1954", "LEY_EXPROPIACION_1954"),
+
+    # Leyes orgánicas codificadas
+    ("LEY_ORGÁNICA_3_2007", "IGUALDAD"):
+        ("LEY_ORGANICA", "LEY_ORGANICA 3/2007", "LO_3_2007"),
+    ("L_O_2_1979", "DEL TRIBUNAL CONSTITUCIONAL"):
+        ("LEY_ORGANICA", "LEY_ORGANICA 2/1979", "LO_2_1979"),
+    ("L_O_2_1982", "DEL TRIBUNAL DE CUENTAS"):
+        ("LEY_ORGANICA", "LEY_ORGANICA 2/1982", "LO_2_1982"),
+    ("L_O_2_2012", "ESTABILIDAD PRESUPUESTARIA"):
+        ("LEY_ORGANICA", "LEY_ORGANICA 2/2012", "LO_2_2012"),
+    ("L_O_3_2018", "PROTECCIÓN DATOS"):
+        ("LEY_ORGANICA", "LEY_ORGANICA 3/2018", "LO_3_2018"),
+
+    # Decretos
+    ("DECRETO_77_2019", "DECRETO 77/2019"):
+        ("DECRETO", "DECRETO 77/2019", "DECRETO_77_2019"),
+
+    # Reglamento de Les Corts
+    ("REGLAMENTO", "CORTS"):
+        ("REGLAMENTO", "REGLAMENTO DE LES CORTS VALENCIANES", "REGLAMENTO_CORTS"),
+    ("REGLAMENTO", "REGLAMENTO CORTS"):
+        ("REGLAMENTO", "REGLAMENTO DE LES CORTS VALENCIANES", "REGLAMENTO_CORTS"),
+    ("REGLAMENTO_CORTS", "REGLAMENTO CORTS"):
+        ("REGLAMENTO", "REGLAMENTO DE LES CORTS VALENCIANES", "REGLAMENTO_CORTS"),
+    ("REGLAMENTO_CORTS", "TÍTULO 5"):
+        ("REGLAMENTO", "REGLAMENTO DE LES CORTS VALENCIANES", "REGLAMENTO_CORTS"),
+    ("ARTÍCULO", "REGLAMENTO CORTS"):
+        ("REGLAMENTO", "REGLAMENTO DE LES CORTS VALENCIANES", "REGLAMENTO_CORTS"),
+}
+
+
+def extraer_numero_ano_unico(nombre: str) -> str | None:
+    coincidencias = NUMERO_ANO_RE.findall(nombre)
+    if len(coincidencias) != 1:
+        return None
+    numero, anio = coincidencias[0]
+    return f"{int(numero)}/{anio}"
+
+
+def normalizar(tipo_original: object, nombre_original: object) -> Resultado:
+    tipo = clave(tipo_original)
+    nombre = clave(nombre_original)
+
+    regla = REGLAS_EXACTAS.get((tipo, nombre))
+    if regla:
+        tipo_n, nombre_n, codigo_regla = regla
+        return Resultado("PROPUESTO", tipo_n, nombre_n, codigo_regla)
+
+    tipo_formal = TIPOS_FORMALES.get(tipo)
+    if tipo_formal:
+        numero_ano = extraer_numero_ano_unico(nombre)
+        if numero_ano:
+            return Resultado(
+                "PROPUESTO",
+                tipo_formal,
+                f"{tipo_formal} {numero_ano}",
+                "TIPO_FORMAL_MAS_NUMERO_ANO",
+            )
+
+    return Resultado("PENDIENTE", None, None, "SIN_REGLA_EXPLICITA")

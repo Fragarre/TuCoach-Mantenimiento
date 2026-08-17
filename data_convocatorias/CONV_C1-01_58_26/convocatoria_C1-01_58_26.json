@@ -1,0 +1,38 @@
+{
+  "puesto": "C/1-01. Cuerpo administrativo",
+  "numero": "58/26",
+  "anio": 2026,
+  "codigo": "C1-01_58_26",
+  "numero_preguntas": 110,
+  "partes": [
+    {
+      "nombre": "especial_teoria",
+      "numero_preguntas": 50,
+      "orden": 1
+    },
+    {
+      "nombre": "especial_practica",
+      "numero_preguntas": 15,
+      "orden": 2
+    },
+    {
+      "nombre": "especial_informatica",
+      "numero_preguntas": 15,
+      "orden": 3
+    },
+    {
+      "nombre": "general",
+      "numero_preguntas": 30,
+      "orden": 4
+    }
+  ],
+  "valoracion": {
+    "acierto": 1,
+    "fallo": -0.333,
+    "no_contesta": 0,
+    "formula": "(acertadas - falladas * valoracion_test_fallo) / numero_preguntas",
+    "factor_escala": 10
+  },
+  "examen_modelo": "data_modelos/modelo_58_26.pdf",
+  "temario": "data_convocatorias/CONV_C1-01_58_26/temario.csv"
+}

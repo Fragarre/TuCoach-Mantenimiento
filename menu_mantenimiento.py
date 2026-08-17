@@ -1700,3 +1700,5 @@ def main() -> int:
             print(f"\nERROR inesperado: {error}")
             pausa()
 
+if __name__ == "__main__":
+    raise SystemExit(main())

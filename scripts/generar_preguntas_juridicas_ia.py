@@ -516,58 +516,139 @@ def obtener_referencias_aptas_todos_temas(
 
 
 
-def cargar_perfil_generacion_ia(
+def cargar_modelo_generacion_ia(
     con: sqlite3.Connection,
     convocatoria_id: int,
-    tipo_pregunta: str,
-) -> list[sqlite3.Row]:
+) -> list[dict[str, Any]]:
     """
-    Perfil estadístico de generación IA derivado del examen tipo.
+    Deriva el reparto de generación IA de convocatoria_modelo_bloques.
 
-    peso_objetivo NO es un porcentaje: es el número observado en el examen
-    modelo. Para cualquier cantidad solicitada se normaliza proporcionalmente.
+    convocatoria_modelo_bloques es la fuente prevalente del patrón normativo.
+    Para generación se agregan bloques equivalentes de una misma parte:
+    - NORMA: misma norma_id;
+    - LIBRE: conjunto de normas no preasignadas de esa parte.
+
+    El peso de cada grupo es la suma de cantidades configuradas en el modelo.
     """
     existe = con.execute(
         """
         SELECT 1
         FROM sqlite_master
         WHERE type='table'
-          AND name='perfil_generacion_ia'
+          AND name='convocatoria_modelo_bloques'
         """
     ).fetchone()
 
     if existe is None:
         raise RuntimeError(
-            "La base no contiene la tabla perfil_generacion_ia. "
-            "Ejecute primero la actualización de perfiles."
+            "La base no contiene convocatoria_modelo_bloques. "
+            "Configure primero el modelo de examen de la convocatoria."
         )
 
     filas = con.execute(
         """
         SELECT
-            p.id,
-            p.convocatoria_id,
-            p.tipo_pregunta,
-            p.parte,
-            p.norma_id,
+            b.id,
+            b.convocatoria_parte_id,
+            cp.nombre AS parte_modelo,
+            cp.orden AS parte_orden,
+            b.orden AS bloque_orden,
+            b.tipo_bloque,
+            b.norma_id,
             n.nombre_canonico AS norma,
-            p.grupo_codigo,
-            p.peso_objetivo,
-            p.orden
-        FROM perfil_generacion_ia p
-        LEFT JOIN normas n ON n.id = p.norma_id
-        WHERE p.convocatoria_id = ?
-          AND p.tipo_pregunta = ?
-          AND p.activo = 1
-        ORDER BY p.orden, p.id
+            b.cantidad
+        FROM convocatoria_modelo_bloques b
+        JOIN convocatoria_partes cp
+          ON cp.id = b.convocatoria_parte_id
+        LEFT JOIN normas n
+          ON n.id = b.norma_id
+        WHERE cp.convocatoria_id = ?
+        ORDER BY cp.orden, b.orden, b.id
         """,
-        (
-            convocatoria_id,
-            str(tipo_pregunta).strip().upper(),
-        ),
+        (convocatoria_id,),
     ).fetchall()
 
-    return filas
+    if not filas:
+        raise RuntimeError(
+            "La convocatoria no tiene bloques configurados en "
+            "convocatoria_modelo_bloques."
+        )
+
+    partes_temario: dict[int, tuple[str, ...]] = {}
+    for parte_id in sorted({int(f["convocatoria_parte_id"]) for f in filas}):
+        reglas = con.execute(
+            """
+            SELECT temario_parte, tipo_contenido, teorica_practica, tema_no_juridico
+            FROM convocatoria_parte_reglas
+            WHERE convocatoria_parte_id = ?
+            ORDER BY prioridad, id
+            """,
+            (parte_id,),
+        ).fetchall()
+
+        valores: list[str] = []
+        for regla in reglas:
+            if str(regla["teorica_practica"] or "").strip().upper() == "PRACTICA":
+                continue
+            if str(regla["tipo_contenido"] or "").strip().upper() in {
+                "NO_JURIDICO",
+                "INFORMATICA",
+            }:
+                continue
+            if str(regla["tema_no_juridico"] or "").strip():
+                continue
+            parte_temario = str(regla["temario_parte"] or "").strip().upper()
+            if parte_temario and parte_temario not in valores:
+                valores.append(parte_temario)
+
+        if not valores:
+            nombre = next(
+                str(f["parte_modelo"])
+                for f in filas
+                if int(f["convocatoria_parte_id"]) == parte_id
+            )
+            raise RuntimeError(
+                "La parte configurada del modelo no tiene una regla jurídica "
+                f"con temario_parte utilizable: {nombre!r}."
+            )
+
+        partes_temario[parte_id] = tuple(valores)
+
+    agregados: dict[tuple[int, str, int | None], dict[str, Any]] = {}
+    orden_claves: list[tuple[int, str, int | None]] = []
+
+    for fila in filas:
+        parte_id = int(fila["convocatoria_parte_id"])
+        tipo_bloque = str(fila["tipo_bloque"] or "").strip().upper()
+        norma_id = int(fila["norma_id"]) if fila["norma_id"] is not None else None
+
+        if tipo_bloque not in {"NORMA", "LIBRE"}:
+            raise RuntimeError(
+                f"Tipo de bloque no reconocido en convocatoria_modelo_bloques: {tipo_bloque!r}."
+            )
+        if tipo_bloque == "NORMA" and norma_id is None:
+            raise RuntimeError(
+                f"Bloque NORMA sin norma_id en convocatoria_modelo_bloques (id={fila['id']})."
+            )
+        if tipo_bloque == "LIBRE":
+            norma_id = None
+
+        clave = (parte_id, tipo_bloque, norma_id)
+        if clave not in agregados:
+            orden_claves.append(clave)
+            agregados[clave] = {
+                "clave": len(orden_claves),
+                "convocatoria_parte_id": parte_id,
+                "parte_modelo": str(fila["parte_modelo"] or "").strip(),
+                "temario_partes": partes_temario[parte_id],
+                "tipo_bloque": tipo_bloque,
+                "norma_id": norma_id,
+                "norma": str(fila["norma"] or "").strip() or None,
+                "peso_objetivo": 0.0,
+            }
+        agregados[clave]["peso_objetivo"] += float(fila["cantidad"])
+
+    return [agregados[clave] for clave in orden_claves]
 
 
 def _repartir_cantidad_por_pesos(
@@ -581,14 +662,12 @@ def _repartir_cantidad_por_pesos(
     """
     if cantidad <= 0:
         raise ValueError("cantidad debe ser positiva")
-
     if not elementos:
         raise ValueError("No hay elementos ponderables.")
 
     total_peso = sum(float(x["peso"]) for x in elementos)
-
     if total_peso <= 0:
-        raise ValueError("El perfil no contiene pesos positivos.")
+        raise ValueError("El modelo no contiene pesos positivos.")
 
     rng = random.SystemRandom()
     calculos: list[dict[str, Any]] = []
@@ -608,15 +687,10 @@ def _repartir_cantidad_por_pesos(
         )
 
     faltan = cantidad - asignadas
-
     calculos.sort(
-        key=lambda x: (
-            x["resto"],
-            x["azar"],
-        ),
+        key=lambda x: (x["resto"], x["azar"]),
         reverse=True,
     )
-
     for fila in calculos[:faltan]:
         fila["base"] += 1
 
@@ -626,90 +700,130 @@ def _repartir_cantidad_por_pesos(
     }
 
 
-def secuencia_contextos_segun_perfil(
+def _seleccionar_contextos_libres(
+    candidatos: list[ContextoReferencia],
+    cantidad: int,
+    rng: random.SystemRandom,
+) -> list[ContextoReferencia]:
+    """
+    Reparte un cupo LIBRE entre normas antes de repetir norma.
+
+    Así se conserva la diversidad del modelo: una segunda pregunta de una norma
+    solo aparece después de haber recorrido las demás normas libres disponibles.
+    """
+    por_norma: dict[int, list[ContextoReferencia]] = {}
+    for ctx in candidatos:
+        por_norma.setdefault(int(ctx.norma_id), []).append(ctx)
+
+    if not por_norma:
+        return []
+
+    resultado: list[ContextoReferencia] = []
+    norma_ids = list(por_norma)
+
+    while len(resultado) < cantidad:
+        ciclo_normas = list(norma_ids)
+        rng.shuffle(ciclo_normas)
+        for norma_id in ciclo_normas:
+            if len(resultado) >= cantidad:
+                break
+            refs = list(por_norma[norma_id])
+            rng.shuffle(refs)
+            resultado.append(refs[0])
+
+    return resultado
+
+
+def secuencia_contextos_segun_modelo(
     contextos: list[ContextoReferencia],
-    perfil: list[sqlite3.Row],
+    modelo: list[dict[str, Any]],
     cantidad: int,
 ) -> tuple[list[ContextoReferencia], list[str]]:
     """
-    Construye el lote respetando el perfil por parte + norma.
+    Construye el lote teórico a partir de convocatoria_modelo_bloques.
 
-    Si una fila del perfil no tiene ninguna referencia utilizable en el banco
-    actual, NO se inventa una pregunta de esa norma. Su peso se redistribuye
-    entre las filas disponibles y se deja constancia en avisos.
+    Los bloques NORMA usan exclusivamente esa norma dentro de la parte del
+    temario asociada por convocatoria_parte_reglas. Los bloques LIBRE usan
+    únicamente normas de la misma parte que no estén preasignadas en ningún
+    bloque NORMA de esa convocatoria_parte.
+
+    Si un grupo del modelo no tiene referencias utilizables, su peso se
+    redistribuye entre los grupos disponibles y se deja constancia en avisos.
     """
     if cantidad <= 0:
         raise ValueError("cantidad debe ser positiva")
-
-    if not perfil:
+    if not modelo:
         raise RuntimeError(
-            "La convocatoria no tiene perfil de generación IA configurado "
-            "para el tipo solicitado."
+            "La convocatoria no tiene modelo de examen configurado para la generación."
         )
 
     rng = random.SystemRandom()
-    contextos_por_clave: dict[int, list[ContextoReferencia]] = {}
+    normas_fijas_por_parte: dict[int, set[int]] = {}
+    for grupo in modelo:
+        if grupo["tipo_bloque"] == "NORMA" and grupo["norma_id"] is not None:
+            normas_fijas_por_parte.setdefault(
+                int(grupo["convocatoria_parte_id"]), set()
+            ).add(int(grupo["norma_id"]))
+
+    candidatos_por_clave: dict[int, list[ContextoReferencia]] = {}
     elementos_disponibles: list[dict[str, Any]] = []
     avisos: list[str] = []
 
-    for fila in perfil:
-        perfil_id = int(fila["id"])
-        parte = str(fila["parte"] or "").strip().upper()
-        norma_id = fila["norma_id"]
+    for grupo in modelo:
+        clave = int(grupo["clave"])
+        parte_id = int(grupo["convocatoria_parte_id"])
+        temario_partes = {str(x).strip().upper() for x in grupo["temario_partes"]}
 
         candidatos = [
             ctx
             for ctx in contextos
-            if (
-                (not parte or str(ctx.parte or "").strip().upper() == parte)
-                and (
-                    norma_id is None
-                    or int(ctx.norma_id) == int(norma_id)
-                )
-            )
+            if str(ctx.parte or "").strip().upper() in temario_partes
         ]
+
+        if grupo["tipo_bloque"] == "NORMA":
+            norma_id = int(grupo["norma_id"])
+            candidatos = [ctx for ctx in candidatos if int(ctx.norma_id) == norma_id]
+            etiqueta = grupo["norma"] or f"norma_id={norma_id}"
+        else:
+            fijas = normas_fijas_por_parte.get(parte_id, set())
+            candidatos = [ctx for ctx in candidatos if int(ctx.norma_id) not in fijas]
+            etiqueta = "LIBRE"
 
         if not candidatos:
             avisos.append(
                 "Sin referencias utilizables para "
-                f"{parte or 'SIN PARTE'} · "
-                f"{fila['norma'] or fila['grupo_codigo'] or 'grupo'} "
-                f"(peso modelo {fila['peso_objetivo']}). "
-                "Su cuota se redistribuye."
+                f"{grupo['parte_modelo'] or 'SIN PARTE'} · {etiqueta} "
+                f"(peso modelo {grupo['peso_objetivo']:g}). Su cuota se redistribuye."
             )
             continue
 
-        contextos_por_clave[perfil_id] = candidatos
+        candidatos_por_clave[clave] = candidatos
         elementos_disponibles.append(
             {
-                "clave": perfil_id,
-                "peso": float(fila["peso_objetivo"]),
+                "clave": clave,
+                "peso": float(grupo["peso_objetivo"]),
             }
         )
 
     if not elementos_disponibles:
         raise RuntimeError(
-            "Ninguna fila del perfil tiene referencias utilizables con "
-            "texto oficial completo y ejemplos en el banco."
+            "Ningún bloque de convocatoria_modelo_bloques tiene referencias "
+            "utilizables con texto oficial completo y ejemplos en el banco."
         )
 
-    cupos = _repartir_cantidad_por_pesos(
-        elementos_disponibles,
-        cantidad,
-    )
-
+    cupos = _repartir_cantidad_por_pesos(elementos_disponibles, cantidad)
     resultado: list[ContextoReferencia] = []
 
-    # El orden del perfil no importa para la generación, pero recorrerlo así
-    # hace que el resumen sea reproducible y comprensible.
-    for fila in perfil:
-        perfil_id = int(fila["id"])
-        cupo = int(cupos.get(perfil_id, 0))
-
+    for grupo in modelo:
+        clave = int(grupo["clave"])
+        cupo = int(cupos.get(clave, 0))
         if cupo <= 0:
             continue
 
-        candidatos = list(contextos_por_clave[perfil_id])
+        candidatos = list(candidatos_por_clave[clave])
+        if grupo["tipo_bloque"] == "LIBRE":
+            resultado.extend(_seleccionar_contextos_libres(candidatos, cupo, rng))
+            continue
 
         seleccionados: list[ContextoReferencia] = []
         while len(seleccionados) < cupo:
@@ -717,16 +831,13 @@ def secuencia_contextos_segun_perfil(
             rng.shuffle(ciclo)
             faltan = cupo - len(seleccionados)
             seleccionados.extend(ciclo[:faltan])
-
         resultado.extend(seleccionados)
 
-    # Evita que el orden de generación agrupe visualmente todas las preguntas
-    # de una misma norma. La proporción ya ha quedado fijada por los cupos.
     rng.shuffle(resultado)
 
     if len(resultado) != cantidad:
         raise RuntimeError(
-            "Error interno al repartir el perfil de generación IA."
+            "Error interno al repartir convocatoria_modelo_bloques para generación IA."
         )
 
     return resultado, avisos
@@ -2051,15 +2162,14 @@ def generar_lote(
             )
 
         convocatoria_id = next(iter(convocatoria_ids))
-        perfil = cargar_perfil_generacion_ia(
+        modelo = cargar_modelo_generacion_ia(
             con,
             convocatoria_id,
-            "TEORICA",
         )
 
-        secuencia, avisos_perfil = secuencia_contextos_segun_perfil(
+        secuencia, avisos_perfil = secuencia_contextos_segun_modelo(
             contextos_validos,
-            perfil,
+            modelo,
             cantidad,
         )
     else:
@@ -2083,12 +2193,12 @@ def generar_lote(
     print(f"Referencias con fuente completa...... {len(contextos_validos)}")
 
     if str(tipo_pregunta).strip().upper() == "TEORICA":
-        print("Reparto............................... perfil del examen tipo")
+        print("Reparto............................... convocatoria_modelo_bloques")
         print("\nDISTRIBUCIÓN DEL LOTE")
         for parte, norma, n in resumen_reparto_secuencia(secuencia):
             print(f"  {parte:<10} | {norma:<45} | {n:>3}")
         if avisos_perfil:
-            print("\nAVISOS DE PERFIL")
+            print("\nAVISOS DEL MODELO")
             for aviso in avisos_perfil:
                 print(f"  - {aviso}")
     else:
@@ -2469,20 +2579,6 @@ def aprobar(
     print(
         "Persistencia maestra.................. OK"
     )
-    print(
-        "Bancos sincronizados................. "
-        + (
-            ", ".join(sincronizados)
-            if sincronizados
-            else "ninguno"
-        )
-    )
-
-    if avisos_banco:
-        print("Avisos de sincronización:")
-        for aviso in avisos_banco:
-            print(f"  - {aviso}")
-
     print(
         f"tipo_fuente.......................... "
         f"{TIPO_FUENTE}"

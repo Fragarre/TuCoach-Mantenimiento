@@ -90,6 +90,76 @@ def ejecutar_script(nombre: str, *argumentos: str) -> int:
     return resultado.returncode
 
 
+
+def ejecutar_script_supabase(nombre: str, *argumentos: str) -> int:
+    ruta = CARPETA_SCRIPTS / nombre
+
+    if not ruta.is_file():
+        print(f"\nERROR: no existe el script:\n{ruta}")
+        return 1
+
+    candidatos = [[sys.executable]]
+
+    python311 = Path(r"C:\Program Files\Python311\python.exe")
+    if python311.is_file():
+        candidatos.append([str(python311)])
+
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        candidatos.append([py_launcher, "-3.11"])
+
+    interprete = None
+    probados = []
+
+    for candidato in candidatos:
+        etiqueta = " ".join(candidato)
+        if etiqueta in probados:
+            continue
+        probados.append(etiqueta)
+
+        prueba = subprocess.run(
+            [*candidato, "-c", "import psycopg"],
+            cwd=RAIZ,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if prueba.returncode == 0:
+            interprete = candidato
+            break
+
+    if interprete is None:
+        print("\nERROR: no se encontró ningún Python con psycopg disponible.")
+        print("Intérpretes comprobados:")
+        for candidato in probados:
+            print(f"  - {candidato}")
+        return 1
+
+    comando = [*interprete, str(ruta), *argumentos]
+
+    print("\n" + "=" * 78)
+    print("EJECUCIÓN")
+    print("=" * 78)
+    print("Python Supabase: " + " ".join(interprete))
+    print(" ".join(f'"{x}"' if " " in x else x for x in comando))
+    print("=" * 78 + "\n")
+
+    resultado = subprocess.run(
+        comando,
+        cwd=RAIZ,
+        check=False,
+    )
+
+    print("\n" + "=" * 78)
+    if resultado.returncode == 0:
+        print("Proceso terminado correctamente.")
+    else:
+        print(f"Proceso terminado con código de error {resultado.returncode}.")
+    print("=" * 78)
+
+    return resultado.returncode
+
+
 def argumentos_convocatoria() -> list[str]:
     while True:
         print("\nIdentificación de la convocatoria")
@@ -699,7 +769,7 @@ def actualizar_bd_opocoach() -> None:
     destino = carpeta_opocoach / "db" / "oposiciones.sqlite3"
     carpeta_copias = carpeta_opocoach / "db" / "copias_seguridad"
 
-    print("\nACTUALIZAR BASE DE DATOS DE OPOCOACH")
+    print("\nACTUALIZAR BASE DE DATOS DE OPOCOACH STREAMLIT")
     print("-" * 78)
     print(f"Origen:  {origen}")
     print(f"Destino: {destino}")
@@ -777,6 +847,236 @@ def actualizar_bd_opocoach() -> None:
     pausa()
 
 
+
+
+def preparar_publicacion_web_menu() -> None:
+    """
+    Genera una versión íntegra, validada y versionada de la base maestra
+    para OpoCoach-Web. NO modifica la Web.
+    """
+    cabecera_submenu(
+        "PREPARAR PUBLICACIÓN DE CONTENIDOS OPOCOACH-WEB",
+        "[VALIDA → SNAPSHOT] Ejecuta la validación completa y genera una copia "
+        "íntegra/versionada de db/oposiciones.sqlite3. No despliega nada.",
+    )
+
+    print("Se ejecutará:")
+    print("1. validacion_completa.py")
+    print("2. snapshot SQLite consistente de TODA la base")
+    print("3. validación del snapshot")
+    print("4. informes JSON/TXT y SHA256")
+    print()
+    print("Destino previsto: publicaciones_web/<version>/")
+    print("OpoCoach-Web NO se modificará.")
+
+    if pedir_si_no("¿Preparar una nueva publicación para OpoCoach-Web?"):
+        ejecutar_script("publicar_contenidos_web.py")
+
+    pausa()
+
+
+def _listar_publicaciones_web() -> list[tuple[Path, Path, str]]:
+    """
+    Devuelve publicaciones preparadas válidas a nivel de estructura de ficheros:
+    (snapshot, informe_json, version).
+    La validación criptográfica/SQLite definitiva la hace el script de despliegue.
+    """
+    carpeta = RAIZ / "publicaciones_web"
+    if not carpeta.is_dir():
+        return []
+
+    publicaciones: list[tuple[Path, Path, str]] = []
+
+    for subcarpeta in sorted(
+        (p for p in carpeta.iterdir() if p.is_dir()),
+        key=lambda p: p.name,
+        reverse=True,
+    ):
+        snapshots = sorted(subcarpeta.glob("oposiciones_web_*.sqlite3"))
+        informes = sorted(subcarpeta.glob("publicacion_*.json"))
+
+        if len(snapshots) != 1 or len(informes) != 1:
+            continue
+
+        publicaciones.append(
+            (snapshots[0], informes[0], subcarpeta.name)
+        )
+
+    return publicaciones
+
+
+def desplegar_publicacion_web_local_menu() -> None:
+    """
+    Despliega en OpoCoach-Web LOCAL un snapshot previamente preparado.
+    No publica en Internet ni modifica Supabase.
+    """
+    cabecera_submenu(
+        "DESPLEGAR CONTENIDOS EN OPOCOACH-WEB LOCAL",
+        "[BACKUP → VALIDAR → SUSTITUIR] Usa únicamente una publicación preparada "
+        "y validada. Afecta sólo al proyecto local OpoCoach-Web.",
+    )
+
+    publicaciones = _listar_publicaciones_web()
+    if not publicaciones:
+        print(
+            "\nNo hay publicaciones preparadas en publicaciones_web/.\n"
+            "Ejecuta primero 'Preparar publicación de contenidos OpoCoach-Web'."
+        )
+        pausa()
+        return
+
+    print("Publicaciones disponibles")
+    print("-" * 78)
+    for numero, (snapshot, _informe, version) in enumerate(publicaciones, 1):
+        tamano_mb = snapshot.stat().st_size / (1024 * 1024)
+        print(
+            f"{numero:>3}. {version}  "
+            f"{snapshot.name}  [{tamano_mb:.1f} MB]"
+        )
+    print("  0. Cancelar")
+
+    while True:
+        valor = input("Publicación: ").strip()
+        if valor == "0":
+            return
+        if valor.isdigit() and 1 <= int(valor) <= len(publicaciones):
+            break
+        print("Opción no válida.")
+
+    snapshot, informe, version = publicaciones[int(valor) - 1]
+
+    destino = (
+        RAIZ.parent
+        / "OpoCoach-Web"
+        / "backend"
+        / "data"
+        / "oposiciones.sqlite3"
+    )
+
+    print("\nRESUMEN")
+    print("-" * 78)
+    print(f"Versión:  {version}")
+    print(f"Snapshot: {snapshot}")
+    print(f"Informe:  {informe}")
+    print(f"Destino:  {destino}")
+    print()
+    print("Este proceso:")
+    print("- NO modifica OpoCoach Streamlit.")
+    print("- NO publica en Internet.")
+    print("- NO modifica Supabase.")
+    print("- crea backup de la SQLite Web local antes de sustituirla.")
+    print()
+    print(
+        "IMPORTANTE: si Windows mantiene la SQLite abierta, detén primero "
+        "el backend/Uvicorn de OpoCoach-Web."
+    )
+
+    if not pedir_si_no("¿Continuar con el despliegue LOCAL de esta versión?"):
+        print("Operación cancelada.")
+        pausa()
+        return
+
+    ejecutar_script(
+        "desplegar_contenidos_web_local.py",
+        str(snapshot),
+        "--informe",
+        str(informe),
+    )
+    pausa()
+
+
+
+def actualizar_publicacion_supabase_menu() -> None:
+    """
+    Publica en Supabase/producción una publicación previamente preparada.
+    Sustituye exclusivamente las tablas del esquema contenidos.*.
+    """
+    cabecera_submenu(
+        "ACTUALIZAR CONTENIDOS OPOCOACH-WEB EN SUPABASE",
+        "[VALIDAR → TRANSACCIÓN → VERIFICAR] Sustituye contenidos.* por una "
+        "publicación preparada. No modifica usuarios ni datos personales.",
+    )
+
+    publicaciones = _listar_publicaciones_web()
+    if not publicaciones:
+        print(
+            "\nNo hay publicaciones preparadas en publicaciones_web/.\n"
+            "Ejecuta primero 'Preparar publicación de contenidos OpoCoach-Web'."
+        )
+        pausa()
+        return
+
+    ruta_env = RAIZ.parent / "OpoCoach-Web" / "backend" / ".env"
+    if not ruta_env.is_file():
+        print(f"\nERROR: no existe el fichero de entorno:\n{ruta_env}")
+        pausa()
+        return
+
+    print("Publicaciones disponibles")
+    print("-" * 78)
+    for numero, (snapshot, _informe, version) in enumerate(publicaciones, 1):
+        tamano_mb = snapshot.stat().st_size / (1024 * 1024)
+        print(
+            f"{numero:>3}. {version}  "
+            f"{snapshot.name}  [{tamano_mb:.1f} MB]"
+        )
+    print("  0. Cancelar")
+
+    while True:
+        valor = input("Publicación: ").strip()
+        if valor == "0":
+            return
+        if valor.isdigit() and 1 <= int(valor) <= len(publicaciones):
+            break
+        print("Opción no válida.")
+
+    snapshot, informe, version = publicaciones[int(valor) - 1]
+
+    informe_salida = (
+        RAIZ
+        / "publicaciones_web"
+        / f"actualizacion_supabase_{version}.json"
+    )
+
+    print("\nRESUMEN")
+    print("-" * 78)
+    print(f"Versión:      {version}")
+    print(f"Snapshot:     {snapshot}")
+    print(f"Informe:      {informe}")
+    print(f"Entorno:      {ruta_env}")
+    print("Destino:      Supabase / esquema contenidos.*")
+    print()
+    print("Este proceso:")
+    print("- valida el snapshot y su SHA256.")
+    print("- sustituye las 16 tablas publicables en UNA transacción.")
+    print("- hace rollback completo si la carga o validación falla.")
+    print("- NO modifica auth.*, profiles, subscriptions ni datos de usuario.")
+    print("- NO modifica simulacros ni tests guardados.")
+    print()
+    print(
+        "La Web puede permanecer arrancada. Durante la transacción algunas "
+        "consultas pueden esperar brevemente, pero no verán una carga parcial."
+    )
+
+    if not pedir_si_no(
+        "¿Actualizar AHORA los contenidos de OpoCoach-Web en Supabase?"
+    ):
+        print("Operación cancelada.")
+        pausa()
+        return
+
+    ejecutar_script_supabase(
+        "actualizar_contenidos_supabase.py",
+        str(snapshot),
+        "--env",
+        str(ruta_env),
+        "--informe-publicacion",
+        str(informe),
+        "--informe",
+        str(informe_salida),
+        "--si",
+    )
+    pausa()
 
 def validacion_completa() -> None:
     print(
@@ -1159,8 +1459,8 @@ def seleccionar_tema_temario(argumentos_conv: list[str]) -> int | None:
 
     La norma y el artículo concretos se seleccionan después automáticamente
     dentro de generar_preguntas_juridicas_ia.py, entre las referencias del tema
-    que tienen texto oficial enlazado y preguntas de ejemplo en el banco de la
-    convocatoria. No modifica la base de datos.
+    que tienen texto oficial enlazado. Si existen preguntas de ejemplo se usan,
+    pero no son requisito para generar la primera pregunta. No modifica la base.
     """
     db = RAIZ / "db" / "oposiciones.sqlite3"
     if not db.is_file():
@@ -1210,7 +1510,7 @@ def seleccionar_tema_temario(argumentos_conv: list[str]) -> int | None:
         ).fetchall()
 
         if not temas:
-            print("\nNo hay temas con referencias jurídicas utilizables en esta convocatoria.")
+            print("\nNo hay temas con referencias norma-artículo utilizables en esta convocatoria.")
             return None
 
         print("\nSeleccione el tema del temario")
@@ -1234,6 +1534,17 @@ def seleccionar_tema_temario(argumentos_conv: list[str]) -> int | None:
             print("Opción no válida.")
     finally:
         con.close()
+
+def convocatoria_admite_practica_menu(args: list[str]) -> bool:
+    db=RAIZ/"db"/"oposiciones.sqlite3"; convocatoria_id=None; codigo=None
+    for i,valor in enumerate(args):
+        if valor=="--convocatoria-id" and i+1<len(args): convocatoria_id=int(args[i+1])
+        elif valor=="--codigo" and i+1<len(args): codigo=args[i+1]
+    with sqlite3.connect(db) as con:
+        conv=con.execute("SELECT id FROM convocatorias WHERE id=?" if convocatoria_id is not None else "SELECT id FROM convocatorias WHERE codigo=?",(convocatoria_id if convocatoria_id is not None else codigo,)).fetchone()
+        if conv is None: raise RuntimeError("No existe la convocatoria seleccionada.")
+        return con.execute("""SELECT 1 FROM convocatoria_parte_reglas r JOIN convocatoria_partes cp ON cp.id=r.convocatoria_parte_id WHERE cp.convocatoria_id=? AND UPPER(TRIM(COALESCE(r.teorica_practica,'')))='PRACTICA' LIMIT 1""",(int(conv[0]),)).fetchone() is not None
+
 
 def generar_juridicas_ia_menu() -> None:
     """
@@ -1264,15 +1575,18 @@ def generar_juridicas_ia_menu() -> None:
 
         args = argumentos_convocatoria()
 
+        admite_practica = convocatoria_admite_practica_menu(args)
         print("\nTipo de pregunta")
         print("1. TEORICA")
-        print("2. PRACTICA")
-        tipo_op = input("Opción [1]: ").strip() or "1"
-        if tipo_op not in {"1", "2"}:
-            print("Opción no válida.")
-            pausa()
-            continue
-        tipo = "TEORICA" if tipo_op == "1" else "PRACTICA"
+        if admite_practica:
+            print("2. PRACTICA")
+            tipo_op=input("Opción [1]: ").strip() or "1"
+            if tipo_op not in {"1","2"}:
+                print("Opción no válida."); pausa(); continue
+            tipo="TEORICA" if tipo_op=="1" else "PRACTICA"
+        else:
+            print("PRACTICA no disponible: la convocatoria no tiene una parte/regla práctica definida.")
+            tipo="TEORICA"
 
         print("\nÁmbito de generación")
         if tipo == "TEORICA":
@@ -1478,7 +1792,7 @@ def submenu_flujo_habitual() -> None:
         print("3. Generar preguntas jurídicas IA                     [IA → BANCOS → VALIDA]")
         print("4. Generar preguntas de informática IA                [IA → BANCOS → VALIDA]")
         print("5. Sincronizar todos los bancos                       [REVISIÓN → APLICAR → VALIDA]")
-        print("6. Actualizar BD de OpoCoach                          [VALIDA → BACKUP → COPIA]")
+        print("6. Actualizar BD de OpoCoach Streamlit                [VALIDA → BACKUP → COPIA]")
         print("7. Ver resumen general del lote                       [SOLO LECTURA]")
         print("8. Ver resumen de banco de convocatoria               [SOLO LECTURA]")
         print("0. Volver")
@@ -1499,6 +1813,34 @@ def submenu_flujo_habitual() -> None:
         else: print("Opción no válida.")
 
 
+
+def mantener_corpus_chat_menu() -> None:
+    cabecera_submenu(
+        "MANTENER CORPUS NORMATIVO DEL CHAT",
+        "Valida conjuntamente BOE, DOGV y DOUE. "
+        "Primero ejecuta todos los planes; sólo después permite aplicar.",
+    )
+
+    if ejecutar_script("mantener_corpus_chat.py") != 0:
+        print(
+            "\nLa validación global no ha terminado correctamente. "
+            "No se realizará ninguna aplicación."
+        )
+        pausa()
+        return
+
+    if pedir_si_no(
+        "Los tres proveedores han validado. "
+        "¿Aplicar ahora las actualizaciones pendientes?"
+    ):
+        ejecutar_script(
+            "mantener_corpus_chat.py",
+            "--aplicar",
+        )
+
+    pausa()
+
+
 def submenu_convocatorias() -> None:
     while True:
         cabecera_submenu(
@@ -1514,6 +1856,7 @@ def submenu_convocatorias() -> None:
         print("7. Configurar modelo de examen                        [ESCRIBE · BACKUP]")
         print("8. Localizar norma / índice / alcance BOE             [CONSULTA WEB]")
         print("9. Consultar artículo consolidado BOE                 [CONSULTA WEB]")
+        print("10. Mantener corpus normativo del Chat                 [BOE + DOGV + DOUE]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -1523,6 +1866,7 @@ def submenu_convocatorias() -> None:
             "5":resolver_referencias_boe_menu, "6":auditar_corpus_temario_menu,
             "7":configurar_modelo_examen_menu, "8":localizador_normativa_menu,
             "9":consultar_articulo_boe_menu,
+            "10":mantener_corpus_chat_menu,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -1631,18 +1975,25 @@ def submenu_administracion() -> None:
     while True:
         cabecera_submenu(
             "6. ADMINISTRACIÓN",
-            "Despliegue, limpieza conservadora e información técnica.",
+            "Despliegues separados para OpoCoach Streamlit, OpoCoach-Web local "
+            "y contenidos de producción en Supabase.",
         )
-        print("1. Actualizar BD de OpoCoach                           [VALIDA → BACKUP → COPIA]")
-        print("2. Limpiar logs/auditorías temporales                 [VISTA PREVIA → APLICAR]")
-        print("3. Mostrar componentes internos                       [INFORMATIVO]")
+        print("1. Actualizar BD de OpoCoach Streamlit                 [VALIDA → BACKUP → COPIA]")
+        print("2. Preparar publicación OpoCoach-Web                  [VALIDA → SNAPSHOT]")
+        print("3. Desplegar publicación en OpoCoach-Web LOCAL        [BACKUP → VALIDAR → COPIA]")
+        print("4. Actualizar contenidos Web en Supabase              [VALIDAR → TRANSACCIÓN → VERIFICAR]")
+        print("5. Limpiar logs/auditorías temporales                 [VISTA PREVIA → APLICAR]")
+        print("6. Mostrar componentes internos                       [INFORMATIVO]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
         acciones={
             "1":actualizar_bd_opocoach,
-            "2":limpiar_temporales_menu,
-            "3":mostrar_componentes_internos,
+            "2":preparar_publicacion_web_menu,
+            "3":desplegar_publicacion_web_local_menu,
+            "4":actualizar_publicacion_supabase_menu,
+            "5":limpiar_temporales_menu,
+            "6":mostrar_componentes_internos,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -1662,7 +2013,7 @@ def mostrar_menu() -> None:
     print("3. Preguntas e importaciones          Herramientas parciales/avanzadas")
     print("4. Bancos de preguntas                Diagnóstico/intervención avanzada")
     print("5. Auditorías y diagnóstico           Verificación y regresión")
-    print("6. Administración                     Despliegue y limpieza")
+    print("6. Administración                     Streamlit / Web local / limpieza")
     print("0. Salir")
     print("=" * 78)
 

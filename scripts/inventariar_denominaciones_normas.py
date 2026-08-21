@@ -7,11 +7,11 @@ Ignora norma_id_normalizada.
 
 Uso:
 
-    python scripts\\inventariar_denominaciones_normas.py
+    python scripts\inventariar_denominaciones_normas.py
 
 Base alternativa:
 
-    python scripts\\inventariar_denominaciones_normas.py --db db\\oposiciones.sqlite3
+    python scripts\inventariar_denominaciones_normas.py --db db\oposiciones.sqlite3
 """
 
 from __future__ import annotations
@@ -81,11 +81,46 @@ def main() -> None:
     carpeta = RAIZ / "auditorias" / f"denominaciones_normas_{marca}"
     carpeta.mkdir(parents=True, exist_ok=True)
 
-    with sqlite3.connect(db) as conexion:
+    with sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True) as conexion:
         conexion.row_factory = sqlite3.Row
+        conexion.execute("PRAGMA query_only = ON")
+
+        columnas = {
+            str(fila["name"])
+            for fila in conexion.execute("PRAGMA table_info(lote_preguntas)").fetchall()
+        }
+
+        obligatorias = {
+            "id",
+            "tipo_norma",
+            "nombre_norma",
+            "articulo",
+            "tipo_fuente",
+            "origen_oposicion",
+            "tipo_clasificacion",
+        }
+        faltantes = sorted(obligatorias - columnas)
+        if faltantes:
+            raise RuntimeError(
+                "Faltan columnas obligatorias en lote_preguntas: "
+                + ", ".join(faltantes)
+            )
+
+        # 'fichero' no existe en todas las versiones del esquema.
+        # Es un dato auxiliar del informe, no necesario para el inventario.
+        expresion_fichero = (
+            "fichero"
+            if "fichero" in columnas
+            else "NULL AS fichero"
+        )
+        expresion_pagina = (
+            "pagina_origen"
+            if "pagina_origen" in columnas
+            else "NULL AS pagina_origen"
+        )
 
         filas = conexion.execute(
-            """
+            f"""
             SELECT
                 id,
                 tipo_norma,
@@ -93,8 +128,8 @@ def main() -> None:
                 articulo,
                 tipo_fuente,
                 origen_oposicion,
-                fichero,
-                pagina_origen
+                {expresion_fichero},
+                {expresion_pagina}
             FROM lote_preguntas
             WHERE tipo_clasificacion = 'JURIDICA'
             ORDER BY id

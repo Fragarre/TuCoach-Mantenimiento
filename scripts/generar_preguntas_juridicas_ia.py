@@ -205,6 +205,19 @@ def nivel_desde_codigo(codigo: str) -> str:
 
 
 
+def convocatoria_admite_practica(con: sqlite3.Connection, convocatoria_id: int) -> bool:
+    """PRACTICA exige una regla explícita de la convocatoria."""
+    return con.execute(
+        """
+        SELECT 1 FROM convocatoria_parte_reglas r
+        JOIN convocatoria_partes cp ON cp.id=r.convocatoria_parte_id
+        WHERE cp.convocatoria_id=?
+          AND UPPER(TRIM(COALESCE(r.teorica_practica,'')))='PRACTICA'
+        LIMIT 1
+        """,(convocatoria_id,),
+    ).fetchone() is not None
+
+
 def extraer_referencia_articulo_precisa(valor: Any) -> str:
     """
     Extrae únicamente la referencia precisa del artículo devuelta por la IA.
@@ -383,15 +396,15 @@ def obtener_referencias_aptas_del_tema(
     con: sqlite3.Connection,
     convocatoria_id: int,
     tema_id: int,
+    exigir_ejemplos: bool = True,
 ) -> list[ContextoReferencia]:
     """
-    Devuelve todas las referencias jurídicas aptas del tema, sin modificar datos.
+    Devuelve referencias norma-artículo utilizables del tema, sin modificar datos.
 
-    Criterio idéntico al usado hasta ahora por elegir_referencia_del_tema():
-    - referencia perteneciente al tema/convocatoria;
-    - norma_id y texto oficial enlazado;
-    - al menos una pregunta jurídica INCLUIDA en el banco de la convocatoria
-      para la misma norma y artículo principal.
+    Por seguridad, el comportamiento predeterminado se conserva: cada referencia
+    debe tener al menos una pregunta JURIDICA ya INCLUIDA en el banco para la misma
+    norma y artículo principal. Solo los modos explícitos de tema/referencia pueden
+    desactivar este requisito para crear la primera pregunta de una norma nueva.
     """
     tema = con.execute(
         """
@@ -420,8 +433,15 @@ def obtener_referencias_aptas_del_tema(
     ).fetchall()
     if not referencias:
         raise RuntimeError(
-            "El tema seleccionado no contiene referencias jurídicas con texto oficial enlazado."
+            "El tema seleccionado no contiene referencias norma-artículo con "
+            "texto oficial enlazado."
         )
+
+    if not exigir_ejemplos:
+        return [
+            cargar_contexto(con, convocatoria_id, int(r["id"]))
+            for r in referencias
+        ]
 
     normas = sorted({int(r["norma_id"]) for r in referencias})
     marcadores = ",".join("?" for _ in normas)
@@ -439,16 +459,20 @@ def obtener_referencias_aptas_del_tema(
     ).fetchall()
 
     articulos_con_ejemplos: set[tuple[int, str]] = set()
-    for p in preguntas:
-        art = normalizar_articulo(p["articulo_normalizado"])
-        if art is not None:
-            articulos_con_ejemplos.add((int(p["norma_id_normalizada"]), art))
+    for pregunta in preguntas:
+        articulo = normalizar_articulo(pregunta["articulo_normalizado"])
+        if articulo is not None:
+            articulos_con_ejemplos.add(
+                (int(pregunta["norma_id_normalizada"]), articulo)
+            )
 
     aptas_ids: list[int] = []
-    for r in referencias:
-        art = normalizar_articulo(r["articulo_solicitado"])
-        if art is not None and (int(r["norma_id"]), art) in articulos_con_ejemplos:
-            aptas_ids.append(int(r["id"]))
+    for referencia in referencias:
+        articulo = normalizar_articulo(referencia["articulo_solicitado"])
+        if articulo is not None and (
+            int(referencia["norma_id"]), articulo
+        ) in articulos_con_ejemplos:
+            aptas_ids.append(int(referencia["id"]))
 
     if not aptas_ids:
         raise RuntimeError(
@@ -460,7 +484,6 @@ def obtener_referencias_aptas_del_tema(
         cargar_contexto(con, convocatoria_id, referencia_id)
         for referencia_id in aptas_ids
     ]
-
 
 def obtener_referencias_aptas_todos_temas(
     con: sqlite3.Connection,
@@ -931,12 +954,9 @@ def cargar_ejemplos(
         if normalizar_articulo(f["articulo_normalizado"]) == articulo_base
     ]
 
-    if not ejemplos:
-        raise RuntimeError(
-            "No existen preguntas del banco de esta convocatoria para la norma-artículo seleccionada. "
-            "El experimento exige ejemplos reales/ya existentes."
-        )
-
+    # Los ejemplos mejoran diversidad y detección de clonación, pero no son una
+    # precondición: una norma nueva debe poder generar su primera pregunta si la
+    # fuente oficial es suficiente.
     return ejemplos[:max_ejemplos]
 
 
@@ -1387,6 +1407,21 @@ AUDITORÍA OBLIGATORIA
 3. Indica si existe exactamente una respuesta correcta.
 4. Indica si para resolverla hace falta información jurídica externa a la fuente.
 5. Comprueba si la referencia propuesta corresponde al artículo suministrado.
+   REGLA DE GRANULARIDAD DE REFERENCIA:
+   - Si la fuente suministrada es, por ejemplo, el artículo 16 completo, una
+     referencia más precisa al 16.6, 16.2.a), etc. se considera CORRECTA si
+     ese apartado/subapartado pertenece realmente al mismo artículo y el
+     contenido usado por la pregunta puede comprobarse en el texto suministrado.
+   - También puede ser CORRECTA una referencia a varios apartados del MISMO
+     artículo (por ejemplo 22.1.a) y 22.1.b)) si todos ellos son pertinentes
+     para justificar la respuesta o descartar distractores y están contenidos
+     en la fuente suministrada.
+   - NO marques referencia_correcta=true si cambia el artículo principal, si
+     cita un apartado/subapartado que no puede comprobarse en el texto, si
+     añade otra norma/artículo no suministrado o si la referencia es materialmente
+     incorrecta.
+   - La mera diferencia entre citar el artículo completo y citar con mayor
+     precisión uno de sus apartados NO es motivo de rechazo.
 6. Valora la dificultad como ALTA, MUY_ALTA o INSUFICIENTE.
 7. No rechaces una PRACTICA por aplicar directamente una regla a hechos concretos.
 8. No corrijas ni reescribas la candidata.
@@ -2126,6 +2161,7 @@ def generar_lote(
     modelo_generacion: str,
     modelo_validacion: str,
     max_ejemplos: int,
+    usar_modelo_examen: bool = True,
 ) -> list[dict[str, Any]]:
     iniciar_ejecucion_generacion()
 
@@ -2151,7 +2187,7 @@ def generar_lote(
 
     avisos_perfil: list[str] = []
 
-    if str(tipo_pregunta).strip().upper() == "TEORICA":
+    if str(tipo_pregunta).strip().upper() == "TEORICA" and usar_modelo_examen:
         convocatoria_ids = {
             int(ctx.convocatoria_id)
             for ctx in contextos_validos
@@ -2173,9 +2209,8 @@ def generar_lote(
             cantidad,
         )
     else:
-        # PRACTICA: de momento utiliza todas las referencias prácticas aptas
-        # de la convocatoria. El perfil práctico podrá incorporarse a la misma
-        # tabla cuando se cierre su patrón de examen.
+        # Tema/referencia/todos-temas, y PRACTICA: se limita estrictamente a los
+        # contextos seleccionados; no se reinyecta el modelo global del examen.
         secuencia = secuencia_contextos_lote(
             contextos_validos,
             cantidad,
@@ -2192,7 +2227,7 @@ def generar_lote(
     print(f"Referencias aptas originales......... {len(contextos)}")
     print(f"Referencias con fuente completa...... {len(contextos_validos)}")
 
-    if str(tipo_pregunta).strip().upper() == "TEORICA":
+    if str(tipo_pregunta).strip().upper() == "TEORICA" and usar_modelo_examen:
         print("Reparto............................... convocatoria_modelo_bloques")
         print("\nDISTRIBUCIÓN DEL LOTE")
         for parte, norma, n in resumen_reparto_secuencia(secuencia):
@@ -2202,7 +2237,7 @@ def generar_lote(
             for aviso in avisos_perfil:
                 print(f"  - {aviso}")
     else:
-        print("Reparto............................... referencias prácticas aptas")
+        print("Reparto............................... referencias seleccionadas")
 
     print("Registro.............................. UN SOLO HTML")
 
@@ -2275,8 +2310,47 @@ def generar_lote(
         finalizar_ejecucion_generacion()
 
 
-def metadatos_norma_desde_ejemplos(ejemplos: list[dict[str, Any]]) -> dict[str, Any]:
-    # Se reutiliza la forma ya existente en las preguntas del mismo banco/norma.
+def _tipo_norma_desde_nombre(nombre: str) -> tuple[str, str]:
+    """Infiere solo tipos normativos inequívocos; ante duda, falla de forma segura."""
+    limpio = re.sub(r"\s+", " ", str(nombre or "").strip())
+    bajo = limpio.casefold()
+    reglas = (
+        ("constitución", "Constitución", "CONSTITUCION"),
+        ("constitucion", "Constitución", "CONSTITUCION"),
+        ("ley orgánica", "Ley Orgánica", "LEY_ORGANICA"),
+        ("ley organica", "Ley Orgánica", "LEY_ORGANICA"),
+        ("real decreto legislativo", "Real Decreto Legislativo", "REAL_DECRETO_LEGISLATIVO"),
+        ("real decreto-ley", "Real Decreto-ley", "DECRETO_LEY"),
+        ("real decreto ley", "Real Decreto-ley", "DECRETO_LEY"),
+        ("decreto legislativo", "Decreto Legislativo", "DECRETO_LEGISLATIVO"),
+        ("decreto-ley", "Decreto-ley", "DECRETO_LEY"),
+        ("decreto ley", "Decreto-ley", "DECRETO_LEY"),
+        ("real decreto", "Real Decreto", "REAL_DECRETO"),
+        ("ley ", "Ley", "LEY"),
+        ("decreto ", "Decreto", "DECRETO"),
+        ("orden ", "Orden", "ORDEN"),
+        ("reglamento ", "Reglamento", "REGLAMENTO"),
+        ("tratado ", "Tratado", "TRATADO_UE"),
+        ("directiva ", "Directiva", "DIRECTIVA"),
+    )
+    for prefijo, original, normalizado in reglas:
+        if bajo.startswith(prefijo):
+            return original, normalizado
+    raise RuntimeError(
+        "No hay ejemplos previos y no se puede inferir con seguridad el tipo "
+        f"de norma a partir de {nombre!r}. No se publica la candidata."
+    )
+
+
+def metadatos_norma_para_publicacion(
+    con: sqlite3.Connection,
+    ctx: ContextoReferencia,
+    ejemplos: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """
+    Reutiliza metadatos existentes cuando los hay. Para la primera pregunta de
+    una norma, deriva solo los datos inequívocos del propio temario/catálogo.
+    """
     for p in ejemplos:
         if p.get("tipo_norma_normalizado") and p.get("nombre_norma_normalizado"):
             return {
@@ -2285,8 +2359,40 @@ def metadatos_norma_desde_ejemplos(ejemplos: list[dict[str, Any]]) -> dict[str, 
                 "tipo_norma_normalizado": p.get("tipo_norma_normalizado"),
                 "nombre_norma_normalizado": p.get("nombre_norma_normalizado"),
             }
-    raise RuntimeError("No hay un ejemplo con metadatos normalizados de norma para reutilizar.")
 
+    # Si la misma norma ya tiene preguntas en lote_preguntas (aunque no sean del
+    # artículo seleccionado), reutilizamos su forma normalizada.
+    fila = con.execute(
+        """
+        SELECT tipo_norma, nombre_norma,
+               tipo_norma_normalizado, nombre_norma_normalizado
+        FROM lote_preguntas
+        WHERE tipo_clasificacion = 'JURIDICA'
+          AND norma_id_normalizada = ?
+          AND TRIM(COALESCE(tipo_norma_normalizado,'')) <> ''
+          AND TRIM(COALESCE(nombre_norma_normalizado,'')) <> ''
+        ORDER BY id
+        LIMIT 1
+        """,
+        (int(ctx.norma_id),),
+    ).fetchone()
+    if fila is not None:
+        return dict(fila)
+
+    nombre = str(ctx.nombre_norma_csv or "").strip()
+    nombre_normalizado = str(ctx.nombre_norma_normalizada or "").strip()
+    if not nombre or not nombre_normalizado:
+        raise RuntimeError(
+            "La referencia del temario no contiene nombre de norma suficiente "
+            "para publicar la primera pregunta."
+        )
+    tipo_norma, tipo_norma_normalizado = _tipo_norma_desde_nombre(nombre)
+    return {
+        "tipo_norma": tipo_norma,
+        "nombre_norma": nombre,
+        "tipo_norma_normalizado": tipo_norma_normalizado,
+        "nombre_norma_normalizado": nombre_normalizado,
+    }
 
 def aprobar(
     con: sqlite3.Connection,
@@ -2340,7 +2446,7 @@ def aprobar(
             ctx,
             MAX_EJEMPLOS_DEFECTO,
         )
-        meta = metadatos_norma_desde_ejemplos(ejemplos)
+        meta = metadatos_norma_para_publicacion(con, ctx, ejemplos)
 
         pregunta = json.loads(g["pregunta_json"])
         validar_estructura_pregunta(pregunta)
@@ -2789,6 +2895,9 @@ def main() -> int:
     with conectar_maestra(ruta_db) as con:
         if args.convocatoria_id is None and not args.codigo: print("ERROR: indique --convocatoria-id o --codigo."); return 1
         convocatoria=obtener_convocatoria(con,args.convocatoria_id,args.codigo); convocatoria_id=int(convocatoria["id"])
+        if args.tipo == "PRACTICA" and not convocatoria_admite_practica(con, convocatoria_id):
+            print("ERROR: la convocatoria no admite preguntas PRACTICA. No existe una regla explícita teorica_practica='PRACTICA'.")
+            return 1
         if args.listar_referencias:
             listar_referencias(con,convocatoria_id)
             return 0
@@ -2797,12 +2906,37 @@ def main() -> int:
             print("ERROR: cantidades deben ser positivas.")
             return 1
 
-        contextos_aptos, temas_aptos = obtener_referencias_aptas_todos_temas(
-            con,
-            convocatoria_id,
+        usar_modelo_examen = (
+            args.referencia_id is None
+            and args.tema_id is None
+            and not args.todos_temas
+            and args.tipo == "TEORICA"
         )
 
-        print(f"Temas jurídicos aptos................. {temas_aptos}")
+        if args.referencia_id is not None:
+            contextos_aptos = [
+                cargar_contexto(con, convocatoria_id, int(args.referencia_id))
+            ]
+            temas_aptos = 1
+            ambito_texto = f"referencia {args.referencia_id}"
+        elif args.tema_id is not None:
+            contextos_aptos = obtener_referencias_aptas_del_tema(
+                con, convocatoria_id, int(args.tema_id), exigir_ejemplos=False
+            )
+            temas_aptos = 1
+            ambito_texto = f"tema_id={args.tema_id}"
+        else:
+            contextos_aptos, temas_aptos = obtener_referencias_aptas_todos_temas(
+                con, convocatoria_id
+            )
+            ambito_texto = (
+                "todos los temas con referencias normativas"
+                if args.todos_temas
+                else "modelo de examen"
+            )
+
+        print(f"Ámbito efectivo....................... {ambito_texto}")
+        print(f"Temas con referencias aptas.......... {temas_aptos}")
         print(f"Referencias aptas totales............. {len(contextos_aptos)}")
 
         generar_lote(
@@ -2813,6 +2947,7 @@ def main() -> int:
             args.modelo_generacion,
             args.modelo_validacion,
             args.max_ejemplos,
+            usar_modelo_examen=usar_modelo_examen,
         )
 
     # La conexión maestra ya está cerrada. Una única operación común

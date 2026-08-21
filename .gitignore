@@ -10,3 +10,8 @@ data_preguntas/
 db/copias_seguridad/
 logs/
 registros/
+__pycache__/
+*.pyc
+publicaciones_web/
+db/oposiciones_antes_*.sqlite3
+db/oposiciones_backup_*.sqlite3

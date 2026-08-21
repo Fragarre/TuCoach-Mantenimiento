@@ -82,7 +82,7 @@ def main() -> int:
 
             refs, inv_refs, dup_refs = constructor.cargar_referencias_juridicas(con, tid)
             eqs, inv_eq, dup_eq = constructor.cargar_equivalencias_no_juridicas(con, tid)
-            jur = constructor.seleccionar_juridicas(con, refs, {})
+            jur = constructor.seleccionar_juridicas(con, cid, refs, {})
             nojur = constructor.seleccionar_no_juridicas(con, eqs, {})
             esperadas = {int(p["id"]): p for p in jur["nuevas"] + nojur["nuevas"]}
 

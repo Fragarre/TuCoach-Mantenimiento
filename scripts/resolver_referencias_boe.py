@@ -42,6 +42,7 @@ from boe_api import (
     BOEError,
     ArticuloBOE,
     buscar_norma,
+    extraer_cita,
     obtener_articulo,
     texto_articulo_suficiente,
 )
@@ -166,9 +167,14 @@ def crear_estructura(conexion: sqlite3.Connection) -> None:
         """
     )
 
-    # Recupera las resoluciones correctas ya existentes antes de introducir
-    # la caché lógica. Así, las referencias completadas en ejecuciones
-    # anteriores pueden reutilizarse inmediatamente.
+    # Recupera resoluciones históricas únicamente cuando TODAS las
+    # referencias completadas de una misma clave normalizada norma+artículo
+    # apuntan al mismo documento y bloque.
+    #
+    # Es importante no usar SELECT DISTINCT sin consenso: dos normas
+    # diferentes pueden compartir tipo+número+año y, por tanto, la misma
+    # nombre_norma_normalizada. En ese caso la caché histórica no es
+    # documentalmente inequívoca y debe resolverse desde la cita original.
     conexion.execute(
         """
         INSERT INTO resoluciones_boe (
@@ -178,26 +184,32 @@ def crear_estructura(conexion: sqlite3.Connection) -> None:
             id_bloque,
             articulo_fuente_id
         )
-        SELECT DISTINCT
+        SELECT
             r.nombre_norma_normalizada,
             REPLACE(TRIM(r.articulo_solicitado), ',', '.'),
-            a.id_boe,
-            a.id_bloque,
-            a.id
+            MAX(a.id_boe),
+            MAX(a.id_bloque),
+            MAX(a.id)
         FROM temario_referencias AS r
         JOIN articulos_fuente AS a
           ON a.id = r.articulo_fuente_id
         WHERE r.estado = 'COMPLETADO'
           AND r.nombre_norma_normalizada <> ''
           AND r.articulo_solicitado <> ''
+        GROUP BY
+            r.nombre_norma_normalizada,
+            REPLACE(TRIM(r.articulo_solicitado), ',', '.')
+        HAVING COUNT(
+            DISTINCT (
+                a.id_boe || '|' ||
+                a.id_bloque || '|' ||
+                CAST(a.id AS TEXT)
+            )
+        ) = 1
         ON CONFLICT(
             nombre_norma_normalizada,
             articulo_solicitado_normalizado
-        ) DO UPDATE SET
-            id_boe = excluded.id_boe,
-            id_bloque = excluded.id_bloque,
-            articulo_fuente_id = excluded.articulo_fuente_id,
-            updated_at = CURRENT_TIMESTAMP
+        ) DO NOTHING
         """
     )
 
@@ -290,11 +302,52 @@ def articulo_normalizado(articulo_solicitado: str) -> str:
     return limpiar(articulo_solicitado).replace(",", ".")
 
 
+def clave_documental_referencia(
+    referencia: Referencia,
+) -> str:
+    """
+    Devuelve una identidad documental más precisa que
+    nombre_norma_normalizada.
+
+    - Para PDFs locales utiliza el identificador real de la fuente.
+    - Para normas BOE utiliza la cita completa extraída por boe_api
+      (tipo, número, año, fecha y ámbito).
+    - Para normas especiales sin patrón número/año utiliza el id_boe
+      validado por buscar_norma().
+    """
+    if tiene_pdf_local(referencia.nombre_norma_csv):
+        norma = buscar_norma_pdf(referencia.nombre_norma_csv)
+        return f"pdf|{limpiar(norma.id_boe)}"
+
+    try:
+        cita = extraer_cita(referencia.nombre_norma_csv)
+        return f"boe-cita|{cita.clave}"
+    except BOEError:
+        norma = buscar_norma(referencia.nombre_norma_csv)
+        return f"boe-id|{limpiar(norma.id_boe)}"
+
+
+def id_fuente_esperada(
+    referencia: Referencia,
+) -> str:
+    """
+    Resuelve la identidad documental real de la norma usando la cita
+    original del temario. Esta comprobación impide reutilizar una
+    resolución cacheada de otra norma que comparta tipo+número+año.
+    """
+    if tiene_pdf_local(referencia.nombre_norma_csv):
+        return limpiar(
+            buscar_norma_pdf(referencia.nombre_norma_csv).id_boe
+        )
+
+    return limpiar(buscar_norma(referencia.nombre_norma_csv).id_boe)
+
+
 def buscar_resolucion_bd(
     conexion: sqlite3.Connection,
     referencia: Referencia,
 ) -> sqlite3.Row | None:
-    return conexion.execute(
+    fila = conexion.execute(
         """
         SELECT
             rb.articulo_fuente_id,
@@ -313,6 +366,27 @@ def buscar_resolucion_bd(
             articulo_normalizado(referencia.articulo_solicitado),
         ),
     ).fetchone()
+
+    if fila is None:
+        return None
+
+    # Defensa crítica:
+    # la clave histórica de resoluciones_boe no distingue normas distintas
+    # que comparten tipo+número+año (por ejemplo dos "Ley 4/2023").
+    # Antes de reutilizar la resolución se valida el id de la fuente contra
+    # la cita ORIGINAL del temario.
+    esperado = id_fuente_esperada(referencia)
+    almacenado = limpiar(fila["id_boe"])
+
+    if almacenado != esperado:
+        print(
+            "  CACHÉ BOE RECHAZADA: "
+            f"almacenada={almacenado} | esperada={esperado} | "
+            f"cita={referencia.nombre_norma_csv}"
+        )
+        return None
+
+    return fila
 
 
 def guardar_resolucion_bd(
@@ -556,9 +630,11 @@ def resolver_una(
 
 
 def clave_cache(referencia: Referencia) -> tuple[str, str]:
+    # La caché del lote debe usar identidad documental y no únicamente
+    # nombre_norma_normalizada, para evitar mezclar normas homónimas.
     return (
-        referencia.nombre_norma_normalizada,
-        referencia.articulo_solicitado.replace(",", "."),
+        clave_documental_referencia(referencia),
+        articulo_normalizado(referencia.articulo_solicitado),
     )
 
 

@@ -737,11 +737,37 @@ def validar_banco_actual(
             }
         )
 
+    if not convocatoria_admite_practica(conexion, convocatoria_id):
+        for fila in conexion.execute(
+            """
+            SELECT bp.id AS banco_pregunta_id,bp.pregunta_id,bp.convocatoria_parte_id,lp.teorica_practica
+            FROM banco_preguntas bp JOIN lote_preguntas lp ON lp.id=bp.pregunta_id
+            WHERE bp.convocatoria_id=?
+              AND UPPER(TRIM(COALESCE(lp.teorica_practica,'')))='PRACTICA'
+            ORDER BY bp.id
+            """,(convocatoria_id,),
+        ):
+            incidencias.append({"tipo":"PRACTICA_NO_ADMITIDA_POR_CONVOCATORIA",**dict(fila)})
+
     return incidencias
+
+
+def convocatoria_admite_practica(conexion: sqlite3.Connection, convocatoria_id: int) -> bool:
+    """PRACTICA exige una regla explícita de la convocatoria."""
+    return conexion.execute(
+        """
+        SELECT 1 FROM convocatoria_parte_reglas r
+        JOIN convocatoria_partes cp ON cp.id=r.convocatoria_parte_id
+        WHERE cp.convocatoria_id=?
+          AND UPPER(TRIM(COALESCE(r.teorica_practica,'')))='PRACTICA'
+        LIMIT 1
+        """,(convocatoria_id,),
+    ).fetchone() is not None
 
 
 def seleccionar_juridicas(
     conexion: sqlite3.Connection,
+    convocatoria_id: int,
     referencias: dict[tuple[int, str], dict[str, Any]],
     existentes: dict[int, dict[str, Any]],
 ) -> dict[str, list[dict[str, Any]]]:
@@ -776,9 +802,15 @@ def seleccionar_juridicas(
         (CLASIFICACION_JURIDICA,),
     ).fetchall()
 
+    admite_practica = convocatoria_admite_practica(conexion, convocatoria_id)
+
     for fila_sql in filas:
         pregunta = dict(fila_sql)
         pregunta_id = int(pregunta["id"])
+
+        if str(pregunta.get("teorica_practica") or "").strip().upper() == "PRACTICA" and not admite_practica:
+            resultado["fuera_temario"].append({**pregunta,"motivo":"PRACTICA_NO_ADMITIDA_POR_CONVOCATORIA"})
+            continue
 
         # FILTRO_APTITUD_JURIDICA_VIGENCIA_NORMALIZACION_V1
         estado_vigencia = str(pregunta.get("estado_vigencia") or "").strip().upper()
@@ -1506,6 +1538,7 @@ def main() -> None:
 
         juridicas = seleccionar_juridicas(
             conexion,
+            convocatoria_id,
             referencias_juridicas,
             existentes,
         )

@@ -372,6 +372,49 @@ def ejecutar_resolvedor(
     )
 
 
+def ejecutar_resolvedor_temario(
+    python: str,
+    resolvedor: Path,
+    db: Path,
+    temario_id: int,
+    reintentar_pendientes: bool,
+    solo_pdf_local: bool = False,
+) -> subprocess.CompletedProcess[str]:
+    comando = [
+        python,
+        str(resolvedor),
+        "--db", str(db),
+        "--temario-id", str(temario_id),
+        "--sin-copia-seguridad",
+    ]
+    if reintentar_pendientes:
+        comando.append("--reintentar-pendientes")
+    if solo_pdf_local:
+        comando.append("--solo-pdf-local")
+
+    # Se transmite la salida en tiempo real y, a la vez, se conserva para
+    # el informe. Así cada nueva incorporación da feedback inmediato.
+    proceso = subprocess.Popen(
+        comando,
+        cwd=RAIZ,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        bufsize=1,
+    )
+    salida: list[str] = []
+    assert proceso.stdout is not None
+    for linea in proceso.stdout:
+        print(linea, end="", flush=True)
+        salida.append(linea)
+    retorno = proceso.wait()
+    return subprocess.CompletedProcess(
+        comando, retorno, "".join(salida), ""
+    )
+
+
 def auditar_convocatoria(
     conexion: sqlite3.Connection,
     temario_id: int,
@@ -765,48 +808,67 @@ def main() -> None:
         copia = crear_copia_seguridad(ruta_db, marca)
         print(f"Copia de seguridad: {copia}")
 
-        total = len(referencias_a_procesar)
+        print(
+            "Resolución en lote del temario: se procesa en una única ejecución "
+            "para reutilizar caché y PDF locales."
+        )
+        resultado = ejecutar_resolvedor_temario(
+            python=sys.executable,
+            resolvedor=ruta_resolvedor,
+            db=ruta_db,
+            temario_id=temario_id,
+            reintentar_pendientes=args.reintentar_pendientes,
+        )
+        registro = {
+            "referencia_id": "LOTE_TEMARIO",
+            "codigo_salida": resultado.returncode,
+            "stdout": resultado.stdout.strip(),
+            "stderr": resultado.stderr.strip(),
+        }
+        ejecuciones.append(registro)
+        if resultado.returncode != 0:
+            errores_ejecucion += 1
+            print(f"ERROR DE EJECUCIÓN DEL LOTE: código {resultado.returncode}")
+            if resultado.stderr.strip():
+                print(resultado.stderr.strip())
 
-        for posicion, referencia in enumerate(
-            referencias_a_procesar,
-            start=1,
-        ):
-            referencia_id = int(referencia["referencia_id"])
-
+        # Segunda pasada explícita y local. Es idempotente: sólo selecciona
+        # referencias todavía pendientes que tengan un PDF inequívoco en
+        # fuentes_normativas/. No repite las ya completadas ni usa Internet.
+        with sqlite3.connect(ruta_db) as conexion:
+            conexion.row_factory = sqlite3.Row
+            restantes = [
+                fila for fila in cargar_referencias(conexion, temario_id)
+                if fila["estado"] in estados_a_procesar(True)
+            ]
+        if restantes:
+            print()
+            print("FALLBACK LOCAL AUTOMÁTICO")
             print(
-                f"[{posicion}/{total}] Referencia {referencia_id}: "
-                f"{referencia['nombre_norma_csv']} | "
-                f"art. {referencia['articulo_solicitado']}"
+                f"Referencias todavía pendientes tras la primera pasada: {len(restantes)}"
             )
-
-            resultado = ejecutar_resolvedor(
+            resultado_local = ejecutar_resolvedor_temario(
                 python=sys.executable,
                 resolvedor=ruta_resolvedor,
                 db=ruta_db,
-                referencia_id=referencia_id,
+                temario_id=temario_id,
+                reintentar_pendientes=True,
+                solo_pdf_local=True,
             )
-
-            registro = {
-                "referencia_id": referencia_id,
-                "codigo_salida": resultado.returncode,
-                "stdout": resultado.stdout.strip(),
-                "stderr": resultado.stderr.strip(),
-            }
-            ejecuciones.append(registro)
-
-            if resultado.returncode != 0:
+            ejecuciones.append({
+                "referencia_id": "LOTE_PDF_LOCAL",
+                "codigo_salida": resultado_local.returncode,
+                "stdout": resultado_local.stdout.strip(),
+                "stderr": resultado_local.stderr.strip(),
+            })
+            if resultado_local.returncode != 0:
                 errores_ejecucion += 1
                 print(
-                    f"  ERROR DE EJECUCIÓN: código "
-                    f"{resultado.returncode}"
+                    "ERROR DE EJECUCIÓN DEL FALLBACK LOCAL: "
+                    f"código {resultado_local.returncode}"
                 )
-                if resultado.stderr.strip():
-                    print(f"  {resultado.stderr.strip()}")
-
-                if args.detener_en_error:
-                    break
-            else:
-                print("  Ejecución terminada.")
+                if resultado_local.stderr.strip():
+                    print(resultado_local.stderr.strip())
     else:
         print("No hay referencias seleccionadas para procesar.")
 

@@ -1,0 +1,39 @@
+{
+  "convocatoria": {
+    "puesto": "A2",
+    "numero": "31/26",
+    "anio": 2026,
+    "codigo": "A2-01_31_26",
+    "numero_preguntas": 125,
+    "tiene_partes": 1,
+    "valoracion_test_acierto": 1.0,
+    "valoracion_test_fallo": 0.3333,
+    "valoracion_test_no_contesta": 0.0,
+    "formula_nota": "(acertadas - falladas * valoracion_test_fallo) / numero_preguntas",
+    "factor_escala_nota": 10.0,
+    "temario_csv": "data_convocatorias/CONV_A2-01_31_26/temario.csv"
+  },
+  "partes": [
+    {
+      "nombre": "GENERAL",
+      "numero_preguntas": 40,
+      "orden": 1
+    },
+    {
+      "nombre": "ESPECIAL TEORIA A201",
+      "numero_preguntas": 60,
+      "orden": 2
+    },
+    {
+      "nombre": "ESPECIAL PRACTICA A201",
+      "numero_preguntas": 25,
+      "orden": 3
+    }
+  ],
+  "temario": {
+    "csv": "data_convocatorias/CONV_A2-01_31_26/temario.csv",
+    "nombre": "Temario oficial",
+    "encoding": null,
+    "sincronizar_eliminaciones": false
+  }
+}

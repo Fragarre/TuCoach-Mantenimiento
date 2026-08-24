@@ -221,10 +221,28 @@ def seleccionar_fuente_canonica(grupo: list[dict]) -> dict:
     return candidatas[0]
 
 
-def construir_plan(con: sqlite3.Connection):
+def construir_plan(
+    con: sqlite3.Connection,
+    ids_fuente: list[str] | None = None,
+):
+    fuentes = list(v7.FUENTES_PDF)
+    if ids_fuente:
+        solicitados = {limpiar(x).upper() for x in ids_fuente}
+        por_id = {limpiar(f.id_fuente).upper(): f for f in fuentes}
+        desconocidos = sorted(solicitados - set(por_id))
+        if desconocidos:
+            raise RuntimeError(
+                "Fuentes DOGV no configuradas: " + ", ".join(desconocidos)
+            )
+        # La cobertura histórica de una misma norma puede estar repartida entre
+        # varios IDs. Si se selecciona uno, se procesan todas las fuentes de esa
+        # misma norma para conservar la lógica V7 existente.
+        normas = {por_id[x].norma for x in solicitados}
+        fuentes = [f for f in fuentes if f.norma in normas]
+
     evaluadas = [
         evaluar_fuente(fuente, con)
-        for fuente in v7.FUENTES_PDF
+        for fuente in fuentes
     ]
 
     por_norma: dict[str, list[dict]] = {}
@@ -510,6 +528,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default=str(DB_DEFECTO))
     parser.add_argument("--aplicar", action="store_true")
+    parser.add_argument(
+        "--id-fuente",
+        action="append",
+        help=(
+            "Limita el plan a la norma correspondiente a esta fuente DOGV. "
+            "Puede repetirse. Sin esta opción conserva el comportamiento global."
+        ),
+    )
     args = parser.parse_args()
 
     ruta_db = Path(args.db).resolve()
@@ -531,7 +557,7 @@ def main() -> int:
         if not args.aplicar:
             con.execute("PRAGMA query_only = ON")
         validar_estructura(con)
-        inserciones, reparaciones, resumen = construir_plan(con)
+        inserciones, reparaciones, resumen = construir_plan(con, args.id_fuente)
 
     print("=" * 78)
     print("PLAN POR NORMA")

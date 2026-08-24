@@ -462,35 +462,41 @@ def alta_convocatoria() -> None:
 
 
 def construir_corpus() -> None:
+    cabecera_submenu(
+        "CONSTRUIR CORPUS DE CONVOCATORIA",
+        "Construye de forma encadenada los dos corpus: artículos citados por el "
+        "temario para generación IA y normas completas del mismo temario para el RAG del Chat.",
+    )
     argumentos = argumentos_convocatoria()
 
     print("\nModo")
-    print("1. Construir o completar el corpus")
-    print("2. Solo validar el estado actual")
+    print("1. Solo validar el estado actual                         [SOLO LECTURA]")
+    print("2. Construir/completar ambos corpus                     [ESCRIBE · BACKUP]")
+    print("0. Cancelar")
     opcion = input("Opción: ").strip()
 
-    if opcion == "2":
-        argumentos.append("--solo-validar")
-    elif opcion != "1":
+    if opcion == "0":
+        return
+    if opcion not in {"1", "2"}:
         print("Opción no válida.")
         pausa()
         return
 
-    if opcion == "1":
-        if pedir_si_no("¿Reintentar referencias pendientes?"):
-            argumentos.append("--reintentar-pendientes")
+    if pedir_si_no("¿Reintentar referencias pendientes?"):
+        argumentos.append("--reintentar-pendientes")
 
-        if pedir_si_no(
-            "¿Reparar también artículos COMPLETADO cuyo texto sea "
-            "manifiestamente incompleto?"
-        ):
-            argumentos.append("--reparar-textos-incompletos")
-
-        if pedir_si_no("¿Detener el proceso al primer error?"):
-            argumentos.append("--detener-en-error")
+    if opcion == "2":
+        argumentos.append("--aplicar")
+        print(
+            "\nSe construirá primero el corpus IA. Solo si queda completo se ampliarán "
+            "las normas del RAG correspondientes exclusivamente a esta convocatoria."
+        )
+        if not pedir_si_no("¿Continuar con la construcción de ambos corpus?"):
+            pausa()
+            return
 
     ejecutar_script(
-        "construir_corpus_convocatoria.py",
+        "construir_corpus_doble_convocatoria.py",
         *argumentos,
     )
     pausa()
@@ -1771,6 +1777,15 @@ def limpiar_temporales_menu() -> None:
     pausa()
 
 
+def configurar_reglas_partes_menu() -> None:
+    cabecera_submenu(
+        "CONFIGURAR REGLAS DE PARTES",
+        "[ESCRIBE · BACKUP] Define explícitamente cómo se asignan las preguntas a cada parte del examen.",
+    )
+    ejecutar_script("configurar_reglas_partes.py", "--db", "db/oposiciones.sqlite3")
+    pausa()
+
+
 def configurar_modelo_examen_menu() -> None:
     cabecera_submenu(
         "CONFIGURAR MODELO DE EXAMEN",
@@ -1850,13 +1865,14 @@ def submenu_convocatorias() -> None:
         print("1. Extraer temario desde PDF                          [CREA CSV]")
         print("2. Alta de convocatoria y temario                     [VALIDA → ESCRIBE]")
         print("3. Importar/sincronizar temario.csv existente         [AVANZADO]")
-        print("4. Construir o validar corpus jurídico                [BOE]")
+        print("4. Construir/validar corpus IA + RAG de convocatoria   [BOE + DOGV + DOUE]")
         print("5. Resolver/reparar referencias BOE                   [AVANZADO]")
         print("6. Auditar corpus jurídico                            [SOLO LECTURA]")
         print("7. Configurar modelo de examen                        [ESCRIBE · BACKUP]")
         print("8. Localizar norma / índice / alcance BOE             [CONSULTA WEB]")
         print("9. Consultar artículo consolidado BOE                 [CONSULTA WEB]")
         print("10. Mantener corpus normativo del Chat                 [BOE + DOGV + DOUE]")
+        print("11. Configurar reglas de partes                        [ESCRIBE · BACKUP]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -1867,6 +1883,7 @@ def submenu_convocatorias() -> None:
             "7":configurar_modelo_examen_menu, "8":localizador_normativa_menu,
             "9":consultar_articulo_boe_menu,
             "10":mantener_corpus_chat_menu,
+            "11":configurar_reglas_partes_menu,
         }
         fn=acciones.get(op)
         if fn: fn()

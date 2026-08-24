@@ -217,6 +217,7 @@ def crear_estructura(conexion: sqlite3.Connection) -> None:
 def cargar_referencias(
     conexion: sqlite3.Connection,
     referencia_id: int | None,
+    temario_id: int | None,
     limite: int | None,
     reintentar_pendientes: bool,
     reparar_textos_incompletos: bool,
@@ -244,6 +245,13 @@ def cargar_referencias(
         marcadores = ", ".join("?" for _ in estados)
         condiciones.append(f"r.estado IN ({marcadores})")
         parametros.extend(estados)
+
+    if temario_id is not None:
+        condiciones.append(
+            "EXISTS (SELECT 1 FROM temario_temas tt "
+            "WHERE tt.id=r.tema_id AND tt.temario_id=?)"
+        )
+        parametros.append(temario_id)
 
     sql = f"""
         SELECT
@@ -974,11 +982,24 @@ def resolver(args: argparse.Namespace) -> None:
         referencias = cargar_referencias(
             conexion=conexion,
             referencia_id=args.referencia_id,
+            temario_id=args.temario_id,
             limite=args.limite,
             reintentar_pendientes=args.reintentar_pendientes,
             reparar_textos_incompletos=args.reparar_textos_incompletos,
             reparar_mezclas_versiones=args.reparar_mezclas_versiones,
         )
+        if args.solo_pdf_local:
+            total_antes_filtro = len(referencias)
+            referencias = [
+                ref for ref in referencias
+                if tiene_pdf_local(ref.nombre_norma_csv)
+            ]
+            print(
+                "Fallback PDF local: "
+                f"{len(referencias)} de {total_antes_filtro} referencias pendientes "
+                "tienen un PDF local inequívoco."
+            )
+
         estadisticas["seleccionadas"] = len(referencias)
 
         if not referencias:
@@ -1165,6 +1186,11 @@ def construir_parser() -> argparse.ArgumentParser:
         type=int,
         help="Procesa exclusivamente una referencia concreta.",
     )
+    parser.add_argument(
+        "--temario-id",
+        type=int,
+        help="Limita el lote exclusivamente a las referencias de un temario.",
+    )
 
     parser.add_argument(
         "--articulo-fuente-id",
@@ -1183,6 +1209,15 @@ def construir_parser() -> argparse.ArgumentParser:
             "Incluye también referencias en estado PENDIENTE. "
             "Por defecto solo procesa SIN_RESOLVER y "
             "ERROR_CONSULTA_BOE."
+        ),
+    )
+
+    parser.add_argument(
+        "--solo-pdf-local",
+        action="store_true",
+        help=(
+            "Procesa únicamente referencias para las que existe un PDF local "
+            "inequívoco en fuentes_normativas/. No consulta proveedores remotos."
         ),
     )
 
@@ -1232,6 +1267,10 @@ def validar_argumentos(args: argparse.Namespace) -> None:
 
     if args.referencia_id is not None and args.referencia_id <= 0:
         raise ValueError("--referencia-id debe ser mayor que cero.")
+    if args.temario_id is not None and args.temario_id <= 0:
+        raise ValueError("--temario-id debe ser mayor que cero.")
+    if args.referencia_id is not None and args.temario_id is not None:
+        raise ValueError("--referencia-id y --temario-id no pueden combinarse.")
 
     if args.articulo_fuente_id is not None and args.articulo_fuente_id <= 0:
         raise ValueError("--articulo-fuente-id debe ser mayor que cero.")
@@ -1249,6 +1288,8 @@ def validar_argumentos(args: argparse.Namespace) -> None:
             incompatibles.append("--limite")
         if args.referencia_id is not None:
             incompatibles.append("--referencia-id")
+        if args.temario_id is not None:
+            incompatibles.append("--temario-id")
         if args.reintentar_pendientes:
             incompatibles.append("--reintentar-pendientes")
         if args.reparar_textos_incompletos:

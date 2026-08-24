@@ -161,11 +161,25 @@ def evaluar_fuente(
     }
 
 
-def construir_plan(con: sqlite3.Connection):
+def construir_plan(
+    con: sqlite3.Connection,
+    ids_fuente: list[str] | None = None,
+):
     inserciones: list[Insercion] = []
     resumen = []
 
-    for fuente in auditor.FUENTES_DOUE:
+    fuentes = list(auditor.FUENTES_DOUE)
+    if ids_fuente:
+        solicitados = {limpiar(x).upper() for x in ids_fuente}
+        por_id = {limpiar(f.id_fuente).upper(): f for f in fuentes}
+        desconocidos = sorted(solicitados - set(por_id))
+        if desconocidos:
+            raise RuntimeError(
+                "Fuentes DOUE no configuradas: " + ", ".join(desconocidos)
+            )
+        fuentes = [f for f in fuentes if limpiar(f.id_fuente).upper() in solicitados]
+
+    for fuente in fuentes:
         d = evaluar_fuente(fuente, con)
 
         for numero in sorted(d["ausentes"]):
@@ -354,6 +368,14 @@ def main() -> int:
         "--aplicar",
         action="store_true",
     )
+    parser.add_argument(
+        "--id-fuente",
+        action="append",
+        help=(
+            "Limita el plan a esta fuente DOUE. Puede repetirse. "
+            "Sin esta opción conserva el comportamiento global."
+        ),
+    )
     args = parser.parse_args()
 
     ruta_db = Path(args.db).resolve()
@@ -380,7 +402,7 @@ def main() -> int:
             con.execute("PRAGMA query_only = ON")
 
         validar_estructura(con)
-        inserciones, resumen = construir_plan(con)
+        inserciones, resumen = construir_plan(con, args.id_fuente)
 
     print("=" * 78)
     print("PLAN POR TRATADO")

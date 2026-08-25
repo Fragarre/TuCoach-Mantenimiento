@@ -165,7 +165,7 @@ def evaluar_fuente(
     if not ruta.exists():
         raise RuntimeError(f"Falta la fuente: {ruta}")
 
-    resultado, intentos = v7.obtener_extraccion_valida(ruta)
+    resultado, intentos = v7.obtener_extraccion_valida(ruta, fuente)
 
     if resultado["errores"]:
         detalle = "; ".join(resultado["errores"])

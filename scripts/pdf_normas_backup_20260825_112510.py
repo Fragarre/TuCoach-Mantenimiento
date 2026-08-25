@@ -175,11 +175,6 @@ def _id_desde_cabecera(cabecera: str, titulo: str, ruta: Path) -> str:
     m = re.search(r"(?im)^\s*Referencia:\s*(BOE-A-\d{4}-\d+)\s*$", cabecera)
     if m:
         return m.group(1).upper()
-    # Los PDF oficiales del BOE publicados en el diario llevan el identificador
-    # como CVE en el pie, aunque no incluyan una línea "Referencia:".
-    m = re.search(r"(?im)\bcve:\s*(BOE-A-\d{4}-\d+)\b", cabecera)
-    if m:
-        return m.group(1).upper()
     m = re.search(r"(?im)^\s*CVE:\s*(DOGV-(?:[A-Z]-)?\d{4}-\d+)\b", cabecera)
     if m:
         return m.group(1).upper()
@@ -197,12 +192,7 @@ def _id_desde_cabecera(cabecera: str, titulo: str, ruta: Path) -> str:
 def _departamento_desde_cabecera(cabecera: str, id_fuente: str) -> str:
     lineas = [re.sub(r"\s+", " ", x).strip() for x in cabecera.splitlines() if x.strip()]
     if id_fuente.startswith("BOE-A-"):
-        # En disposiciones autonómicas publicadas también en el BOE, el
-        # departamento jurídico es la comunidad autónoma, no el propio BOE.
         for linea in lineas[:30]:
-            n = normalizar(linea)
-            if n == "comunitat valenciana":
-                return "Comunitat Valenciana"
             if linea in {"Jefatura del Estado", "Ministerio de la Presidencia", "Cortes Generales"}:
                 return linea
         return "Boletín Oficial del Estado"

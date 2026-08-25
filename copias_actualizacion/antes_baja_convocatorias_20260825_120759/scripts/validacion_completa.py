@@ -4,21 +4,13 @@ Validación completa de solo lectura de OpoCoach-Mantenimiento.
 Comprueba:
 1. Integridad SQLite y claves foráneas.
 2. Estado básico de banco_preguntas (duplicados y partes nulas).
-3. Duplicados/casi duplicados en lote_preguntas: tras normalizar únicamente
-   mayúsculas/minúsculas y espacios, exige 0 duplicados exactos y 0 pares con
-   al menos 4 de 5 campos idénticos y distancia de edición <= 5 en el quinto.
-4. Calidad mínima de las preguntas INCLUIDAS en bancos:
-   - respuesta_correcta válida (A/B/C/D);
-   - la opción marcada como correcta no puede estar duplicada en otra opción.
-   Las duplicaciones sólo entre distractores se muestran como aviso, pero no bloquean.
-5. Las preguntas en REVISION se contabilizan como cuarentena y no invalidan por sí mismas.
-6. Normalización jurídica: las incompletas pueden permanecer en lote_preguntas,
-   pero nunca entre las preguntas INCLUIDAS del banco.
-7. Vigencia: ningún estado OBSOLETA* puede permanecer entre las preguntas INCLUIDAS.
-8. mantener_banco_preguntas.py en modo SOLO REVISIÓN para cada convocatoria.
-9. auditar_bancos_seleccion.py contra el constructor vigente.
-10. Modelos de examen configurados (si existe la nueva tabla).
-11. auditar_bd.py.
+3. Normalización jurídica: las incompletas pueden permanecer en lote_preguntas,
+   pero nunca en bancos.
+4. Vigencia: ningún estado OBSOLETA* puede permanecer en bancos.
+5. mantener_banco_preguntas.py en modo SOLO REVISIÓN para cada convocatoria.
+6. auditar_bancos_seleccion.py contra el constructor vigente.
+7. Modelos de examen configurados (si existe la nueva tabla).
+8. auditar_bd.py.
 
 No usa --guardar ni modifica tablas.
 """
@@ -97,106 +89,6 @@ def extraer_contadores_constructor(salida: str) -> dict[str, int] | None:
     return valores
 
 
-
-def normalizar_texto_duplicados(texto: str | None) -> str:
-    """Normaliza solo espacios y mayúsculas/minúsculas; no altera contenido."""
-    return re.sub(r"\s+", " ", (texto or "").replace("\xa0", " ")).strip().lower()
-
-
-def distancia_edicion_hasta(a: str, b: str, limite: int = 5) -> int | None:
-    """Levenshtein acotada. Devuelve None si la distancia supera el límite."""
-    if a == b:
-        return 0
-    if abs(len(a) - len(b)) > limite:
-        return None
-
-    anterior = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        minimo_j = max(1, i - limite)
-        maximo_j = min(len(b), i + limite)
-        actual = [limite + 1] * (len(b) + 1)
-        actual[0] = i
-        minimo_fila = limite + 1
-
-        for j in range(minimo_j, maximo_j + 1):
-            coste = 0 if ca == b[j - 1] else 1
-            actual[j] = min(
-                anterior[j] + 1,
-                actual[j - 1] + 1,
-                anterior[j - 1] + coste,
-            )
-            minimo_fila = min(minimo_fila, actual[j])
-
-        if minimo_fila > limite:
-            return None
-        anterior = actual
-
-    distancia = anterior[len(b)]
-    return distancia if distancia <= limite else None
-
-
-def auditar_duplicados_lote(conexion: sqlite3.Connection) -> tuple[int, int]:
-    """
-    Devuelve:
-      - número de grupos duplicados exactos;
-      - número de pares casi duplicados.
-
-    Regla de casi duplicado:
-      * enunciado + A + B + C + D se comparan por posición;
-      * al menos 4 de los 5 campos son idénticos tras normalización;
-      * el único campo distinto tiene distancia de edición <= 5.
-    """
-    campos = ("enunciado", "opcion_a", "opcion_b", "opcion_c", "opcion_d")
-    filas = conexion.execute(
-        """
-        SELECT id, enunciado, opcion_a, opcion_b, opcion_c, opcion_d
-        FROM lote_preguntas
-        ORDER BY id
-        """
-    ).fetchall()
-
-    normalizadas: dict[int, tuple[str, str, str, str, str]] = {}
-    grupos_exactos: dict[tuple[str, str, str, str, str], list[int]] = {}
-
-    for fila in filas:
-        pregunta_id = int(fila[0])
-        valores = tuple(normalizar_texto_duplicados(fila[i]) for i in range(1, 6))
-        normalizadas[pregunta_id] = valores
-        grupos_exactos.setdefault(valores, []).append(pregunta_id)
-
-    duplicados_exactos = sum(1 for ids in grupos_exactos.values() if len(ids) > 1)
-
-    # Índices por los otros cuatro campos para no comparar todas contra todas.
-    indices: list[dict[tuple[str, ...], list[tuple[int, str]]]] = [
-        {} for _ in range(5)
-    ]
-    for pregunta_id, valores in normalizadas.items():
-        for indice_distinto in range(5):
-            firma = valores[:indice_distinto] + valores[indice_distinto + 1:]
-            indices[indice_distinto].setdefault(firma, []).append(
-                (pregunta_id, valores[indice_distinto])
-            )
-
-    pares_casi: set[tuple[int, int]] = set()
-    for indice in indices:
-        for candidatos in indice.values():
-            if len(candidatos) < 2:
-                continue
-            for i in range(len(candidatos)):
-                id_a, texto_a = candidatos[i]
-                for j in range(i + 1, len(candidatos)):
-                    id_b, texto_b = candidatos[j]
-
-                    # Los exactos se contabilizan aparte.
-                    if texto_a == texto_b:
-                        continue
-
-                    if distancia_edicion_hasta(texto_a, texto_b, 5) is not None:
-                        pares_casi.add((min(id_a, id_b), max(id_a, id_b)))
-
-    return duplicados_exactos, len(pares_casi)
-
-
 def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
     datos: dict[str, int | str] = {}
     try:
@@ -218,56 +110,6 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
             partes_nulas = conexion.execute(
                 "SELECT COUNT(*) FROM banco_preguntas WHERE convocatoria_parte_id IS NULL"
             ).fetchone()[0]
-            duplicados_lote_exactos, duplicados_lote_casi = auditar_duplicados_lote(conexion)
-
-            # Calidad mínima de preguntas actualmente seleccionables.
-            # REVISION es cuarentena válida y se excluye de estos errores.
-            preguntas_incluidas = conexion.execute(
-                """
-                SELECT DISTINCT
-                    lp.id, lp.respuesta_correcta,
-                    lp.opcion_a, lp.opcion_b, lp.opcion_c, lp.opcion_d
-                FROM banco_preguntas bp
-                JOIN lote_preguntas lp ON lp.id = bp.pregunta_id
-                WHERE UPPER(TRIM(COALESCE(bp.estado, ''))) = 'INCLUIDA'
-                """
-            ).fetchall()
-
-            respuestas_invalidas_incluidas = 0
-            correcta_duplicada_incluida = 0
-            distractores_duplicados_incluidos = 0
-
-            for fila in preguntas_incluidas:
-                respuesta = str(fila[1] or '').strip().upper()
-                opciones = {
-                    'A': normalizar_texto_duplicados(fila[2]),
-                    'B': normalizar_texto_duplicados(fila[3]),
-                    'C': normalizar_texto_duplicados(fila[4]),
-                    'D': normalizar_texto_duplicados(fila[5]),
-                }
-
-                if respuesta not in {'A', 'B', 'C', 'D'}:
-                    respuestas_invalidas_incluidas += 1
-                    continue
-
-                texto_correcta = opciones[respuesta]
-                if any(
-                    letra != respuesta and texto == texto_correcta
-                    for letra, texto in opciones.items()
-                ):
-                    correcta_duplicada_incluida += 1
-                    continue
-
-                valores_distractores = [
-                    texto for letra, texto in opciones.items() if letra != respuesta
-                ]
-                if len(set(valores_distractores)) < len(valores_distractores):
-                    distractores_duplicados_incluidos += 1
-
-            revisiones_banco = conexion.execute(
-                "SELECT COUNT(*) FROM banco_preguntas WHERE UPPER(TRIM(COALESCE(estado, '')))='REVISION'"
-            ).fetchone()[0]
-
             convocatorias = conexion.execute(
                 "SELECT COUNT(*) FROM convocatorias"
             ).fetchone()[0]
@@ -332,7 +174,6 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
                 FROM banco_preguntas bp
                 JOIN lote_preguntas lp ON lp.id=bp.pregunta_id
                 WHERE UPPER(TRIM(COALESCE(lp.tipo_clasificacion, '')))='JURIDICA'
-                  AND UPPER(TRIM(COALESCE(bp.estado, '')))='INCLUIDA'
                 """
             ).fetchone()
 
@@ -345,13 +186,7 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
     datos["integrity_check"] = integridad
     datos["foreign_key_errors"] = len(fk)
     datos["duplicados_banco"] = int(duplicados)
-    datos["duplicados_lote_exactos"] = int(duplicados_lote_exactos)
-    datos["duplicados_lote_casi"] = int(duplicados_lote_casi)
     datos["partes_nulas"] = int(partes_nulas)
-    datos["respuestas_invalidas_incluidas"] = int(respuestas_invalidas_incluidas)
-    datos["correcta_duplicada_incluida"] = int(correcta_duplicada_incluida)
-    datos["distractores_duplicados_incluidos"] = int(distractores_duplicados_incluidos)
-    datos["revisiones_banco"] = int(revisiones_banco)
     datos["convocatorias"] = int(convocatorias)
     datos["ia_total"] = int(ia[0] or 0)
     datos["ia_juridicas"] = int(ia[1] or 0)
@@ -367,11 +202,7 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
         str(integridad).lower() == "ok"
         and len(fk) == 0
         and int(duplicados) == 0
-        and int(duplicados_lote_exactos) == 0
-        and int(duplicados_lote_casi) == 0
         and int(partes_nulas) == 0
-        and int(respuestas_invalidas_incluidas) == 0
-        and int(correcta_duplicada_incluida) == 0
         and int(ia[4] or 0) == 0
         and int(prohibidas_banco[0] or 0) == 0
         and int(prohibidas_banco[1] or 0) == 0
@@ -457,14 +288,7 @@ def main() -> int:
     print(f"SQLite integrity_check............... {datos['integrity_check']}")
     print(f"Foreign key errors................... {datos['foreign_key_errors']}")
     print(f"Duplicados en banco.................. {datos['duplicados_banco']}")
-    print(f"Duplicados exactos en lote............ {datos['duplicados_lote_exactos']}")
-    print(f"Casi duplicados en lote............... {datos['duplicados_lote_casi']}")
     print(f"Partes de convocatoria NULAS......... {datos['partes_nulas']}")
-    print("\nCalidad mínima de preguntas INCLUIDAS:")
-    print(f"  Respuesta correcta inválida......... {datos['respuestas_invalidas_incluidas']}")
-    print(f"  Opción correcta duplicada............ {datos['correcta_duplicada_incluida']}")
-    print(f"  Distractores duplicados (AVISO)...... {datos['distractores_duplicados_incluidos']}")
-    print(f"  Vinculaciones en REVISION............ {datos['revisiones_banco']}")
     print("\nNormalización/vigencia jurídica:")
     print(f"  Jurídicas totales................... {datos['juridicas_total']}")
     print(f"  Incompletas en lote (rechazadas).... {datos['juridicas_incompletas_lote']}")

@@ -218,6 +218,62 @@ def convocatoria_admite_practica(con: sqlite3.Connection, convocatoria_id: int) 
     ).fetchone() is not None
 
 
+def partes_temario_admitidas_para_practica(
+    con: sqlite3.Connection,
+    convocatoria_id: int,
+) -> tuple[str, ...]:
+    """
+    Obtiene de convocatoria_parte_reglas las partes del temario que pueden
+    alimentar preguntas jurídicas PRACTICA en esta convocatoria.
+
+    No presupone nombres concretos como GENERAL o ESPECIAL: la relación es
+    exclusivamente data-driven. Las reglas no jurídicas o ligadas a una
+    categoría no jurídica no pertenecen a este generador jurídico.
+    """
+    filas = con.execute(
+        """
+        SELECT r.temario_parte, r.tipo_contenido, r.tema_no_juridico
+        FROM convocatoria_parte_reglas r
+        JOIN convocatoria_partes cp ON cp.id = r.convocatoria_parte_id
+        WHERE cp.convocatoria_id = ?
+          AND UPPER(TRIM(COALESCE(r.teorica_practica,''))) = 'PRACTICA'
+        ORDER BY cp.orden, r.id
+        """,
+        (convocatoria_id,),
+    ).fetchall()
+
+    partes: list[str] = []
+    for fila in filas:
+        tipo = str(fila["tipo_contenido"] or "").strip().upper()
+        if tipo in {"NO_JURIDICO", "INFORMATICA"}:
+            continue
+        if str(fila["tema_no_juridico"] or "").strip():
+            continue
+        parte = str(fila["temario_parte"] or "").strip().upper()
+        if parte and parte not in partes:
+            partes.append(parte)
+
+    if not partes:
+        raise RuntimeError(
+            "La convocatoria admite PRACTICA, pero no tiene ninguna regla "
+            "jurídica PRACTICA con temario_parte definido."
+        )
+
+    return tuple(partes)
+
+
+def filtrar_contextos_para_practica(
+    contextos: list[ContextoReferencia],
+    partes_admitidas: tuple[str, ...],
+) -> list[ContextoReferencia]:
+    permitidas = {str(x).strip().upper() for x in partes_admitidas}
+    return [
+        ctx
+        for ctx in contextos
+        if str(ctx.parte or "").strip().upper() in permitidas
+    ]
+
+
 def extraer_referencia_articulo_precisa(valor: Any) -> str:
     """
     Extrae únicamente la referencia precisa del artículo devuelta por la IA.
@@ -2934,6 +2990,29 @@ def main() -> int:
                 if args.todos_temas
                 else "modelo de examen"
             )
+
+        if args.tipo == "PRACTICA":
+            partes_practica = partes_temario_admitidas_para_practica(
+                con, convocatoria_id
+            )
+            contextos_antes = list(contextos_aptos)
+            contextos_aptos = filtrar_contextos_para_practica(
+                contextos_aptos, partes_practica
+            )
+            if not contextos_aptos:
+                raise RuntimeError(
+                    "La selección indicada no pertenece a ninguna parte del "
+                    "temario admitida por las reglas PRACTICA de esta "
+                    f"convocatoria: {', '.join(partes_practica)}."
+                )
+            temas_aptos = len({int(ctx.tema_id) for ctx in contextos_aptos})
+            excluidas = len(contextos_antes) - len(contextos_aptos)
+            ambito_texto += (
+                " · PRACTICA limitada por reglas a "
+                + ", ".join(partes_practica)
+            )
+            if excluidas:
+                ambito_texto += f" · {excluidas} referencias fuera de ámbito excluidas"
 
         print(f"Ámbito efectivo....................... {ambito_texto}")
         print(f"Temas con referencias aptas.......... {temas_aptos}")

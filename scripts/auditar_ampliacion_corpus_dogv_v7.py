@@ -46,6 +46,7 @@ class Fuente:
     archivo: str
     idioma: str
     canonica: bool = True
+    columna_pdf: str | None = None
 
 
 FUENTES_PDF = (
@@ -62,7 +63,7 @@ FUENTES_PDF = (
     Fuente("Decreto 54/2025", "LOCAL-DOGV-DECRETO-54-2025",
            "Decreto 54_2025.pdf", "es", True),
     Fuente("Orden 19/2013", "LOCAL-DOGV-ORDEN-19-2013",
-           "Orden 19_2013.pdf", "es", True),
+           "ORDEN 192013, de 3 de diciembre.pdf", "es", True, "derecha"),
     Fuente("Ley 4/2026", "LOCAL-DOGV-LEY-4-2026",
            "ley_4_2026_presupuestos_dogv.pdf", "es", True),
 )
@@ -133,9 +134,39 @@ def normalizar_texto_paginas(paginas: list[str]) -> str:
     return texto.strip()
 
 
-def leer_pdf_pymupdf(ruta: Path) -> str:
+def leer_pdf_pymupdf(
+    ruta: Path,
+    columna_pdf: str | None = None,
+) -> str:
     with pymupdf.open(ruta) as doc:
-        paginas = [pagina.get_text("text") or "" for pagina in doc]
+        paginas = []
+        for pagina in doc:
+            if columna_pdf is None:
+                texto_pagina = pagina.get_text("text") or ""
+            elif columna_pdf == "derecha":
+                rect = pagina.rect
+                clip = pymupdf.Rect(
+                    rect.x0 + rect.width / 2,
+                    rect.y0,
+                    rect.x1,
+                    rect.y1,
+                )
+                texto_pagina = pagina.get_text("text", clip=clip) or ""
+            elif columna_pdf == "izquierda":
+                rect = pagina.rect
+                clip = pymupdf.Rect(
+                    rect.x0,
+                    rect.y0,
+                    rect.x0 + rect.width / 2,
+                    rect.y1,
+                )
+                texto_pagina = pagina.get_text("text", clip=clip) or ""
+            else:
+                raise RuntimeError(
+                    f"Columna PDF no soportada: {columna_pdf}"
+                )
+            paginas.append(texto_pagina)
+
     texto = normalizar_texto_paginas(paginas)
     if not texto:
         raise RuntimeError(f"PDF sin texto extraíble con pymupdf: {ruta}")
@@ -182,15 +213,43 @@ def evaluar_extraccion(texto: str):
     }
 
 
-def obtener_extraccion_valida(ruta: Path):
+def obtener_extraccion_valida(
+    ruta: Path,
+    fuente: Fuente | None = None,
+):
     intentos = []
+    columna_pdf = fuente.columna_pdf if fuente is not None else None
 
-    for motor, lector in (
-        ("pymupdf", leer_pdf_pymupdf),
-        ("pypdf", leer_pdf_pypdf),
-    ):
+    # Los PDF bilingües en columnas deben conservar una sola lengua.
+    # En esos casos se usa el recorte geométrico de PyMuPDF; no se hace
+    # fallback a extracción de página completa porque mezclaría idiomas.
+    motores = (
+        (("pymupdf", leer_pdf_pymupdf),)
+        if columna_pdf is not None
+        else (
+            ("pymupdf", leer_pdf_pymupdf),
+            ("pypdf", leer_pdf_pypdf),
+        )
+    )
+
+    for motor, lector in motores:
         try:
-            texto = lector(ruta)
+            if motor == "pymupdf":
+                texto = lector(ruta, columna_pdf=columna_pdf)
+            else:
+                texto = lector(ruta)
+
+            if fuente is not None and fuente.idioma == "es":
+                valencianos = re.findall(
+                    r"(?im)^[ \t]*article[ \t]+\d+",
+                    texto,
+                )
+                if columna_pdf is not None and valencianos:
+                    raise RuntimeError(
+                        "El recorte configurado como castellano contiene "
+                        f"{len(valencianos)} encabezados 'Article'."
+                    )
+
             resultado = evaluar_extraccion(texto)
             resultado["motor"] = motor
             intentos.append(resultado)
@@ -594,7 +653,7 @@ def main():
                 continue
 
             try:
-                resultado, intentos = obtener_extraccion_valida(ruta)
+                resultado, intentos = obtener_extraccion_valida(ruta, fuente)
 
                 texto = resultado["texto"]
                 apariciones = resultado["apariciones"]

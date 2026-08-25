@@ -1841,10 +1841,19 @@ def configurar_reglas_partes_menu() -> None:
 
 def configurar_modelo_examen_menu() -> None:
     cabecera_submenu(
-        "CONFIGURAR MODELO DE EXAMEN",
-        "[ESCRIBE · BACKUP] Define por convocatoria los bloques normativos del modelo.",
+        "CONFIGURAR / MODIFICAR MODELO DE EXAMEN",
+        "[ESCRIBE · BACKUP] Permite ver, crear, modificar/reemplazar o eliminar los bloques normativos del modelo.",
     )
     ejecutar_script("configurar_modelo_examen.py")
+    pausa()
+
+
+def editar_partes_convocatoria_menu() -> None:
+    cabecera_submenu(
+        "EDITAR PARTES DE CONVOCATORIA",
+        "[ESCRIBE · BACKUP] Modifica nombre, número de preguntas y orden conservando los IDs y sus dependencias.",
+    )
+    ejecutar_script("editar_partes_convocatoria.py")
     pausa()
 
 
@@ -1922,11 +1931,12 @@ def submenu_convocatorias() -> None:
         print("5. Construir/validar corpus IA + RAG de convocatoria   [BOE + DOGV + DOUE]")
         print("6. Resolver/reparar referencias BOE                   [AVANZADO]")
         print("7. Auditar corpus jurídico                            [SOLO LECTURA]")
-        print("8. Configurar modelo de examen                        [ESCRIBE · BACKUP]")
-        print("9. Localizar norma / índice / alcance BOE             [CONSULTA WEB]")
-        print("10. Consultar artículo consolidado BOE                [CONSULTA WEB]")
-        print("11. Mantener corpus normativo del Chat                [BOE + DOGV + DOUE]")
-        print("12. Configurar reglas de partes                       [ESCRIBE · BACKUP]")
+        print("8. Configurar / modificar modelo de examen            [ESCRIBE · BACKUP]")
+        print("9. Editar partes de convocatoria                      [ESCRIBE · BACKUP]")
+        print("10. Localizar norma / índice / alcance BOE            [CONSULTA WEB]")
+        print("11. Consultar artículo consolidado BOE                [CONSULTA WEB]")
+        print("12. Mantener corpus normativo del Chat                [BOE + DOGV + DOUE]")
+        print("13. Configurar reglas de partes                       [ESCRIBE · BACKUP]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -1935,10 +1945,11 @@ def submenu_convocatorias() -> None:
             "3":gestionar_estado_convocatoria_menu,
             "4":importar_temario_manual, "5":construir_corpus,
             "6":resolver_referencias_boe_menu, "7":auditar_corpus_temario_menu,
-            "8":configurar_modelo_examen_menu, "9":localizador_normativa_menu,
-            "10":consultar_articulo_boe_menu,
-            "11":mantener_corpus_chat_menu,
-            "12":configurar_reglas_partes_menu,
+            "8":configurar_modelo_examen_menu, "9":editar_partes_convocatoria_menu,
+            "10":localizador_normativa_menu,
+            "11":consultar_articulo_boe_menu,
+            "12":mantener_corpus_chat_menu,
+            "13":configurar_reglas_partes_menu,
         }
         fn=acciones.get(op)
         if fn: fn()

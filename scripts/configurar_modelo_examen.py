@@ -661,7 +661,7 @@ def menu_convocatoria(con: sqlite3.Connection, ruta_db: Path, conv: sqlite3.Row)
         print(f"MODELO DE EXAMEN | {conv['codigo']} | {conv['puesto']}")
         print("=" * 78)
         print("1. Ver modelo configurado")
-        print("2. Configurar / reemplazar modelo de una parte jurídica teórica")
+        print("2. Crear / modificar bloques de una parte jurídica teórica")
         print("3. Validar modelo configurado")
         print("4. Eliminar modelo de una parte")
         print("0. Volver")
@@ -690,7 +690,7 @@ def menu_convocatoria(con: sqlite3.Connection, ruta_db: Path, conv: sqlite3.Row)
             if actuales:
                 print("\nMODELO ACTUAL")
                 mostrar_bloques(con, parte, actuales)
-                if not pedir_si_no("¿Reemplazar completamente este modelo?"):
+                if not pedir_si_no("¿Modificar este modelo? Se volverán a definir sus bloques completos"):
                     continue
             nuevos = construir_bloques_interactivo(con, parte)
             if nuevos is None:

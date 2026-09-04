@@ -1,0 +1,281 @@
+[
+  {
+    "norma_id": 1,
+    "norma": "CONSTITUCIÓN ESPAÑOLA DE 1978",
+    "archivo": "0001_CONSTITUCI_N_ESPA_OLA_DE_1978.pdf",
+    "hash_corpus": "ae525a0052731d555b21e67a5cab685acd47c8ffd5f9f927bc8ff039103cc674",
+    "fuente_canonica_inicial": "BOE-A-1978-31229",
+    "filas_corpus_inicial": 169,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 7,
+    "norma": "DECRETO 30/2025",
+    "archivo": "0007_DECRETO_30_2025.pdf",
+    "hash_corpus": "7d207ba6e4e95c504d13ca13b46d4fb60cfca2377e974ca626603ae1d902c7d3",
+    "fuente_canonica_inicial": "DOGV-2025-3226",
+    "filas_corpus_inicial": 46,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 10,
+    "norma": "DECRETO 42/2019",
+    "archivo": "0010_DECRETO_42_2019.pdf",
+    "hash_corpus": "1c9cdbf4b5dea27de05461ab27f081a59fecef52eee9d500af08fc493528dc6a",
+    "fuente_canonica_inicial": "LOCAL-DOGV-DECRETO-42-2019",
+    "filas_corpus_inicial": 54,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 12,
+    "norma": "DECRETO 54/2025",
+    "archivo": "0012_DECRETO_54_2025.pdf",
+    "hash_corpus": "2641f2fc9afb8256fbeaaad3d217fec9c3097a7caff5ef1a6a8903b4a7851d8f",
+    "fuente_canonica_inicial": "LOCAL-DOGV-DECRETO-54-2025",
+    "filas_corpus_inicial": 62,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 13,
+    "norma": "decreto 76 2026",
+    "archivo": "0013_decreto_76_2026.pdf",
+    "hash_corpus": "e9ece7c00ad7adc528025a85523094d5468354da65864a3b68d47d754136883a",
+    "fuente_canonica_inicial": "DOGV-2026-13821",
+    "filas_corpus_inicial": 19,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 14,
+    "norma": "DECRETO 77/2019",
+    "archivo": "0014_DECRETO_77_2019.pdf",
+    "hash_corpus": "0baf61f4150a7a3289a678f9681b77471ec417320a6bee27ecfa01cfb9f709b8",
+    "fuente_canonica_inicial": "DOGV-CONSOLIDADO-D-2019-077",
+    "filas_corpus_inicial": 41,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 20,
+    "norma": "LEY 1/2015",
+    "archivo": "0020_LEY_1_2015.pdf",
+    "hash_corpus": "5b22c34b54a159bc60cbdbfc0305857cc056a6f7c0b03b05180003fc2ce61a33",
+    "fuente_canonica_inicial": "BOE-A-2015-1952",
+    "filas_corpus_inicial": 183,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 21,
+    "norma": "LEY 1/2022",
+    "archivo": "0021_LEY_1_2022.pdf",
+    "hash_corpus": "f6282392be4c96dc47c482ebd8fa7d5a7a017d47d9651984153786d2107b5ff6",
+    "fuente_canonica_inicial": "BOE-A-2022-8187",
+    "filas_corpus_inicial": 76,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 30,
+    "norma": "LEY 19/2013",
+    "archivo": "0030_LEY_19_2013.pdf",
+    "hash_corpus": "11ed1c3397a6439bf1bb268c16fb3c564c98f3b4d4a908dc36e4f1b4b1b80830",
+    "fuente_canonica_inicial": "BOE-A-2013-12887",
+    "filas_corpus_inicial": 41,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 41,
+    "norma": "LEY 31/1995",
+    "archivo": "0041_LEY_31_1995.pdf",
+    "hash_corpus": "6f77fb580500dcdfe55a535bd46b6a1fc7c126040fbb62cc01afd72eb76885f7",
+    "fuente_canonica_inicial": "BOE-A-1995-24292",
+    "filas_corpus_inicial": 55,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 42,
+    "norma": "LEY 38/2003",
+    "archivo": "0042_LEY_38_2003.pdf",
+    "hash_corpus": "73ba9cf8cf1b55d77c33218666eac53ce1dc92f6be2fa19f40bb79cfe605788a",
+    "fuente_canonica_inicial": "BOE-A-2003-20977",
+    "filas_corpus_inicial": 69,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 43,
+    "norma": "LEY 39/2015",
+    "archivo": "0043_LEY_39_2015.pdf",
+    "hash_corpus": "37b37845744638aaaf5fe47f7734db8af934085f5f3313ec814a478ec149608a",
+    "fuente_canonica_inicial": "BOE-A-2015-10565",
+    "filas_corpus_inicial": 133,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 10145,
+    "norma": "ley 4 2026 de 22 de julio",
+    "archivo": "10145_ley_4_2026_de_22_de_julio.pdf",
+    "hash_corpus": "7e61840646ae4dd13eb33cf091e19a4c06a04fd9a09685cbbe060a4087c100fc",
+    "fuente_canonica_inicial": "LOCAL-DOGV-LEY-4-2026",
+    "filas_corpus_inicial": 59,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 45,
+    "norma": "LEY 4/2021",
+    "archivo": "0045_LEY_4_2021.pdf",
+    "hash_corpus": "1f6a4fffb0e16297f82457eba1de99da8d3254aaa3a41a7a9beb360d1a651af1",
+    "fuente_canonica_inicial": "BOE-A-2021-8880",
+    "filas_corpus_inicial": 203,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 46,
+    "norma": "LEY 4/2023",
+    "archivo": "0046_LEY_4_2023.pdf",
+    "hash_corpus": "2981088b14311e9e0c55b94aec6d6f9ad9b908832b407cc830e68765492c9cdb",
+    "fuente_canonica_inicial": "BOE-A-2023-5366",
+    "filas_corpus_inicial": 82,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 47,
+    "norma": "LEY 40/2015",
+    "archivo": "0047_LEY_40_2015.pdf",
+    "hash_corpus": "249e37ce8fdf42166d83f8b1038a3c3e7aef198aad6035d460c7419d0e241ec1",
+    "fuente_canonica_inicial": "BOE-A-2015-10566",
+    "filas_corpus_inicial": 166,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 49,
+    "norma": "LEY 5/1983",
+    "archivo": "0049_LEY_5_1983.pdf",
+    "hash_corpus": "361ccad9b6b7f00e646205c4607095df7cbc7e9639b91f9bfa958c08011d4a16",
+    "fuente_canonica_inicial": "BOE-A-1984-3460",
+    "filas_corpus_inicial": 87,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 51,
+    "norma": "LEY 53/1984",
+    "archivo": "0051_LEY_53_1984.pdf",
+    "hash_corpus": "97298257d7aa49b76d09bc5663c1181324da1f0f1d76d0800bfeaa8e704b1fad",
+    "fuente_canonica_inicial": "BOE-A-1985-151",
+    "filas_corpus_inicial": 20,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 57,
+    "norma": "ley 6 2025 de 30 de mayo",
+    "archivo": "0057_ley_6_2025_de_30_de_mayo.pdf",
+    "hash_corpus": "c244ff2356caa5898218bf9b527ce0ef866aa1ed1a53dd934d611cac97e5d22c",
+    "fuente_canonica_inicial": "BOE-A-2025-11960",
+    "filas_corpus_inicial": 59,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 52,
+    "norma": "LEY 6/1985",
+    "archivo": "0052_LEY_6_1985.pdf",
+    "hash_corpus": "1902138d8ea86c630e9493f0646e3d68273cda854a5c2687ee916b24ef06d511",
+    "fuente_canonica_inicial": "BOE-A-1985-18239",
+    "filas_corpus_inicial": 34,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 62,
+    "norma": "LEY 9/2003",
+    "archivo": "0062_LEY_9_2003.pdf",
+    "hash_corpus": "2b55341bda7fa5cf1f986ab574ba47ee580a4b2ce255d0f7a58fcf8530aa6d9d",
+    "fuente_canonica_inicial": "BOE-A-2003-9334",
+    "filas_corpus_inicial": 52,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 63,
+    "norma": "LEY 9/2017",
+    "archivo": "0063_LEY_9_2017.pdf",
+    "hash_corpus": "8df6dfad2872839379906cfc18e946ef5232a5ccf7a41cf249e4adaea898229b",
+    "fuente_canonica_inicial": "BOE-A-2017-12902",
+    "filas_corpus_inicial": 361,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 65,
+    "norma": "LEY_ORGANICA 1/2004",
+    "archivo": "0065_LEY_ORGANICA_1_2004.pdf",
+    "hash_corpus": "ebe6179e85063bb7e7c0350964895f7897e7c3f0470bc4be571af5f7568e541d",
+    "fuente_canonica_inicial": "BOE-A-2004-21760",
+    "filas_corpus_inicial": 75,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 67,
+    "norma": "LEY_ORGANICA 2/1982",
+    "archivo": "0067_LEY_ORGANICA_2_1982.pdf",
+    "hash_corpus": "a57826f5893642ad486fea2c80f723dbef2864802fcfb4a499f2a361d5e411ce",
+    "fuente_canonica_inicial": "BOE-A-1982-11584",
+    "filas_corpus_inicial": 59,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 71,
+    "norma": "LEY_ORGANICA 3/2007",
+    "archivo": "0071_LEY_ORGANICA_3_2007.pdf",
+    "hash_corpus": "e7d14b21bbed3914fa0cf015c05204bd8cd21fc06b56991c4c574976f6265032",
+    "fuente_canonica_inicial": "BOE-A-2007-6115",
+    "filas_corpus_inicial": 78,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 72,
+    "norma": "LEY_ORGANICA 3/2018",
+    "archivo": "0072_LEY_ORGANICA_3_2018.pdf",
+    "hash_corpus": "d873fcc92788181321a693961379e19a9b218a9272a1b1466a10f88a8032fbe1",
+    "fuente_canonica_inicial": "BOE-A-2018-16673",
+    "filas_corpus_inicial": 98,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 73,
+    "norma": "LEY_ORGANICA 5/1982",
+    "archivo": "0073_LEY_ORGANICA_5_1982.pdf",
+    "hash_corpus": "ed76e1a27e47fed85dbcfd2b1d83d848817dbf6c73edd2896df5c548d6b6f5b2",
+    "fuente_canonica_inicial": "BOE-A-1982-17235",
+    "filas_corpus_inicial": 139,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 1281,
+    "norma": "orden 19 2013 de 3 de diciembre",
+    "archivo": "1281_orden_19_2013_de_3_de_diciembre.pdf",
+    "hash_corpus": "df43eacf3ef7998ddc2a59d7021fe2448903f1067535e60713e4cfe9c09a91b3",
+    "fuente_canonica_inicial": "LOCAL-DOGV-ORDEN-19-2013",
+    "filas_corpus_inicial": 23,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 80,
+    "norma": "REAL_DECRETO_LEGISLATIVO 5/2015",
+    "archivo": "0080_REAL_DECRETO_LEGISLATIVO_5_2015.pdf",
+    "hash_corpus": "d50614ddf4feae3b918ed4b9d16055b7a4e524c9298bbe1e6200977ebce8c2e7",
+    "fuente_canonica_inicial": "BOE-A-2015-11719",
+    "filas_corpus_inicial": 102,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 83,
+    "norma": "TRATADO DE FUNCIONAMIENTO DE LA UNIÓN EUROPEA",
+    "archivo": "0083_TRATADO_DE_FUNCIONAMIENTO_DE_LA_UNI_N_EUROPEA.pdf",
+    "hash_corpus": "55c5550d7e8208e49257818db8b727cffeca939c7aacac7e8ee7030cc9334181",
+    "fuente_canonica_inicial": "DOUE-C-2010-083-TFUE",
+    "filas_corpus_inicial": 459,
+    "fecha_inicializacion": "2026-08-25"
+  },
+  {
+    "norma_id": 84,
+    "norma": "TRATADO DE LA UNIÓN EUROPEA",
+    "archivo": "0084_TRATADO_DE_LA_UNI_N_EUROPEA.pdf",
+    "hash_corpus": "cd3234e031d4217281dfa337a86eb94a7f6c4f22f762fbc37dd5b0187dc402fc",
+    "fuente_canonica_inicial": "DOUE-C-2010-083-TUE",
+    "filas_corpus_inicial": 64,
+    "fecha_inicializacion": "2026-08-25"
+  }
+]

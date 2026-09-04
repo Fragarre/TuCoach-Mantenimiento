@@ -818,17 +818,17 @@ def auditar_vigencia_preguntas() -> None:
 
 def actualizar_bd_opocoach() -> None:
     """
-    Copia la base de datos de OpoCoach-Mantenimiento a OpoCoach.
+    Copia la base de datos de NetReto-Mantenimiento a NetReto.
 
     Antes de sustituir la base de destino, crea una copia de seguridad en:
         OpoCoach/db/copias_seguridad/
     """
     origen = RAIZ / "db" / "oposiciones.sqlite3"
-    carpeta_opocoach = RAIZ.parent / "OpoCoach"
+    carpeta_opocoach = RAIZ.parent / "NetReto"
     destino = carpeta_opocoach / "db" / "oposiciones.sqlite3"
     carpeta_copias = carpeta_opocoach / "db" / "copias_seguridad"
 
-    print("\nACTUALIZAR BASE DE DATOS DE OPOCOACH STREAMLIT")
+    print("\nACTUALIZAR BASE DE DATOS DE NETRETO STREAMLIT")
     print("-" * 78)
     print(f"Origen:  {origen}")
     print(f"Destino: {destino}")
@@ -837,7 +837,7 @@ def actualizar_bd_opocoach() -> None:
     if ejecutar_script("validacion_completa.py") != 0:
         print(
             "\nERROR: la base de mantenimiento no supera la validación completa. "
-            "No se copia a OpoCoach."
+            "No se copia a NetReto."
         )
         pausa()
         return
@@ -848,7 +848,7 @@ def actualizar_bd_opocoach() -> None:
         return
 
     if not carpeta_opocoach.is_dir():
-        print(f"\nERROR: no existe la carpeta del proyecto OpoCoach:\n{carpeta_opocoach}")
+        print(f"\nERROR: no existe la carpeta del proyecto NetReto:\n{carpeta_opocoach}")
         pausa()
         return
 
@@ -858,8 +858,8 @@ def actualizar_bd_opocoach() -> None:
         return
 
     print(
-        "\nSe sustituirá la base de datos de OpoCoach por la versión "
-        "actual de OpoCoach-Mantenimiento."
+        "\nSe sustituirá la base de datos de NetReto por la versión "
+        "actual de NetReto-Mantenimiento."
     )
 
     if not pedir_si_no("¿Continuar?"):
@@ -914,7 +914,7 @@ def preparar_publicacion_web_menu() -> None:
     para OpoCoach-Web. NO modifica la Web.
     """
     cabecera_submenu(
-        "PREPARAR PUBLICACIÓN DE CONTENIDOS OPOCOACH-WEB",
+        "PREPARAR PUBLICACIÓN DE CONTENIDOS NETRETO-WEB",
         "[VALIDA → SNAPSHOT] Ejecuta la validación completa y genera una copia "
         "íntegra/versionada de db/oposiciones.sqlite3. No despliega nada.",
     )
@@ -926,9 +926,9 @@ def preparar_publicacion_web_menu() -> None:
     print("4. informes JSON/TXT y SHA256")
     print()
     print("Destino previsto: publicaciones_web/<version>/")
-    print("OpoCoach-Web NO se modificará.")
+    print("NetReto-Web NO se modificará.")
 
-    if pedir_si_no("¿Preparar una nueva publicación para OpoCoach-Web?"):
+    if pedir_si_no("¿Preparar una nueva publicación para NetReto-Web?"):
         ejecutar_script("publicar_contenidos_web.py")
 
     pausa()
@@ -970,16 +970,16 @@ def desplegar_publicacion_web_local_menu() -> None:
     No publica en Internet ni modifica Supabase.
     """
     cabecera_submenu(
-        "DESPLEGAR CONTENIDOS EN OPOCOACH-WEB LOCAL",
+        "DESPLEGAR CONTENIDOS EN NETRETO-WEB LOCAL",
         "[BACKUP → VALIDAR → SUSTITUIR] Usa únicamente una publicación preparada "
-        "y validada. Afecta sólo al proyecto local OpoCoach-Web.",
+        "y validada. Afecta sólo al proyecto local NetReto-Web.",
     )
 
     publicaciones = _listar_publicaciones_web()
     if not publicaciones:
         print(
             "\nNo hay publicaciones preparadas en publicaciones_web/.\n"
-            "Ejecuta primero 'Preparar publicación de contenidos OpoCoach-Web'."
+            "Ejecuta primero 'Preparar publicación de contenidos NetReto-Web'."
         )
         pausa()
         return
@@ -1006,7 +1006,7 @@ def desplegar_publicacion_web_local_menu() -> None:
 
     destino = (
         RAIZ.parent
-        / "OpoCoach-Web"
+        / "NetReto-Web"
         / "backend"
         / "data"
         / "oposiciones.sqlite3"
@@ -1020,14 +1020,14 @@ def desplegar_publicacion_web_local_menu() -> None:
     print(f"Destino:  {destino}")
     print()
     print("Este proceso:")
-    print("- NO modifica OpoCoach Streamlit.")
+    print("- NO modifica NetReto Streamlit.")
     print("- NO publica en Internet.")
     print("- NO modifica Supabase.")
     print("- crea backup de la SQLite Web local antes de sustituirla.")
     print()
     print(
         "IMPORTANTE: si Windows mantiene la SQLite abierta, detén primero "
-        "el backend/Uvicorn de OpoCoach-Web."
+        "el backend/Uvicorn de NetReto-Web."
     )
 
     if not pedir_si_no("¿Continuar con el despliegue LOCAL de esta versión?"):
@@ -1051,7 +1051,7 @@ def actualizar_publicacion_supabase_menu() -> None:
     Sustituye exclusivamente las tablas del esquema contenidos.*.
     """
     cabecera_submenu(
-        "ACTUALIZAR CONTENIDOS OPOCOACH-WEB EN SUPABASE",
+        "ACTUALIZAR CONTENIDOS NETRETO-WEB EN SUPABASE",
         "[VALIDAR → TRANSACCIÓN → VERIFICAR] Sustituye contenidos.* por una "
         "publicación preparada. No modifica usuarios ni datos personales.",
     )
@@ -1060,12 +1060,12 @@ def actualizar_publicacion_supabase_menu() -> None:
     if not publicaciones:
         print(
             "\nNo hay publicaciones preparadas en publicaciones_web/.\n"
-            "Ejecuta primero 'Preparar publicación de contenidos OpoCoach-Web'."
+            "Ejecuta primero 'Preparar publicación de contenidos NetReto-Web'."
         )
         pausa()
         return
 
-    ruta_env = RAIZ.parent / "OpoCoach-Web" / "backend" / ".env"
+    ruta_env = RAIZ.parent / "NetReto-Web" / "backend" / ".env"
     if not ruta_env.is_file():
         print(f"\nERROR: no existe el fichero de entorno:\n{ruta_env}")
         pausa()
@@ -1118,7 +1118,7 @@ def actualizar_publicacion_supabase_menu() -> None:
     )
 
     if not pedir_si_no(
-        "¿Actualizar AHORA los contenidos de OpoCoach-Web en Supabase?"
+        "¿Actualizar AHORA los contenidos de NetReto-Web en Supabase?"
     ):
         print("Operación cancelada.")
         pausa()
@@ -1869,7 +1869,7 @@ def submenu_flujo_habitual() -> None:
         print("3. Generar preguntas jurídicas IA                     [IA → BANCOS → VALIDA]")
         print("4. Generar preguntas de informática IA                [IA → BANCOS → VALIDA]")
         print("5. Sincronizar todos los bancos                       [REVISIÓN → APLICAR → VALIDA]")
-        print("6. Actualizar BD de OpoCoach Streamlit                [VALIDA → BACKUP → COPIA]")
+        print("6. Actualizar BD de NetReto Streamlit                [VALIDA → BACKUP → COPIA]")
         print("7. Ver resumen general del lote                       [SOLO LECTURA]")
         print("8. Ver resumen de banco de convocatoria               [SOLO LECTURA]")
         print("0. Volver")
@@ -2054,19 +2054,87 @@ def submenu_auditorias() -> None:
         else: print("Opción no válida.")
 
 
+
+def auditar_materiales_estudio_menu() -> None:
+    cabecera_submenu(
+        "AUDITAR MATERIALES DE ESTUDIO",
+        "[SOLO LECTURA] Compara los resúmenes preparados con las normas de las "
+        "convocatorias activas y con la huella actual del corpus normativo. "
+        "No modifica la base, los PDF, Streamlit, Web ni Supabase.",
+    )
+    ejecutar_script(
+        "auditar_materiales_estudio.py",
+        "--detalle",
+    )
+    pausa()
+
+
+
+
+def actualizar_materiales_estudio_menu() -> None:
+    cabecera_submenu(
+        "ACTUALIZAR MATERIALES DE ESTUDIO",
+        "Muestra primero el plan. Solo actúa sobre NUEVA o DESACTUALIZADO. "
+        "La completitud del corpus se valida con los proveedores RAG existentes.",
+    )
+
+    codigo = ejecutar_script("generar_materiales_estudio.py")
+    if codigo != 0:
+        pausa()
+        return
+
+    print()
+    if not pedir_si_no(
+        "¿Continuar con la generación/actualización IA de materiales pendientes?"
+    ):
+        print("Operación cancelada.")
+        pausa()
+        return
+
+    valor = input(
+        "Norma ID concreta (Enter = TODAS las pendientes): "
+    ).strip()
+
+    if valor:
+        try:
+            norma_id = int(valor)
+        except ValueError:
+            print("ERROR: norma_id debe ser numérico.")
+            pausa()
+            return
+        argumentos = ("--aplicar", "--norma-id", str(norma_id))
+    else:
+        if not pedir_si_no(
+            "¿Confirmas actualizar TODAS las normas pendientes?"
+        ):
+            print("Operación cancelada.")
+            pausa()
+            return
+        argumentos = ("--aplicar", "--todos-pendientes")
+
+    ejecutar_script(
+        "generar_materiales_estudio.py",
+        *argumentos,
+    )
+    pausa()
+
+
+
 def submenu_administracion() -> None:
     while True:
         cabecera_submenu(
             "6. ADMINISTRACIÓN",
-            "Despliegues separados para OpoCoach Streamlit, OpoCoach-Web local "
+            "Despliegues separados para NetReto Streamlit, NetReto-Web local "
             "y contenidos de producción en Supabase.",
         )
-        print("1. Actualizar BD de OpoCoach Streamlit                 [VALIDA → BACKUP → COPIA]")
-        print("2. Preparar publicación OpoCoach-Web                  [VALIDA → SNAPSHOT]")
-        print("3. Desplegar publicación en OpoCoach-Web LOCAL        [BACKUP → VALIDAR → COPIA]")
+        print("1. Actualizar BD de NetReto Streamlit                 [VALIDA → BACKUP → COPIA]")
+        print("2. Preparar publicación NetReto-Web                  [VALIDA → SNAPSHOT]")
+        print("3. Desplegar publicación en NetReto-Web LOCAL        [BACKUP → VALIDAR → COPIA]")
         print("4. Actualizar contenidos Web en Supabase              [VALIDAR → TRANSACCIÓN → VERIFICAR]")
         print("5. Limpiar logs/auditorías temporales                 [VISTA PREVIA → APLICAR]")
         print("6. Mostrar componentes internos                       [INFORMATIVO]")
+        print("7. Auditar materiales de estudio                      [SOLO LECTURA]")
+        print("8. Actualizar materiales de estudio                   [PLAN → VALIDAR RAG → IA → BACKUP → PDF]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -2077,6 +2145,8 @@ def submenu_administracion() -> None:
             "4":actualizar_publicacion_supabase_menu,
             "5":limpiar_temporales_menu,
             "6":mostrar_componentes_internos,
+            "7":auditar_materiales_estudio_menu,
+            "8":actualizar_materiales_estudio_menu,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -2086,7 +2156,7 @@ def submenu_administracion() -> None:
 def mostrar_menu() -> None:
     limpiar_pantalla()
     print("=" * 78)
-    print("OPOCOACH - MANTENIMIENTO ESTABLE")
+    print("NETRETO - MANTENIMIENTO ESTABLE")
     print("=" * 78)
     print("Las operaciones normales completas están en 'Flujo habitual'.")
     print("Las operaciones parciales o de reparación están separadas como avanzadas.")

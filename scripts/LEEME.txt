@@ -1,0 +1,24 @@
+PRUEBA AISLADA DE ACTUALIZACIÓN DE MATERIALES
+
+Copiar:
+  scripts/probar_actualizacion_materiales_estudio.py
+
+Ejecutar desde la raíz de OpoCoach-Mantenimiento:
+  python scripts\probar_actualizacion_materiales_estudio.py
+
+La prueba usa por defecto LEY 53/1984 (norma_id=51), porque es una norma
+pequeña y limita tiempo y coste.
+
+SEGURIDAD
+- Copia la BD.
+- Copia el catálogo.
+- Copia los 31 PDF.
+- Simula DESACTUALIZADO solo en el catálogo copiado.
+- La primera auditoría actúa sobre la copia.
+- Antes de llamar a IA solicita confirmación.
+- El generador recibe rutas de la copia.
+- Los datos reales no se modifican.
+- Al final vuelve a auditar la copia.
+
+La carpeta de prueba queda en:
+  registros/pruebas_materiales/prueba_actualizacion_YYYYMMDD_HHMMSS

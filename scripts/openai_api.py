@@ -196,6 +196,7 @@ def llamar_responses(
     modelo="gpt-5.4-nano",
     operacion="general",
     formato_texto=None,
+    max_output_tokens=4096,
 ):
     if modelo not in PRECIOS:
         raise ValueError(
@@ -205,10 +206,13 @@ def llamar_responses(
 
     t0 = time.perf_counter()
 
+    if not isinstance(max_output_tokens, int) or max_output_tokens <= 0:
+        raise ValueError("max_output_tokens debe ser un entero positivo.")
+
     parametros = {
         "model": modelo,
         "input": input_api,
-        "max_output_tokens": 4096,
+        "max_output_tokens": max_output_tokens,
     }
 
     if formato_texto is not None:
@@ -288,6 +292,7 @@ def seleccionar_fragmento_json(
     prompt,
     modelo="gpt-5.4-nano",
     operacion="general",
+    max_output_tokens=4096,
 ):
     """
     Ejecuta una llamada en modo JSON y convierte la respuesta.
@@ -302,6 +307,7 @@ def seleccionar_fragmento_json(
         formato_texto={
             "type": "json_object",
         },
+        max_output_tokens=max_output_tokens,
     )
 
     texto = str(respuesta_api.output_text or "").strip()

@@ -1,0 +1,34 @@
+{
+  "convocatoria": {
+    "puesto": "A1",
+    "numero": "01/26",
+    "anio": 2026,
+    "codigo": "A1-01_01_26_ADM",
+    "numero_preguntas": 160,
+    "tiene_partes": 1,
+    "valoracion_test_acierto": 1.0,
+    "valoracion_test_fallo": 0.3333,
+    "valoracion_test_no_contesta": 0.0,
+    "formula_nota": "(acertadas - falladas * valoracion_test_fallo) / numero_preguntas",
+    "factor_escala_nota": 10.0,
+    "temario_csv": "data_convocatorias/CONV_A1-01_01_26_ADM/temario.csv"
+  },
+  "partes": [
+    {
+      "nombre": "GENERAL",
+      "numero_preguntas": 50,
+      "orden": 1
+    },
+    {
+      "nombre": "ESPECIAL",
+      "numero_preguntas": 110,
+      "orden": 2
+    }
+  ],
+  "temario": {
+    "csv": "data_convocatorias/CONV_A1-01_01_26_ADM/temario.csv",
+    "nombre": "Temario oficial",
+    "encoding": null,
+    "sincronizar_eliminaciones": false
+  }
+}

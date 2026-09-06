@@ -32,8 +32,6 @@ PROTEGIDOS_REGISTROS = {
     "distribucion_temas.csv",
 }
 
-# Artefactos claramente regenerables. Se eliminan cuando han superado la edad
-# indicada, sin tocar los ficheros acumulativos protegidos.
 PATRONES_REGISTROS_TEMPORALES = (
     "preguntas_no_localizadas",
     "preguntas_modelo_fuera_banco",
@@ -41,6 +39,15 @@ PATRONES_REGISTROS_TEMPORALES = (
     "preguntas_modelo_enriquecimiento_ia_boe",
     "resumen",
 )
+
+DIRECTORIOS_EXCLUIDOS_RECORRIDO = {
+    ".git",
+    ".venv",
+    "venv",
+    "env",
+    "site-packages",
+    "node_modules",
+}
 
 @dataclass(frozen=True)
 class Candidato:
@@ -216,16 +223,26 @@ def candidatos_registros(dias: int = 60) -> list[Candidato]:
 
 
 def candidatos_pycache() -> list[Candidato]:
+    """Busca __pycache__ solo fuera de entornos/dependencias locales."""
     resultado: list[Candidato] = []
-    for carpeta in (RAIZ, RAIZ.parent / "NetReto", RAIZ.parent / "NetReto-Web"):
-        if not carpeta.exists():
+    bases = (RAIZ, RAIZ.parent / "NetReto", RAIZ.parent / "NetReto-Web")
+
+    def directorio_excluido(path: Path) -> bool:
+        try:
+            partes = path.relative_to(RAIZ.parent).parts
+        except ValueError:
+            partes = path.parts
+        return any(parte.casefold() in {x.casefold() for x in DIRECTORIOS_EXCLUIDOS_RECORRIDO} for parte in partes)
+
+    for base in bases:
+        if not base.exists():
             continue
         try:
-            carpetas = [p for p in carpeta.rglob("__pycache__") if p.is_dir()]
+            for p in base.rglob("__pycache__"):
+                if p.is_dir() and not directorio_excluido(p):
+                    resultado.append(Candidato(p, "artefacto Python regenerable (__pycache__)", _tamano(p)))
         except OSError:
             continue
-        for p in carpetas:
-            resultado.append(Candidato(p, "artefacto Python regenerable (__pycache__)", _tamano(p)))
     return resultado
 
 
@@ -326,7 +343,7 @@ def main() -> int:
     print(f"- registros:        regenerables > {args.dias_registros} días")
     print(f"- logs rotados:     > {args.dias_logs_rotados} días")
     print(f"- log activo:       > {args.max_log_mib} MiB → conservar ~{args.conservar_log_mib} MiB")
-    print("- __pycache__:      eliminar siempre (regenerable)")
+    print("- __pycache__:      eliminar siempre (regenerable, excepto .venv/entornos)")
     print("- *.rollback:       eliminar siempre (temporal)")
 
     print()

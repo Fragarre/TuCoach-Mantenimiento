@@ -37,7 +37,7 @@ PATRONES_REGISTROS_TEMPORALES = (
     "preguntas_modelo_fuera_banco",
     "preguntas_modelo_resueltas_ia",
     "preguntas_modelo_enriquecimiento_ia_boe",
-    "resumen",
+
 )
 
 DIRECTORIOS_EXCLUIDOS_RECORRIDO = {

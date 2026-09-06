@@ -106,7 +106,7 @@ def _seleccionar_antiguos_por_familia(
     limite = _ahora() - dias * 86400
     resultado: list[Candidato] = []
     for grupo in grupos.values():
-        for p in group[conservar_por_familia:]:
+        for p in grupo[conservar_por_familia:]:
             m = _mtime(p)
             if m is not None and m < limite:
                 resultado.append(

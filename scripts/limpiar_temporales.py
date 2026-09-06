@@ -127,16 +127,38 @@ def _seleccionar_antiguos_por_familia(
 
 
 def candidatos_auditorias(
-    dias: int = 30,
-    conservar_ultimas_por_familia: int = 3,
+    _dias: int = 0,
+    _conservar: int = 1,
 ) -> list[Candidato]:
-    return _seleccionar_antiguos_por_familia(
-        RAIZ / "auditorias",
-        dias,
-        conservar_ultimas_por_familia,
-        incluir_directorios=True,
-    )
+    """Elimina auditorías históricas y conserva las auditorías fijas actuales."""
+    carpeta = RAIZ / "auditorias"
+    if not carpeta.is_dir():
+        return []
 
+    fijas = {
+        "mantener_banco",
+        "buscar_norma_respuesta_correcta",
+        "temario",
+        "esquema_obsoleto",
+        "denominaciones_normas",
+    }
+
+    entradas = [
+        p
+        for p in carpeta.iterdir()
+        if p.is_dir()
+        and p.name not in fijas
+        and _mtime(p) is not None
+    ]
+
+    return [
+        Candidato(
+            p,
+            "auditoría histórica; se conservan las auditorías fijas actuales",
+            _tamano(p),
+        )
+        for p in entradas
+    ]
 
 def candidatos_backups(
     dias: int = 14,
@@ -308,8 +330,8 @@ def main() -> int:
         description="Vista previa o limpieza consolidada de temporales y copias históricas."
     )
     p.add_argument("--aplicar", action="store_true")
-    p.add_argument("--dias-auditorias", type=int, default=30)
-    p.add_argument("--conservar-auditorias", type=int, default=3)
+    p.add_argument("--dias-auditorias", type=int, default=0)
+    p.add_argument("--conservar-auditorias", type=int, default=1)
     p.add_argument("--dias-backups", type=int, default=14)
     p.add_argument("--conservar-backups", type=int, default=2)
     p.add_argument("--dias-publicaciones", type=int, default=90)
@@ -337,7 +359,7 @@ def main() -> int:
     print(f"Modo: {'APLICAR' if args.aplicar else 'SOLO VISTA PREVIA'}")
     print()
     print("Retención:")
-    print(f"- auditorías:       {args.conservar_auditorias} por familia y {args.dias_auditorias} días")
+    print("- auditorías:       conservar las auditorías fijas actuales; eliminar las históricas")
     print(f"- backups:          {args.conservar_backups} por familia y {args.dias_backups} días")
     print(f"- publicaciones:    {args.conservar_publicaciones} últimas y {args.dias_publicaciones} días")
     print(f"- registros:        regenerables > {args.dias_registros} días")

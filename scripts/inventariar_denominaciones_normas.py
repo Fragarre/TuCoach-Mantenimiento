@@ -20,6 +20,7 @@ import argparse
 import csv
 import re
 import sqlite3
+import shutil
 import sys
 import unicodedata
 from collections import defaultdict
@@ -77,8 +78,11 @@ def main() -> None:
     if not db.exists():
         raise FileNotFoundError(f"No existe la base: {db}")
 
-    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    carpeta = RAIZ / "auditorias" / f"denominaciones_normas_{marca}"
+    carpeta = RAIZ / "auditorias" / "denominaciones_normas"
+
+    if carpeta.exists():
+        shutil.rmtree(carpeta)
+
     carpeta.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True) as conexion:

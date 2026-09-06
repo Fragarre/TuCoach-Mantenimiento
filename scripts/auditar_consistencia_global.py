@@ -39,7 +39,7 @@ punto del temario.
 SALIDAS
 -------
 
-Genera una carpeta en auditorias/auditoria_consistencia_global_YYYYMMDD_HHMMSS
+Genera una carpeta en auditorias/auditoria_consistencia_global
 con:
 
 - resumen_general.txt
@@ -72,6 +72,7 @@ import argparse
 import csv
 import re
 import sqlite3
+import shutil
 import sys
 import unicodedata
 from collections import defaultdict
@@ -698,12 +699,11 @@ def main() -> int:
             f"No existe la base de datos: {db}"
         )
 
-    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    carpeta = (
-        RAIZ
-        / "auditorias"
-        / f"auditoria_consistencia_global_{marca}"
-    )
+    carpeta = RAIZ / "auditorias" / "auditoria_consistencia_global"
+
+    if carpeta.exists():
+        shutil.rmtree(carpeta)
+
     carpeta.mkdir(parents=True, exist_ok=True)
 
     with sqlite3.connect(db) as conexion:

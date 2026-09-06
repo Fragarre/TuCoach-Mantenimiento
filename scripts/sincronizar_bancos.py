@@ -5,7 +5,7 @@ No contiene reglas propias de selección. La única fuente de verdad es
 scripts/mantener_banco_preguntas.py.
 
 Contrato entre procesos:
-- mantener_banco_preguntas.py genera auditorias/mantener_banco_*/resumen.json.
+- mantener_banco_preguntas.py genera auditorias/mantener_banco/resumen.json.
 - este sincronizador lee ese JSON y NO interpreta textos de consola.
 
 Proceso:
@@ -93,7 +93,7 @@ def _estado_resumenes() -> dict[Path, tuple[int, int]]:
     estado: dict[Path, tuple[int, int]] = {}
     if not AUDITORIAS.is_dir():
         return estado
-    for ruta in AUDITORIAS.glob("mantener_banco_*/resumen.json"):
+    for ruta in AUDITORIAS.glob("mantener_banco/resumen.json"):
         try:
             st = ruta.stat()
         except OSError:

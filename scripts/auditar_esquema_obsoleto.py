@@ -2,7 +2,7 @@
 Auditoría conservadora de posibles objetos obsoletos de oposiciones.sqlite3.
 
 SOLO LECTURA respecto de la base de datos. No elimina, altera ni migra nada.
-Genera informes en auditorias/esquema_obsoleto_<timestamp>/.
+Genera informes en auditorias/esquema_obsoleto/ por defecto.
 
 La clasificación es deliberadamente provisional: una tabla nunca se marca como
 "ELIMINAR" automáticamente. El objetivo es reunir evidencia antes de cualquier
@@ -16,6 +16,7 @@ import csv
 import json
 import re
 import sqlite3
+import shutil
 import sys
 import warnings
 from collections import defaultdict, deque
@@ -69,7 +70,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--menu", default=None,
                    help="Ruta a menu_mantenimiento.py; por defecto <raiz-mantenimiento>/menu_mantenimiento.py")
     p.add_argument("--salida", default=None,
-                   help="Carpeta de informes. Por defecto auditorias/esquema_obsoleto_<timestamp>")
+                   help="Carpeta de informes. Por defecto auditorias/esquema_obsoleto")
     return p.parse_args()
 
 
@@ -91,8 +92,9 @@ def resolver_rutas(args: argparse.Namespace) -> tuple[Path, Path, Path | None, P
         if not salida.is_absolute():
             salida = (raiz_mant / salida).resolve()
     else:
-        marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-        salida = raiz_mant / "auditorias" / f"esquema_obsoleto_{marca}"
+        salida = raiz_mant / "auditorias" / "esquema_obsoleto"
+        if salida.exists():
+            shutil.rmtree(salida)
     return raiz_mant, db, raiz_opo, menu, salida
 
 

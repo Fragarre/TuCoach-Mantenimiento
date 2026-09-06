@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import csv
 import sqlite3
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -174,12 +175,11 @@ def main() -> int:
     if not db.is_file():
         raise FileNotFoundError(f"No existe la base de datos: {db}")
 
-    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    carpeta = (
-        RAIZ
-        / "auditorias"
-        / f"buscar_norma_respuesta_correcta_{marca}"
-    )
+    carpeta = RAIZ / "auditorias" / "buscar_norma_respuesta_correcta"
+
+    if carpeta.exists():
+        shutil.rmtree(carpeta)
+
     carpeta.mkdir(parents=True, exist_ok=True)
 
     resultados: list[dict] = []

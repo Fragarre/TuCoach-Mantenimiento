@@ -30,7 +30,7 @@ También puede indicarse otra base de datos:
 
 Salida:
 
-    auditorias/temario_AAAAMMDD_HHMMSS/
+    auditorias/temario/
         informe_auditoria_temario.txt
         resumen.json
         *.csv
@@ -42,6 +42,7 @@ import argparse
 import csv
 import json
 import sqlite3
+import shutil
 import sys
 from collections import Counter
 from datetime import datetime
@@ -158,8 +159,11 @@ def main() -> None:
             f"No existe la base de datos: {ruta_db}"
         )
 
-    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    carpeta = RAIZ / "auditorias" / f"temario_{marca}"
+    carpeta = RAIZ / "auditorias" / "temario"
+
+    if carpeta.exists():
+        shutil.rmtree(carpeta)
+
     carpeta.mkdir(parents=True, exist_ok=True)
 
     resumen: dict[str, Any] = {

@@ -1478,12 +1478,12 @@ def main() -> None:
             f"No existe la base de datos: {db}"
         )
 
-    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    carpeta = (
-        RAIZ
-        / "auditorias"
-        / f"mantener_banco_{marca}"
-    )
+    carpeta = RAIZ / "auditorias" / "mantener_banco"
+
+    if carpeta.exists():
+        shutil.rmtree(carpeta)
+
+    carpeta.mkdir(parents=True, exist_ok=True)
 
     copia_seguridad: Path | None = None
     auditoria_final: dict[str, Any] | None = None

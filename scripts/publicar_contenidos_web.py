@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sqlite3
 import subprocess
@@ -11,26 +10,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import comun
+
 RAIZ = Path(__file__).resolve().parents[1]
 DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
 SALIDA_PREDETERMINADA = RAIZ / "publicaciones_web"
 SCRIPT_VALIDACION = RAIZ / "scripts" / "validacion_completa.py"
 
-
-def sha256_archivo(ruta: Path) -> str:
-    h = hashlib.sha256()
-    with ruta.open("rb") as f:
-        for bloque in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(bloque)
-    return h.hexdigest()
-
-
-def conectar_solo_lectura(ruta: Path) -> sqlite3.Connection:
-    uri = ruta.resolve().as_uri() + "?mode=ro"
-    con = sqlite3.connect(uri, uri=True)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA query_only = ON")
-    return con
+# Migrado a scripts/comun.py (piloto de extraccion de utilidades comunes).
+# Se mantienen estos nombres como alias para no tocar el resto del fichero.
+sha256_archivo = comun.sha256_archivo
+conectar_solo_lectura = comun.conectar_sqlite_solo_lectura
 
 
 def integridad(con: sqlite3.Connection) -> tuple[bool, list[str]]:

@@ -19,14 +19,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import locale
-import os
 import sqlite3
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+import comun
 
 RAIZ = Path(__file__).resolve().parent.parent
 SCRIPTS = RAIZ / "scripts"
@@ -44,30 +43,10 @@ class RevisionBanco:
     resumen: dict[str, Any]
 
 
-def _decodificar_salida(datos: bytes) -> str:
-    if not datos:
-        return ""
-    # El hijo se fuerza a UTF-8. El segundo intento solo sirve para diagnósticos
-    # si una instalación externa ignora PYTHONIOENCODING.
-    try:
-        return datos.decode("utf-8")
-    except UnicodeDecodeError:
-        return datos.decode(locale.getpreferredencoding(False), errors="replace")
-
-
+# Migrado a scripts/comun.py: misma logica (UTF-8 forzado en el hijo,
+# fallback de decodificacion con la codificacion preferida del sistema).
 def _ejecutar(comando: list[str]) -> tuple[int, str]:
-    entorno = os.environ.copy()
-    entorno["PYTHONIOENCODING"] = "utf-8"
-    entorno["PYTHONUTF8"] = "1"
-    resultado = subprocess.run(
-        comando,
-        cwd=RAIZ,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        env=entorno,
-    )
-    return resultado.returncode, _decodificar_salida(resultado.stdout or b"")
+    return comun.ejecutar_subproceso(comando, cwd=RAIZ)
 
 
 def _convocatorias(db: Path) -> list[tuple[int, str]]:

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import sqlite3
@@ -13,6 +12,8 @@ from typing import Any
 import psycopg
 from psycopg import sql
 from dotenv import load_dotenv
+
+import comun
 
 RAIZ = Path(__file__).resolve().parents[1]
 
@@ -44,20 +45,11 @@ COLUMNAS_BOOLEANAS = {
 ESQUEMA_DESTINO = "contenidos"
 
 
-def sha256_archivo(ruta: Path) -> str:
-    h = hashlib.sha256()
-    with ruta.open("rb") as f:
-        for bloque in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(bloque)
-    return h.hexdigest()
-
-
-def conectar_sqlite_solo_lectura(ruta: Path) -> sqlite3.Connection:
-    uri = ruta.resolve().as_uri() + "?mode=ro"
-    con = sqlite3.connect(uri, uri=True)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA query_only = ON")
-    return con
+# Migrado a scripts/comun.py (misma extraccion aplicada en
+# publicar_contenidos_web.py). Alias para no tocar el resto del fichero,
+# que sigue llamando a estos dos nombres tal cual.
+sha256_archivo = comun.sha256_archivo
+conectar_sqlite_solo_lectura = comun.conectar_sqlite_solo_lectura
 
 
 def cargar_entorno(ruta_env: Path) -> None:

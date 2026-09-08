@@ -1478,6 +1478,7 @@ def main() -> None:
             f"No existe la base de datos: {db}"
         )
 
+    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
     carpeta = RAIZ / "auditorias" / "mantener_banco"
 
     if carpeta.exists():

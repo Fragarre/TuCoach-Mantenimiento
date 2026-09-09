@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "naturaleza": "DEFINICION_FUENTES_EXTERNAS_PSEUDONORMA",
+  "caso": "A1_ESPECIAL_3_P03",
+  "pseudonorma": "PSEUDO:ESPECIAL_3_LA_ADMINISTRACION_PUBLICA_COMO_PERSONA_JURIDICA",
+  "unidad": "P03",
+  "texto_temario": "La actividad discrecional: sus límites y control",
+  "estado": "FUENTES_CANDIDATAS_PARA_IDENTIDAD",
+  "fuentes": [
+    {
+      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL",
+      "identificador_oficial": "BOE-A-1978-31229",
+      "identificador_recuperacion": "BOE-A-1978-31229",
+      "descripcion": "Constitución Española",
+      "organismo": "BOE",
+      "url_oficial": "https://www.boe.es/buscar/act.php?id=BOE-A-1978-31229",
+      "grupos_senales": [
+        ["BOE-A-1978-31229"],
+        ["Constitución Española"],
+        ["Artículo 9", "Artículo 9."],
+        ["Artículo 103", "Artículo 103."],
+        ["Artículo 106", "Artículo 106."]
+      ],
+      "proposiciones_objetivo": ["A3P03-A", "A3P03-B", "A3P03-C", "A3P03-D"]
+    },
+    {
+      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL",
+      "identificador_oficial": "BOE-A-1998-16718",
+      "identificador_recuperacion": "BOE-A-1998-16718",
+      "descripcion": "Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa",
+      "organismo": "BOE",
+      "url_oficial": "https://www.boe.es/buscar/act.php?id=BOE-A-1998-16718",
+      "grupos_senales": [
+        ["BOE-A-1998-16718"],
+        ["Ley 29/1998"],
+        ["Artículo 70", "Artículo 70."],
+        ["Artículo 71", "Artículo 71."]
+      ],
+      "proposiciones_objetivo": ["A3P03-B", "A3P03-C", "A3P03-D", "A3P03-E"]
+    },
+    {
+      "tipo_fuente": "JURISPRUDENCIA_TRIBUNAL_SUPREMO",
+      "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-27:4942-2016",
+      "identificador_recuperacion": "PODERJUDICIAL_PDF_4942-2016",
+      "descripcion": "Tribunal Supremo, Sala Tercera, resolución de 27 de junio de 2017, recurso 4942/2016",
+      "organismo": "Poder Judicial",
+      "url_oficial": "https://www.poderjudicial.es/stfls/TRIBUNAL%20SUPREMO/DOCUMENTOS%20DE%20INTER%C3%89S/TSContencioso%2027.06.17%20%284942-16%29.pdf",
+      "grupos_senales": [
+        ["Tribunal Supremo"],
+        ["Sala de lo Contencioso-Administrativo", "Sala Tercera"],
+        ["4942/2016", "4942-2016", "4942/16"],
+        ["27 de junio de 2017", "27/06/2017", "27-06-2017"]
+      ],
+      "proposiciones_objetivo": ["A3P03-A", "A3P03-B", "A3P03-C", "A3P03-E"]
+    },
+    {
+      "tipo_fuente": "JURISPRUDENCIA_TRIBUNAL_SUPREMO",
+      "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-21:1421-2016",
+      "identificador_recuperacion": "PODERJUDICIAL_PDF_1421-2016",
+      "descripcion": "Tribunal Supremo, Sala Tercera, resolución de 21 de junio de 2017, recurso 1421/2016",
+      "organismo": "Poder Judicial",
+      "url_oficial": "https://www.poderjudicial.es/stfls/TRIBUNAL%20SUPREMO/DOCUMENTOS%20DE%20INTER%C3%89S/TSContencioso%205%2021.06.17%20%281421-16%29.pdf",
+      "grupos_senales": [
+        ["Tribunal Supremo"],
+        ["Sala de lo Contencioso-Administrativo", "Sala Tercera"],
+        ["1421/2016", "1421-2016", "1421/16"],
+        ["21 de junio de 2017", "21/06/2017", "21-06-2017"]
+      ],
+      "proposiciones_objetivo": ["A3P03-B", "A3P03-C", "A3P03-D"]
+    }
+  ],
+  "reglas": {
+    "solo_fuentes_oficiales": true,
+    "identidad_no_equivale_a_pertinencia": true,
+    "bd_modificada": false,
+    "corpus_modificado": false,
+    "pertinencia_aceptada": false
+  }
+}

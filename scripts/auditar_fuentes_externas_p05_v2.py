@@ -4,15 +4,16 @@ Constructor Temario V2 - auditoría de identidades oficiales externas del piloto
 NO MODIFICA LA BASE DE DATOS.
 NO descarga ni persiste todavía el texto jurídico completo.
 
-Primera pieza del adaptador general de fuentes externas:
-- declara identidades oficiales esperadas del piloto P05;
-- comprueba por HTTP que el proveedor oficial responde;
-- verifica señales fuertes de identidad específicas de cada proveedor;
+Piloto de adaptadores de fuentes externas:
+- declara identidades oficiales esperadas de P05;
+- consulta únicamente proveedores oficiales;
+- verifica señales fuertes de identidad específicas de cada fuente;
 - genera JSON de auditoría;
 - bloquea cualquier identidad que no pueda verificarse.
 
-La recuperación completa y normalización del contenido se implementará después de
-validar que estos puntos de entrada oficiales son estables desde el entorno local.
+Para jurisprudencia histórica del TJUE se usa EUR-Lex como punto de recuperación
+oficial estable. El ECLI sigue siendo el identificador jurídico principal y el CELEX
+se conserva como identificador técnico oficial de recuperación.
 """
 from __future__ import annotations
 
@@ -31,6 +32,7 @@ FUENTES = [
     {
         "tipo_fuente": "FUENTE_OFICIAL_UE",
         "identificador_oficial": "12008E/AFI/DCL/17",
+        "identificador_recuperacion": "CELEX:12008E/AFI/DCL/17",
         "descripcion": "Declaración n.º 17 relativa a la primacía",
         "organismo": "EUR-Lex",
         "url_oficial": (
@@ -45,36 +47,39 @@ FUENTES = [
     {
         "tipo_fuente": "JURISPRUDENCIA_TJUE",
         "identificador_oficial": "ECLI:EU:C:1964:66",
+        "identificador_recuperacion": "CELEX:61964CJ0006",
         "descripcion": "TJUE, Costa/ENEL, asunto 6/64",
-        "organismo": "CURIA",
+        "organismo": "EUR-Lex",
         "url_oficial": (
-            "https://infocuria.curia.europa.eu/tabs/redirect/juris/documents.jsf"
-            "?critereEcli=ECLI%3AEU%3AC%3A1964%3A66&language=EN"
+            "https://eur-lex.europa.eu/legal-content/ES/TXT/"
+            "?uri=CELEX:61964CJ0006"
         ),
         "grupos_senales": [
             ["ECLI:EU:C:1964:66"],
-            ["Costa v E.N.E.L.", "Costa v ENEL", "Flaminio Costa"],
-            ["C-6/64", "Case 6-64", "6/64"],
+            ["Flaminio Costa", "Costa v E.N.E.L.", "Costa contra E.N.E.L."],
+            ["Asunto 6-64", "Case 6-64", "6/64"],
         ],
     },
     {
         "tipo_fuente": "JURISPRUDENCIA_TJUE",
         "identificador_oficial": "ECLI:EU:C:1978:49",
+        "identificador_recuperacion": "CELEX:61977CJ0106",
         "descripcion": "TJUE, Simmenthal, asunto 106/77",
-        "organismo": "CURIA",
+        "organismo": "EUR-Lex",
         "url_oficial": (
-            "https://infocuria.curia.europa.eu/tabs/redirect/juris/documents.jsf"
-            "?critereEcli=ECLI%3AEU%3AC%3A1978%3A49&language=EN"
+            "https://eur-lex.europa.eu/legal-content/ES/TXT/"
+            "?uri=CELEX:61977CJ0106"
         ),
         "grupos_senales": [
             ["ECLI:EU:C:1978:49"],
             ["Simmenthal"],
-            ["C-106/77", "Case 106/77", "106/77"],
+            ["Asunto 106/77", "Case 106/77", "106/77"],
         ],
     },
     {
         "tipo_fuente": "JURISPRUDENCIA_CONSTITUCIONAL",
         "identificador_oficial": "BOE-T-2005-111",
+        "identificador_recuperacion": "BOE-T-2005-111",
         "descripcion": "Tribunal Constitucional, Declaración 1/2004",
         "organismo": "BOE",
         "url_oficial": "https://www.boe.es/buscar/doc.php?id=BOE-T-2005-111",
@@ -119,7 +124,6 @@ def contiene_senal(texto_normalizado: str, senal: str) -> bool:
     b = normalizar_texto(senal)
     if b in texto_normalizado:
         return True
-    # Respaldo para identificadores y variantes de puntuación.
     aa = re.sub(r"[^a-z0-9]+", "", texto_normalizado)
     bb = re.sub(r"[^a-z0-9]+", "", b)
     return len(bb) >= 6 and bb in aa
@@ -210,7 +214,7 @@ def main() -> int:
     estado = "LISTO_PARA_RECUPERACION" if bloqueadas == 0 else "BLOQUEADO"
 
     payload = {
-        "version": 2,
+        "version": 3,
         "naturaleza": "AUDITORIA_IDENTIDADES_FUENTES_EXTERNAS",
         "piloto": "A1_ESPECIAL_1_P05",
         "estado": estado,
@@ -227,6 +231,8 @@ def main() -> int:
             "pertinencia_aceptada": False,
             "solo_proveedores_oficiales": True,
             "identidad_por_grupos_de_senales": True,
+            "ecli_como_identificador_juridico_tjue": True,
+            "celex_como_identificador_recuperacion_tjue": True,
         },
     }
 

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "naturaleza": "DEFINICION_PERTINENCIA_FUENTES_EXTERNAS_V2",
   "caso": "A1_ESPECIAL_3_P03",
   "pseudonorma": "PSEUDO:ESPECIAL_3_LA_ADMINISTRACION_PUBLICA_COMO_PERSONA_JURIDICA",
@@ -8,100 +8,30 @@
   "radio": 850,
   "max_fragmentos": 10,
   "proposiciones": [
-    {
-      "codigo": "A3P03-A",
-      "descripcion": "Discrecionalidad no equivale a arbitrariedad y el margen de elección permanece sometido al Derecho.",
-      "fuentes": [
-        {
-          "identificador_oficial": "BOE-A-1978-31229",
-          "anclas": ["interdicción de la arbitrariedad", "sometimiento pleno a la ley y al Derecho", "Artículo 9", "Artículo 103"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-27:4942-2016",
-          "anclas": ["discrecionalidad no es arbitrariedad", "varias soluciones igualmente", "ajustadas a la legalidad", "controlable por la Sala Tercera"]
-        }
-      ]
-    },
-    {
-      "codigo": "A3P03-B",
-      "descripcion": "La existencia de discrecionalidad no excluye el control jurisdiccional de la actuación administrativa.",
-      "fuentes": [
-        {
-          "identificador_oficial": "BOE-A-1978-31229",
-          "anclas": ["Los Tribunales controlan", "legalidad de la actuación administrativa", "fines que la justifican", "Artículo 106"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-27:4942-2016",
-          "anclas": ["controlable por la Sala Tercera", "control jurisdiccional", "discrecionalidad", "legalidad"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-21:1421-2016",
-          "anclas": ["control jurisdiccional", "discrecionalidad", "hechos determinantes", "principios generales", "arbitrariedad"]
-        }
-      ]
-    },
-    {
-      "codigo": "A3P03-C",
-      "descripcion": "Técnicas generales de control: elementos reglados, hechos determinantes, principios generales, arbitrariedad y desviación de poder.",
-      "fuentes": [
-        {
-          "identificador_oficial": "BOE-A-1978-31229",
-          "anclas": ["interdicción de la arbitrariedad", "sometimiento pleno a la ley y al Derecho", "fines que la justifican"]
-        },
-        {
-          "identificador_oficial": "BOE-A-1998-16718",
-          "anclas": ["desviación de poder", "fines distintos de los fijados por el ordenamiento jurídico", "Artículo 70"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-27:4942-2016",
-          "anclas": ["elementos reglados", "presupuestos de hecho", "principios generales", "desviación de poder", "discrecionalidad"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-21:1421-2016",
-          "anclas": ["hechos determinantes", "principios generales", "arbitrariedad", "desviación de poder", "discrecionalidad"]
-        }
-      ]
-    },
-    {
-      "codigo": "A3P03-D",
-      "descripcion": "La desviación de poder consiste en ejercer potestades administrativas para fines distintos de los fijados por el ordenamiento y es controlable jurisdiccionalmente.",
-      "fuentes": [
-        {
-          "identificador_oficial": "BOE-A-1978-31229",
-          "anclas": ["sometimiento de ésta a los fines que la justifican", "Los Tribunales controlan", "Artículo 106"]
-        },
-        {
-          "identificador_oficial": "BOE-A-1998-16718",
-          "anclas": ["desviación de poder", "ejercicio de potestades administrativas para fines distintos", "Artículo 70"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-21:1421-2016",
-          "anclas": ["desviación de poder", "fines distintos", "arbitrariedad", "control"]
-        }
-      ]
-    },
-    {
-      "codigo": "A3P03-E",
-      "descripcion": "El control jurisdiccional no permite sustituir el contenido discrecional cuando subsiste un margen legítimo de elección.",
-      "fuentes": [
-        {
-          "identificador_oficial": "BOE-A-1998-16718",
-          "anclas": ["no podrán determinar el contenido discrecional", "actos anulados", "Artículo 71"]
-        },
-        {
-          "identificador_oficial": "PODERJUDICIAL:TS-S3:2017-06-27:4942-2016",
-          "anclas": ["varias soluciones igualmente", "discrecionalidad", "facultades discrecionales", "legalidad"]
-        }
-      ]
-    }
+    {"codigo":"A3P03-A","descripcion":"Discrecionalidad no equivale a arbitrariedad y el margen de elección permanece sometido al Derecho.","fuentes":[
+      {"identificador_oficial":"BOE-A-1978-31229","localizadores_estructurales":["Artículo 9","Artículo 103"],"anclas":["interdicción de la arbitrariedad","sometimiento pleno a la ley y al Derecho"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-27:4942-2016","anclas":["discrecionalidad no es arbitrariedad","varias soluciones igualmente","ajustadas a la legalidad","controlable por la Sala Tercera"]}
+    ]},
+    {"codigo":"A3P03-B","descripcion":"La existencia de discrecionalidad no excluye el control jurisdiccional de la actuación administrativa.","fuentes":[
+      {"identificador_oficial":"BOE-A-1978-31229","localizadores_estructurales":["Artículo 106"],"anclas":["Los Tribunales controlan","legalidad de la actuación administrativa","fines que la justifican"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-27:4942-2016","anclas":["controlable por la Sala Tercera","control jurisdiccional","discrecionalidad","legalidad"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-21:1421-2016","anclas":["control jurisdiccional","discrecionalidad","hechos determinantes","principios generales","arbitrariedad"]}
+    ]},
+    {"codigo":"A3P03-C","descripcion":"Técnicas generales de control: elementos reglados, hechos determinantes, principios generales, arbitrariedad y desviación de poder.","fuentes":[
+      {"identificador_oficial":"BOE-A-1978-31229","localizadores_estructurales":["Artículo 9","Artículo 103","Artículo 106"],"anclas":["interdicción de la arbitrariedad","sometimiento pleno a la ley y al Derecho","fines que la justifican"]},
+      {"identificador_oficial":"BOE-A-1998-16718","localizadores_estructurales":["Artículo 70."],"anclas":["desviación de poder","fines distintos de los fijados por el ordenamiento jurídico"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-27:4942-2016","anclas":["elementos reglados","presupuestos de hecho","principios generales","desviación de poder","discrecionalidad"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-21:1421-2016","anclas":["hechos determinantes","principios generales","arbitrariedad","desviación de poder","discrecionalidad"]}
+    ]},
+    {"codigo":"A3P03-D","descripcion":"La desviación de poder consiste en ejercer potestades administrativas para fines distintos de los fijados por el ordenamiento y es controlable jurisdiccionalmente.","fuentes":[
+      {"identificador_oficial":"BOE-A-1978-31229","localizadores_estructurales":["Artículo 106"],"anclas":["sometimiento de ésta a los fines que la justifican","Los Tribunales controlan"]},
+      {"identificador_oficial":"BOE-A-1998-16718","localizadores_estructurales":["Artículo 70."],"anclas":["desviación de poder","ejercicio de potestades administrativas para fines distintos"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-21:1421-2016","anclas":["desviación de poder","fines distintos","arbitrariedad","control"]}
+    ]},
+    {"codigo":"A3P03-E","descripcion":"El control jurisdiccional no permite sustituir el contenido discrecional cuando subsiste un margen legítimo de elección.","fuentes":[
+      {"identificador_oficial":"BOE-A-1998-16718","localizadores_estructurales":["2. Los órganos jurisdiccionales no podrán determinar el contenido discrecional"],"anclas":["no podrán determinar el contenido discrecional","actos anulados"]},
+      {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-27:4942-2016","anclas":["varias soluciones igualmente","discrecionalidad","facultades discrecionales","legalidad"]}
+    ]}
   ],
-  "reglas": {
-    "solo_prioriza_revision": true,
-    "pertinencia_no_automatica": true,
-    "fuente_sectorial_no_amplia_temario": true,
-    "controlable_no_equivale_a_sustituible": true,
-    "desviacion_de_poder_no_equivale_a_arbitrariedad": true,
-    "bd_modificada": false,
-    "corpus_modificado": false
-  }
+  "reglas":{"solo_prioriza_revision":true,"pertinencia_no_automatica":true,"fuente_sectorial_no_amplia_temario":true,"controlable_no_equivale_a_sustituible":true,"desviacion_de_poder_no_equivale_a_arbitrariedad":true,"localizador_estructural_no_implica_pertinencia":true,"bd_modificada":false,"corpus_modificado":false}
 }

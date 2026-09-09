@@ -83,12 +83,36 @@ PATRONES_JURIDICOS_EXPLICITOS = tuple(
     )
 )
 
-# Sólo se usa el título del bloque para una decisión NO_JURIDICO automática.
-# Debe ser una señal inequívoca. Otros contenidos técnicos aislados se dejan
-# en REVISION salvo que el propio bloque sea claramente no jurídico.
+# Señales inequívocas de contenido técnico/ofimático. No se usan para decidir
+# por simple presencia de una palabra aislada: se exige combinación de varias
+# señales o un bloque explícitamente técnico.
 PATRON_BLOQUE_NO_JURIDICO = re.compile(
     r"\binform[aá]tica\b|\bofim[aá]tica\b",
     re.IGNORECASE,
+)
+
+PATRONES_TECNICOS = tuple(
+    re.compile(p, re.IGNORECASE)
+    for p in (
+        r"\bwindows\s*11\b",
+        r"\bmicrosoft\s+365\b",
+        r"\boutlook\b",
+        r"\bteams\b",
+        r"\bonedrive\b",
+        r"\bword\b",
+        r"\bexcel\b",
+        r"\bnavegador(?:es)?\s+web\b",
+        r"\barchivos?\s+y\s+carpetas?\b",
+        r"\bhojas?\s+de\s+c[aá]lculo\b",
+        r"\bprocesador\s+de\s+textos?\b",
+        r"\binteligencia\s+artificial\b",
+        r"\bherramientas?\s+basadas?\s+en\s+inteligencia\s+artificial\b",
+        r"\bchat\s+y\s+llamadas\b",
+        r"\btrabajo\s+colaborativo\b",
+        r"\bdescarga\s+de\s+documentos\b",
+        r"\bmarcadores\b",
+        r"\bhistorial\b",
+    )
 )
 
 
@@ -221,18 +245,30 @@ def extraer_temas(texto_pdf: str) -> list[TemaExtraido]:
     return temas
 
 
+def evidencia_tecnica_suficiente(texto: str) -> bool:
+    coincidencias = sum(1 for patron in PATRONES_TECNICOS if patron.search(texto))
+    return coincidencias >= 2
+
+
 def clasificar_tema(tema: TemaExtraido) -> None:
     bloque_normalizado = normalizar(tema.bloque_titulo)
+    texto_con_bloque = f"{tema.bloque_titulo} {tema.texto}"
+
+    # Una referencia normativa literal tiene prioridad absoluta: un tema nunca
+    # se convierte en NO_JURIDICO por contener además herramientas técnicas.
+    if any(patron.search(texto_con_bloque) for patron in PATRONES_JURIDICOS_EXPLICITOS):
+        tema.clasificacion = "JURIDICO"
+        tema.evidencia_clasificacion = "REFERENCIA_JURIDICA_LITERAL"
+        return
 
     if PATRON_BLOQUE_NO_JURIDICO.search(bloque_normalizado):
         tema.clasificacion = "NO_JURIDICO"
         tema.evidencia_clasificacion = "BLOQUE_TECNICO_EXPLICITO"
         return
 
-    texto_con_bloque = f"{tema.bloque_titulo} {tema.texto}"
-    if any(patron.search(texto_con_bloque) for patron in PATRONES_JURIDICOS_EXPLICITOS):
-        tema.clasificacion = "JURIDICO"
-        tema.evidencia_clasificacion = "REFERENCIA_JURIDICA_LITERAL"
+    if evidencia_tecnica_suficiente(tema.texto):
+        tema.clasificacion = "NO_JURIDICO"
+        tema.evidencia_clasificacion = "CONTENIDO_TECNICO_INEQUIVOCO"
         return
 
     tema.clasificacion = "REVISION"

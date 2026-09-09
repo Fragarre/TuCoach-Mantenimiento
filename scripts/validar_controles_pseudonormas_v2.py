@@ -6,6 +6,8 @@ SOLO LECTURA respecto de la base de datos.
 Objetivo limitado:
 - comprobar los pilotos conocidos P02 y P05 contra respaldos previamente
   verificados y documentados;
+- ejecutar esos controles sólo sobre unidades explícitamente marcadas como
+  control piloto en la ficha de revisión;
 - buscar por identificador oficial + artículo en el corpus local, sin depender
   del ranking léxico;
 - declarar explícitamente qué respaldos faltan del corpus local;
@@ -40,8 +42,6 @@ def articulo_equivalente(real: str, esperado: str) -> bool:
     return normalizar(real) == normalizar(esperado)
 
 
-# Controles jurídicos ya verificados en los documentos piloto del repositorio.
-# No son reglas inferidas por el algoritmo.
 CONTROLES = {
     "P02": {
         "tipo": "MIXTO_NORMATIVO_DOCTRINAL",
@@ -128,20 +128,27 @@ def buscar_local(indice, esperado):
     }
 
 
-def cargar_codigos_revision(path: Path):
+def cargar_unidades_control(path: Path):
     data = json.loads(path.read_text(encoding="utf-8"))
-    codigos = set()
+    controles = []
     for ficha in data.get("fichas", []):
         for unidad in ficha.get("unidades", []):
-            codigo = unidad.get("codigo")
-            if codigo:
-                codigos.add(str(codigo))
-    return data, codigos
+            control = unidad.get("control_piloto") or {}
+            codigo = str(unidad.get("codigo") or "")
+            if control.get("es_control") and codigo in CONTROLES:
+                controles.append({
+                    "identidad": ficha.get("identidad"),
+                    "parte": ficha.get("parte"),
+                    "numero_tema": ficha.get("numero_tema"),
+                    "codigo": codigo,
+                    "ambito_control": control.get("ambito_control"),
+                })
+    return data, controles
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Valida controles P02/P05 contra respaldos jurídicos conocidos sin modificar datos."
+        description="Valida controles P02/P05 marcados en las fichas sin modificar datos."
     )
     ap.add_argument("--revision-json", required=True)
     ap.add_argument("--db", default=str(DB_PREDETERMINADA))
@@ -152,7 +159,7 @@ def main() -> int:
     db = Path(args.db).expanduser().resolve()
     salida = Path(args.salida_json).expanduser().resolve()
 
-    _, codigos = cargar_codigos_revision(revision)
+    _, unidades_control = cargar_unidades_control(revision)
 
     with comun.conectar_sqlite_solo_lectura(db) as con:
         articulos = respaldos_mod.cargar_articulos(con)
@@ -164,6 +171,7 @@ def main() -> int:
     print(f"Revisión.......................... {revision}")
     print(f"BD............................... {db}")
     print(f"Artículos oficiales indexados.... {len(articulos)}")
+    print(f"Unidades control explícitas...... {len(unidades_control)}")
     print()
 
     resultados = []
@@ -171,11 +179,12 @@ def main() -> int:
     total_faltantes = 0
     total_externos = 0
 
-    for codigo in ("P02", "P05"):
-        if codigo not in codigos:
-            print(f"{codigo} | NO PRESENTE EN FICHERO DE REVISION")
-            continue
+    if not unidades_control:
+        print("No hay unidades marcadas explícitamente como control piloto.")
+        print()
 
+    for unidad_control in unidades_control:
+        codigo = unidad_control["codigo"]
         control = CONTROLES[codigo]
         locales = [buscar_local(indice, x) for x in control["locales_esperados"]]
         localizados = sum(x["estado"] == "LOCALIZADO_EN_CORPUS_LOCAL" for x in locales)
@@ -189,7 +198,10 @@ def main() -> int:
         total_faltantes += faltantes
         total_externos += len(externos)
 
-        print(f"{codigo} | {control['tipo']}")
+        print(
+            f"{codigo} | {control['tipo']} | "
+            f"{unidad_control.get('parte')} {unidad_control.get('numero_tema')}"
+        )
         print(f"  Respaldos normativos esperados.. {len(locales)}")
         print(f"  Localizados en corpus local..... {localizados}")
         print(f"  Faltan en corpus local.......... {faltantes}")
@@ -202,7 +214,7 @@ def main() -> int:
         print()
 
         resultados.append({
-            "codigo": codigo,
+            **unidad_control,
             "tipo": control["tipo"],
             "criterio": control["criterio"],
             "respaldos_normativos": locales,
@@ -211,14 +223,14 @@ def main() -> int:
         })
 
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "AUDITORIA_CONTROLES_JURIDICOS_PSEUDONORMAS",
         "estado": "REVISION",
         "revision_origen": str(revision),
         "db": str(db),
         "resultados": resultados,
         "reglas": {
-            "solo_controles_conocidos": True,
+            "solo_controles_marcados_en_ficha": True,
             "aceptacion_automatica": False,
             "fuentes_externas_no_inventadas": True,
             "bd_modificada": False,

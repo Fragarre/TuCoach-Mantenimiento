@@ -50,6 +50,12 @@ PATRONES_DOCTRINALES_FUERTES = tuple(
         r"\bjurisprudencia\b",
         r"\bdoctrina\b",
         r"\baplicacion\s+e\s+interpretacion\s+de\s+las\s+normas\b",
+        r"\beficacia\s+temporal\s+de\s+las\s+normas\b",
+        r"\bderecho\s+transitorio\b",
+        r"\bprincipio\s+de\s+irretroactividad\b",
+        r"\bformas?\s+de\s+actividad\s+administrativa\b",
+        r"\bactividad\s+de\s+limitacion\s+o\s+policia\b",
+        r"\bfinanciacion\s+de\s+las\s+comunidades\s+autonomas\b",
         # Fórmula típica de materias competenciales amplias: exige conocer
         # varias normas sectoriales, sin que el temario delimite una sola.
         r"\bcompetencias?\s+de\s+la\s+generalitat\s+en\s+materia\s+de\b",
@@ -57,13 +63,17 @@ PATRONES_DOCTRINALES_FUERTES = tuple(
         # Marcos normativos expresamente multinivel, también abiertos si no se
         # identifica una norma concreta que cierre el alcance.
         r"\bmarco\s+normativo\s+(?:estatal\s+y\s+autonomico|europeo\s+y\s+estatal)\b",
+        r"\bmarco\s+europeo\s+y\s+estatal\b",
+        r"\bnormativa\s+basica\s+estatal\s+y\s+autonomica\b",
+        r"\bnormativa\s+europea,?\s+basica\s+estatal\s+y\s+autonomica\b",
         r"\bnormativa\s+(?:europea,?\s+estatal\s+y\s+autonomica|europea,?\s+estatal\s+o\s+autonomica)\b",
     )
 )
 
 # Familias de materias jurídicas normalmente acotables. No identifican una
 # norma concreta; únicamente permiten distinguir una materia delimitable de una
-# formulación doctrinal abierta.
+# formulación doctrinal abierta. Se exigen al menos dos señales de la misma
+# familia para evitar clasificaciones por coincidencias aisladas.
 GRUPOS_DELIMITABLES = (
     ("ORGANIZACION_ADMINISTRATIVA", (
         r"\borganos?\s+de\s+las?\s+administraciones?\s+publicas?\b",
@@ -73,15 +83,103 @@ GRUPOS_DELIMITABLES = (
         r"\bencomienda\s+de\s+gestion\b",
         r"\bavocacion\b",
     )),
+    ("CONSTITUCIONAL_ESTADO", (
+        r"\bgobierno\s+y\s+administracion\b",
+        r"\bconsejo\s+de\s+ministros\b",
+        r"\brelaciones\s+entre\s+el\s+gobierno\s+y\s+las\s+cortes\s+generales\b",
+        r"\bprincipios\s+constitucionales\b",
+        r"\badministracion\s+general\s+del\s+estado\b",
+        r"\bpoder\s+judicial\b",
+        r"\bconsejo\s+general\s+del\s+poder\s+judicial\b",
+        r"\btribunal\s+constitucional\b",
+        r"\bdefensor\s+del\s+pueblo\b",
+        r"\borganizacion\s+territorial\s+del\s+estado\b",
+        r"\badministracion\s+local\b",
+        r"\bcomunidades\s+autonomas\b",
+    )),
+    ("INSTITUCIONES_VALENCIANAS", (
+        r"\bprocedimiento\s+legislativo\b",
+        r"\bsistema\s+electoral\s+valenciano\b",
+        r"\bsindic(?:a|o)\s+de\s+greuges\b",
+        r"\bsindicatura\s+de\s+comptes\b",
+        r"\bconsell\s+juridic\s+consultiu\b",
+        r"\bconsell\s+valencia\s+de\s+cultura\b",
+        r"\bacademia\s+valenciana\s+de\s+la\s+llengua\b",
+        r"\bcomite\s+economic\s+i\s+social\b",
+    )),
+    ("UNION_EUROPEA", (
+        r"\bparlamento\s+europeo\b",
+        r"\bconsejo\s+europeo\b",
+        r"\bcomision\s+europea\b",
+        r"\btribunal\s+de\s+justicia\s+de\s+la\s+union\s+europea\b",
+        r"\bbanco\s+central\s+europeo\b",
+        r"\bcompetencias?\s+de\s+la\s+union\s+europea\b",
+        r"\bciudadania\s+de\s+la\s+union\b",
+        r"\bmercado\s+interior\b",
+        r"\blibre\s+circulacion\b",
+        r"\bespacio\s+de\s+libertad,?\s+seguridad\s+y\s+justicia\b",
+    )),
+    ("ADMINISTRATIVO_GENERAL", (
+        r"\bpotestades?\s+administrativas?\b",
+        r"\bactividad\s+discrecional\b",
+        r"\bacto\s+administrativo\b",
+        r"\bactos?\s+de\s+tramite\b",
+        r"\biniciativa\s+legislativa\b",
+        r"\bpotestad\s+para\s+dictar\s+reglamentos\b",
+        r"\bproyectos?\s+normativos?\b",
+    )),
+    ("JUSTICIA_ADMINISTRATIVA", (
+        r"\bjurisdiccion\s+contencioso-administrativa\b",
+        r"\brecurso\s+contencioso-administrativo\b",
+        r"\bejecucion\s+de\s+sentencias\b",
+        r"\bprocedimientos?\s+de\s+declaracion\s+de\s+inconstitucionalidad\b",
+        r"\brecurso\s+de\s+amparo\s+constitucional\b",
+        r"\bconflictos?\s+constitucionales?\b",
+    )),
+    ("POTESTAD_SANCIONADORA", (
+        r"\bpotestad\s+sancionadora\b",
+        r"\bprincipios\s+de\s+la\s+potestad\s+sancionadora\b",
+        r"\bprocedimientos?\s+sancionadores?\b",
+    )),
+    ("RESPONSABILIDAD_PATRIMONIAL", (
+        r"\bresponsabilidad\s+patrimonial\b",
+        r"\bresponsabilidad\s+de\s+las\s+autoridades\b",
+        r"\bprocedimientos?\s+en\s+materia\s+de\s+responsabilidad\s+patrimonial\b",
+    )),
+    ("PATRIMONIO_PUBLICO", (
+        r"\bpatrimonio\s+de\s+las\s+administraciones\s+publicas\b",
+        r"\blegislacion\s+basica\s+del\s+estado\b",
+        r"\bley\s+de\s+patrimonio\s+de\s+la\s+generalitat\b",
+    )),
+    ("CONTRATACION_PUBLICA", (
+        r"\bcontratos?\s+del\s+sector\s+publico\b",
+        r"\bcontratos?\s+de\s+las\s+administraciones\s+publicas\b",
+        r"\borganizacion\s+administrativa\s+para\s+la\s+gestion\s+de\s+la\s+contratacion\b",
+        r"\belementos\s+estructurales\s+de\s+los\s+contratos\b",
+    )),
+    ("EXPROPIACION", (
+        r"\bexpropiacion\s+forzosa\b",
+        r"\bprocedimiento\s+general\b",
+        r"\bprocedimiento\s+de\s+urgencia\b",
+    )),
     ("EMPLEO_PUBLICO", (
         r"\bpersonal\s+al\s+servicio\s+de\s+las?\s+administraciones?\s+publicas?\b",
         r"\bempleo\s+publico\b",
         r"\bpersonal\s+empleado\s+publico\b",
+        r"\bestructuracion\s+del\s+empleo\s+publico\b",
+        r"\bordenacion\s+de\s+los\s+puestos\s+de\s+trabajo\b",
+        r"\bregistros?\s+de\s+personal\b",
         r"\bsituaciones\s+administrativas\b",
         r"\bregimen\s+disciplinario\b",
         r"\bincompatibilidades\b",
         r"\bprovision\s+de\s+puestos\b",
         r"\bpromocion\s+profesional\b",
+    )),
+    ("SEGURIDAD_SOCIAL", (
+        r"\bsistema\s+de\s+la\s+seguridad\s+social\b",
+        r"\bregimen\s+general\b",
+        r"\bafiliacion\s+y\s+cotizacion\b",
+        r"\baccion\s+protectora\b",
     )),
     ("PRESUPUESTO", (
         r"\bpresupuesto\s+de\s+la\s+generalitat\b",
@@ -98,6 +196,20 @@ GRUPOS_DELIMITABLES = (
         r"\btribunal\s+de\s+cuentas\b",
         r"\bsindicatura\s+de\s+comptes\b",
     )),
+    ("TESORERIA_DEUDA", (
+        r"\btesoreria\s+de\s+la\s+generalitat\b",
+        r"\bgestion\s+de\s+la\s+tesoreria\b",
+        r"\bdeuda\s+publica\b",
+        r"\bregimen\s+de\s+avales\b",
+    )),
+)
+
+# Un bloque expresamente jurídico es evidencia contextual de que un tema sin
+# cita literal sigue siendo jurídico. No decide la norma: sólo permite tratarlo
+# como delimitable cuando tampoco existen señales doctrinales/transversales.
+PATRON_BLOQUE_JURIDICO = re.compile(
+    r"\b(?:derecho\s+administrativo|funcion\s+publica|gestion\s+economico[- ]presupuestaria|union\s+europea|contratacion|administracion\s+publica)\b",
+    re.I,
 )
 
 
@@ -135,14 +247,15 @@ def clasificar(tema: estructura.TemaExtraido) -> tuple[str, str]:
         return "JURIDICO_EXPLICITO", f"CITA_LITERAL:{nombres}"
 
     grupo, n_senales = _grupo_delimitable(texto)
-    # Se exigen al menos dos señales de una misma familia para no transformar
-    # una coincidencia casual en una clasificación jurídica afirmativa.
     if grupo and n_senales >= 2:
         return "JURIDICO_DELIMITABLE", f"MATERIA_ACOTADA:{grupo};senales={n_senales}"
 
-    # Si el extractor ya lo consideró jurídico por una referencia literal que
-    # el resolvedor nominal todavía no sabe identificar, se mantiene en revisión
-    # de alcance en vez de degradarlo o inventar una norma.
+    bloque = _norm(tema.bloque_titulo)
+    if bloque and PATRON_BLOQUE_JURIDICO.search(bloque):
+        return "JURIDICO_DELIMITABLE", f"BLOQUE_JURIDICO_ACOTABLE:{tema.bloque_titulo}"
+
+    # Ante falta real de evidencia, se mantiene REVISION. Esta categoría no es
+    # un error: evita convertir conocimiento general en una decisión automática.
     return "REVISION", "ALCANCE_NO_DETERMINADO"
 
 

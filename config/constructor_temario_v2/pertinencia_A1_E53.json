@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "naturaleza": "DEFINICION_PERTINENCIA_FUENTES_EXTERNAS_V2",
   "caso": "A1_ESPECIAL_53",
   "pseudonorma": "PSEUDO:ESPECIAL_53_GOBIERNO_ABIERTO",
@@ -14,67 +14,13 @@
     "fuente_internacional_exige_mencion_temario_o_aplicabilidad": true
   },
   "proposiciones": [
-    {
-      "codigo": "A1E53-P01",
-      "descripcion": "Gobierno abierto: principios, en el marco de la Generalitat y la Comunitat Valenciana.",
-      "fuentes": [
-        {"identificador_oficial":"BOE-A-2022-8187","anclas":["gobierno abierto","transparencia","participación","rendición de cuentas","integridad"],"max_fragmentos":10}
-      ]
-    },
-    {
-      "codigo": "A1E53-P02",
-      "descripcion": "Grupos de interés en el ámbito de la Generalitat y su sector público instrumental.",
-      "fuentes": [
-        {"identificador_oficial":"BOE-A-2019-967","anclas":["grupos de interés","actividad de influencia","registro de grupos de interés","Generalitat"],"max_fragmentos":10}
-      ]
-    },
-    {
-      "codigo": "A1E53-P03",
-      "descripcion": "Participación ciudadana en la Administración Valenciana.",
-      "fuentes": [
-        {"identificador_oficial":"BOE-A-2023-10640","anclas":["participación ciudadana","mecanismos de participación","procesos participativos","Generalitat","Comunitat Valenciana"],"max_fragmentos":10}
-      ]
-    },
-    {
-      "codigo": "A1E53-P04",
-      "descripcion": "Gobernanza como paradigma de gestión pública, contextualizada en la Administración Valenciana y apoyada por el marco institucional europeo expresamente relacionado con el temario.",
-      "fuentes": [
-        {"identificador_oficial":"BOE-A-2022-8187","anclas":["gobernanza","gobierno abierto","participación","rendición de cuentas"],"max_fragmentos":8},
-        {"identificador_oficial":"BOE-A-2023-10640","anclas":["gobernanza","participación ciudadana","procesos participativos"],"max_fragmentos":8},
-        {"identificador_oficial":"CELEX:52001DC0428","anclas":["gobernanza europea","apertura","participación","responsabilidad","eficacia","coherencia"],"max_fragmentos":10}
-      ]
-    },
-    {
-      "codigo": "A1E53-P05",
-      "descripcion": "Libro Blanco de la UE y los cinco principios de la buena gobernanza, exigidos expresamente por el temario.",
-      "fuentes": [
-        {"identificador_oficial":"CELEX:52001DC0428","anclas":["Libro Blanco","apertura","participación","responsabilidad","eficacia","coherencia","cinco principios"],"max_fragmentos":10}
-      ]
-    },
-    {
-      "codigo": "A1E53-P06",
-      "descripcion": "Derecho a la buena administración en el marco europeo aplicable y en el marco autonómico valenciano.",
-      "fuentes": [
-        {"identificador_oficial":"CELEX:12012P/TXT","localizadores_estructurales":["Artículo 41"],"anclas":["Derecho a una buena administración","imparcial y equitativamente","plazo razonable"],"max_fragmentos":6},
-        {"identificador_oficial":"BOE-A-1982-17235","localizadores_estructurales":["Artículo 9"],"anclas":["buena administración","Generalitat","derecho"],"max_fragmentos":6},
-        {"identificador_oficial":"BOE-A-2022-8187","anclas":["buena administración","buen gobierno","Generalitat"],"max_fragmentos":6}
-      ]
-    },
-    {
-      "codigo": "A1E53-P07",
-      "descripcion": "Agenda 2030 y Objetivos de Desarrollo Sostenible de Naciones Unidas, incluidos expresamente en el temario; fuente institucional, no norma jurídica española por este solo hecho.",
-      "fuentes": [
-        {"identificador_oficial":"A/RES/70/1","anclas":["Transformar nuestro mundo","Agenda 2030","Objetivos de Desarrollo Sostenible","17 Objetivos","169 metas"],"max_fragmentos":10}
-      ]
-    }
+    {"codigo":"A1E53-P01","descripcion":"Gobierno abierto: principios, en el marco de la Generalitat y la Comunitat Valenciana.","fuentes":[{"identificador_oficial":"BOE-A-2022-8187","anclas":["gobierno abierto","transparencia","participación","rendición de cuentas","integridad"],"max_fragmentos":10}]},
+    {"codigo":"A1E53-P02","descripcion":"Grupos de interés en el ámbito de la Generalitat y su sector público instrumental.","fuentes":[{"identificador_oficial":"BOE-A-2019-967","anclas":["grupos de interés","actividad de influencia","registro de grupos de interés","Generalitat"],"max_fragmentos":10}]},
+    {"codigo":"A1E53-P03","descripcion":"Participación ciudadana en la Administración Valenciana.","fuentes":[{"identificador_oficial":"BOE-A-2023-10640","anclas":["participación ciudadana","mecanismos de participación","procesos participativos","Generalitat","Comunitat Valenciana"],"max_fragmentos":10}]},
+    {"codigo":"A1E53-P04","descripcion":"Gobernanza como paradigma de gestión pública, contextualizada en la Administración Valenciana y apoyada por el marco institucional europeo expresamente relacionado con el temario.","fuentes":[{"identificador_oficial":"BOE-A-2022-8187","anclas":["gobernanza","gobierno abierto","participación","rendición de cuentas"],"max_fragmentos":8},{"identificador_oficial":"BOE-A-2023-10640","anclas":["gobernanza","participación ciudadana","procesos participativos"],"max_fragmentos":8},{"identificador_oficial":"CELEX:52001DC0428","anclas":["gobernanza europea","apertura","participación","responsabilidad","eficacia","coherencia"],"max_fragmentos":10}]},
+    {"codigo":"A1E53-P05","descripcion":"Libro Blanco de la UE y los cinco principios de la buena gobernanza, exigidos expresamente por el temario.","fuentes":[{"identificador_oficial":"CELEX:52001DC0428","anclas":["Libro Blanco","apertura","participación","responsabilidad","eficacia","coherencia","cinco principios"],"max_fragmentos":10}]},
+    {"codigo":"A1E53-P06","descripcion":"Derecho a la buena administración en la normativa europea aplicable, estatal española y autonómica valenciana.","fuentes":[{"identificador_oficial":"CELEX:12012P/TXT","localizadores_estructurales":["Artículo 41"],"anclas":["Derecho a una buena administración","imparcial y equitativamente","plazo razonable"],"max_fragmentos":6},{"identificador_oficial":"BOE-A-2015-10565","localizadores_estructurales":["Artículo 13","Artículo 35","Artículo 53"],"anclas":["derechos de las personas","derechos del interesado","motivación","plazo","Administraciones Públicas"],"max_fragmentos":8},{"identificador_oficial":"BOE-A-2015-10566","localizadores_estructurales":["Artículo 3"],"anclas":["servicio efectivo a los ciudadanos","simplicidad, claridad y proximidad","participación, objetividad y transparencia","responsabilidad por la gestión pública","eficacia"],"max_fragmentos":8},{"identificador_oficial":"BOE-A-1982-17235","localizadores_estructurales":["Artículo 9"],"anclas":["buena administración","Generalitat","derecho"],"max_fragmentos":6},{"identificador_oficial":"BOE-A-2022-8187","anclas":["buena administración","buen gobierno","Generalitat"],"max_fragmentos":6}]},
+    {"codigo":"A1E53-P07","descripcion":"Agenda 2030 y Objetivos de Desarrollo Sostenible de Naciones Unidas, incluidos expresamente en el temario; fuente institucional, no norma jurídica española por este solo hecho.","fuentes":[{"identificador_oficial":"A/RES/70/1","anclas":["Transformar nuestro mundo","Agenda 2030","Objetivos de Desarrollo Sostenible","17 Objetivos","169 metas"],"max_fragmentos":10}]}
   ],
-  "reglas": {
-    "bd_modificada": false,
-    "corpus_modificado": false,
-    "pertinencia_aceptada_automaticamente": false,
-    "coincidencia_textual_no_implica_pertinencia": true,
-    "contexto_comunitat_valenciana_obligatorio": true,
-    "derecho_extranjero_no_explorable": true,
-    "fuente_institucional_no_equivale_a_norma_juridica": true
-  }
+  "reglas":{"bd_modificada":false,"corpus_modificado":false,"pertinencia_aceptada_automaticamente":false,"coincidencia_textual_no_implica_pertinencia":true,"contexto_comunitat_valenciana_obligatorio":true,"derecho_extranjero_no_explorable":true,"fuente_institucional_no_equivale_a_norma_juridica":true}
 }

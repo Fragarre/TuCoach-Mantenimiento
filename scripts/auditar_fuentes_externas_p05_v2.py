@@ -7,7 +7,7 @@ NO descarga ni persiste todavía el texto jurídico completo.
 Primera pieza del adaptador general de fuentes externas:
 - declara identidades oficiales esperadas del piloto P05;
 - comprueba por HTTP que el proveedor oficial responde;
-- verifica señales fuertes de identidad en la respuesta;
+- verifica señales fuertes de identidad específicas de cada proveedor;
 - genera JSON de auditoría;
 - bloquea cualquier identidad que no pueda verificarse.
 
@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import json
 import re
 import urllib.error
@@ -36,9 +37,9 @@ FUENTES = [
             "https://eur-lex.europa.eu/legal-content/ES/TXT/"
             "?uri=CELEX:12008E/AFI/DCL/17"
         ),
-        "senales_identidad": [
-            "12008E/AFI/DCL/17",
-            "Declaración relativa a la primacía",
+        "grupos_senales": [
+            ["12008E/AFI/DCL/17"],
+            ["Declaración relativa a la primacía", "Declaración n.º 17 relativa a la primacía"],
         ],
     },
     {
@@ -47,12 +48,13 @@ FUENTES = [
         "descripcion": "TJUE, Costa/ENEL, asunto 6/64",
         "organismo": "CURIA",
         "url_oficial": (
-            "https://curia.europa.eu/juris/documents.jsf"
-            "?critereEcli=ECLI%3AEU%3AC%3A1964%3A66&language=ES"
+            "https://infocuria.curia.europa.eu/tabs/redirect/juris/documents.jsf"
+            "?critereEcli=ECLI%3AEU%3AC%3A1964%3A66&language=EN"
         ),
-        "senales_identidad": [
-            "ECLI:EU:C:1964:66",
-            "Costa",
+        "grupos_senales": [
+            ["ECLI:EU:C:1964:66"],
+            ["Costa v E.N.E.L.", "Costa v ENEL", "Flaminio Costa"],
+            ["C-6/64", "Case 6-64", "6/64"],
         ],
     },
     {
@@ -61,12 +63,13 @@ FUENTES = [
         "descripcion": "TJUE, Simmenthal, asunto 106/77",
         "organismo": "CURIA",
         "url_oficial": (
-            "https://curia.europa.eu/juris/documents.jsf"
-            "?critereEcli=ECLI%3AEU%3AC%3A1978%3A49&language=ES"
+            "https://infocuria.curia.europa.eu/tabs/redirect/juris/documents.jsf"
+            "?critereEcli=ECLI%3AEU%3AC%3A1978%3A49&language=EN"
         ),
-        "senales_identidad": [
-            "ECLI:EU:C:1978:49",
-            "Simmenthal",
+        "grupos_senales": [
+            ["ECLI:EU:C:1978:49"],
+            ["Simmenthal"],
+            ["C-106/77", "Case 106/77", "106/77"],
         ],
     },
     {
@@ -75,24 +78,28 @@ FUENTES = [
         "descripcion": "Tribunal Constitucional, Declaración 1/2004",
         "organismo": "BOE",
         "url_oficial": "https://www.boe.es/buscar/doc.php?id=BOE-T-2005-111",
-        "senales_identidad": [
-            "BOE-T-2005-111",
-            "Declaración 1/2004",
+        "grupos_senales": [
+            ["BOE-T-2005-111"],
+            ["Declaración del Pleno del Tribunal Constitucional 1/2004", "Declaración 1/2004"],
+            ["13 de diciembre de 2004"],
         ],
     },
 ]
 
 
-def normalizar_espacios(texto: str) -> str:
-    return " ".join((texto or "").split())
+def normalizar_texto(texto: str) -> str:
+    texto = html.unescape(texto or "")
+    texto = re.sub(r"<[^>]+>", " ", texto)
+    return " ".join(texto.split()).casefold()
 
 
-def descargar(url: str, timeout: int) -> tuple[str, str, int]:
+def descargar(url: str, timeout: int) -> tuple[str, str, int, str]:
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "NetReto-Constructor-Temario-V2/1.0",
+            "User-Agent": "Mozilla/5.0 NetReto-Constructor-Temario-V2/1.0",
             "Accept-Language": "es,en;q=0.8",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         },
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -100,19 +107,22 @@ def descargar(url: str, timeout: int) -> tuple[str, str, int]:
         content_type = resp.headers.get("Content-Type", "")
         charset = resp.headers.get_content_charset() or "utf-8"
         texto = bruto.decode(charset, errors="replace")
-        return texto, content_type, int(getattr(resp, "status", 200) or 200)
+        return (
+            texto,
+            content_type,
+            int(getattr(resp, "status", 200) or 200),
+            resp.geturl(),
+        )
 
 
-def contiene_senal(texto: str, senal: str) -> bool:
-    # Las páginas oficiales pueden codificar separadores/espacios de forma distinta.
-    a = normalizar_espacios(texto).casefold()
-    b = normalizar_espacios(senal).casefold()
-    if b in a:
+def contiene_senal(texto_normalizado: str, senal: str) -> bool:
+    b = normalizar_texto(senal)
+    if b in texto_normalizado:
         return True
-    # Respaldo sólo para identificadores: ignorar puntuación HTML/URL.
-    aa = re.sub(r"[^a-z0-9]+", "", a)
+    # Respaldo para identificadores y variantes de puntuación.
+    aa = re.sub(r"[^a-z0-9]+", "", texto_normalizado)
     bb = re.sub(r"[^a-z0-9]+", "", b)
-    return len(bb) >= 10 and bb in aa
+    return len(bb) >= 6 and bb in aa
 
 
 def auditar_fuente(fuente: dict, timeout: int) -> dict:
@@ -121,29 +131,37 @@ def auditar_fuente(fuente: dict, timeout: int) -> dict:
         "estado": "BLOQUEADA",
         "http_status": None,
         "content_type": None,
+        "url_final": None,
         "chars_respuesta": 0,
-        "senales": [],
+        "grupos_senales": [],
         "hash_respuesta": None,
         "error": None,
     }
     try:
-        texto, content_type, status = descargar(fuente["url_oficial"], timeout)
-        comprobaciones = [
-            {"senal": s, "localizada": contiene_senal(texto, s)}
-            for s in fuente["senales_identidad"]
-        ]
-        todas = all(x["localizada"] for x in comprobaciones)
+        texto, content_type, status, url_final = descargar(fuente["url_oficial"], timeout)
+        texto_norm = normalizar_texto(texto)
+        grupos = []
+        for alternativas in fuente["grupos_senales"]:
+            comprobaciones = [
+                {"senal": s, "localizada": contiene_senal(texto_norm, s)}
+                for s in alternativas
+            ]
+            grupos.append({
+                "alternativas": comprobaciones,
+                "grupo_localizado": any(x["localizada"] for x in comprobaciones),
+            })
+
+        todas = all(g["grupo_localizado"] for g in grupos)
         base.update(
             {
                 "estado": "IDENTIDAD_VERIFICADA" if todas else "BLOQUEADA",
                 "http_status": status,
                 "content_type": content_type,
+                "url_final": url_final,
                 "chars_respuesta": len(texto),
-                "senales": comprobaciones,
-                "hash_respuesta": hashlib.sha256(
-                    texto.encode("utf-8")
-                ).hexdigest(),
-                "error": None if todas else "No se localizaron todas las señales de identidad.",
+                "grupos_senales": grupos,
+                "hash_respuesta": hashlib.sha256(texto.encode("utf-8")).hexdigest(),
+                "error": None if todas else "No se localizaron todos los grupos de identidad.",
             }
         )
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -180,13 +198,19 @@ def main() -> int:
         )
         if r["error"]:
             print(f"          {r['error']}")
+            for i, grupo in enumerate(r.get("grupos_senales", []), start=1):
+                if not grupo["grupo_localizado"]:
+                    esperadas = " OR ".join(x["senal"] for x in grupo["alternativas"])
+                    print(f"          Falta grupo {i}: {esperadas}")
+            if r.get("url_final"):
+                print(f"          URL final: {r['url_final']}")
 
     verificadas = sum(r["estado"] == "IDENTIDAD_VERIFICADA" for r in resultados)
     bloqueadas = len(resultados) - verificadas
     estado = "LISTO_PARA_RECUPERACION" if bloqueadas == 0 else "BLOQUEADO"
 
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "AUDITORIA_IDENTIDADES_FUENTES_EXTERNAS",
         "piloto": "A1_ESPECIAL_1_P05",
         "estado": estado,
@@ -202,6 +226,7 @@ def main() -> int:
             "contenido_persistido": False,
             "pertinencia_aceptada": False,
             "solo_proveedores_oficiales": True,
+            "identidad_por_grupos_de_senales": True,
         },
     }
 

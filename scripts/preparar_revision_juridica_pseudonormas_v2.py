@@ -8,8 +8,9 @@ Objetivo:
 - adjuntar candidatos recuperados del corpus oficial local;
 - marcar todos los candidatos como CANDIDATO, nunca PERTINENTE;
 - generar una ficha JSON estable para revisión jurídica humana/asistida;
-- permitir controles piloto conocidos (P02 y P05) sin convertirlos en reglas
-  generales ni aceptar respaldos automáticamente.
+- permitir controles piloto conocidos (P02 y P05) únicamente en el tema piloto
+  A1 ESPECIAL 1, sin convertirlos en reglas generales ni aceptar respaldos
+  automáticamente.
 
 La salida JSON es un artefacto de trabajo. No modifica BD, temario.csv, corpus ni
 bancos.
@@ -52,15 +53,30 @@ def inferir_tipo_inicial(texto: str) -> str:
     return "DOCTRINAL_PENDIENTE"
 
 
-def control_piloto(codigo: str, texto: str) -> dict:
-    """Devuelve expectativas de control sólo para los pilotos P02 y P05.
+def es_tema_piloto_a1_especial_1(borrador) -> bool:
+    """Identifica de forma cerrada el único tema al que pertenecen P02/P05.
 
-    Son criterios de auditoría conocidos y explícitos; no se usan para aceptar
-    respaldos ni se extienden a otras unidades.
+    Evita que una unidad llamada P02 o P05 de cualquier otro tema reciba por
+    error los controles jurídicos construidos para A1 ESPECIAL 1.
     """
+    parte = str(borrador.parte or "").strip().upper()
+    texto = respaldos_mod.normalizar(borrador.texto_tema_oficial or "")
+    return (
+        parte == "ESPECIAL"
+        and int(borrador.numero_tema) == 1
+        and "fuentes del derecho administrativo" in texto
+    )
+
+
+def control_piloto(borrador, codigo: str, texto: str) -> dict:
+    """Devuelve expectativas sólo para P02/P05 del tema piloto conocido."""
+    if not es_tema_piloto_a1_especial_1(borrador):
+        return {"es_control": False}
+
     if codigo == "P02":
         return {
             "es_control": True,
+            "ambito_control": "A1_ESPECIAL_1",
             "patron": "NORMATIVO",
             "debe_aparecer": [
                 "Código Civil - Título Preliminar",
@@ -74,6 +90,7 @@ def control_piloto(codigo: str, texto: str) -> dict:
     if codigo == "P05":
         return {
             "es_control": True,
+            "ambito_control": "A1_ESPECIAL_1",
             "patron": "MIXTO_NORMATIVO_JURISPRUDENCIAL",
             "debe_aparecer": [
                 "Declaración 17 relativa a la primacía",
@@ -155,7 +172,7 @@ def main() -> int:
                 item["pertinencia_juridica"] = "NO_EVALUADA"
                 candidatos.append(item)
 
-            control = control_piloto(unidad.codigo, unidad.texto_temario)
+            control = control_piloto(borrador, unidad.codigo, unidad.texto_temario)
             ficha = {
                 "codigo": unidad.codigo,
                 "texto_temario": unidad.texto_temario,
@@ -189,7 +206,7 @@ def main() -> int:
         print()
 
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "FICHAS_REVISION_JURIDICA_PSEUDONORMAS",
         "estado": "REVISION",
         "pdf": str(pdf),
@@ -197,6 +214,7 @@ def main() -> int:
         "reglas": {
             "candidatos_no_son_respaldos": True,
             "aceptacion_automatica": False,
+            "controles_piloto_acotados_a_tema": True,
             "bd_modificada": False,
         },
         "fichas": fichas,

@@ -6,14 +6,13 @@ NO MODIFICA EL CORPUS.
 NO ACEPTA PERTINENCIA JURÍDICA.
 
 Consume una auditoría generada por auditar_fuentes_externas_v2.py, vuelve a
-descargar cada fuente, revalida identidad y extrae texto legible para revisión.
-Admite HTML/texto y PDF.
+descargar la representación documental que verificó la identidad y extrae texto
+legible para revisión. Admite HTML/texto y PDF.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
-import html
 import json
 import re
 from datetime import datetime, timezone
@@ -101,9 +100,7 @@ def cargar_auditoria(path: Path) -> dict:
         raise ValueError("La auditoría no contiene fuentes.")
     for fuente in resultados:
         if fuente.get("estado") != "IDENTIDAD_VERIFICADA":
-            raise ValueError(
-                f"La fuente {fuente.get('identificador_oficial')} no está verificada."
-            )
+            raise ValueError(f"La fuente {fuente.get('identificador_oficial')} no está verificada.")
     return payload
 
 
@@ -115,16 +112,13 @@ def grupos_identidad_ok(texto: str, fuente: dict) -> tuple[bool, list[dict]]:
             {"senal": s, "localizada": auditor.contiene_senal(texto_norm, s)}
             for s in alternativas
         ]
-        detalle.append(
-            {
-                "alternativas": comprobaciones,
-                "grupo_localizado": any(x["localizada"] for x in comprobaciones),
-            }
-        )
+        detalle.append({"alternativas": comprobaciones,
+                        "grupo_localizado": any(x["localizada"] for x in comprobaciones)})
     return all(x["grupo_localizado"] for x in detalle), detalle
 
 
 def recuperar_fuente(fuente: dict, timeout: int) -> dict:
+    url_recuperacion = fuente.get("url_documento_verificada") or fuente["url_oficial"]
     base = {
         "tipo_fuente": fuente["tipo_fuente"],
         "identificador_oficial": fuente["identificador_oficial"],
@@ -132,6 +126,8 @@ def recuperar_fuente(fuente: dict, timeout: int) -> dict:
         "descripcion": fuente["descripcion"],
         "organismo": fuente["organismo"],
         "url_oficial": fuente["url_oficial"],
+        "url_documento_verificada": fuente.get("url_documento_verificada"),
+        "url_recuperacion_usada": url_recuperacion,
         "url_final": None,
         "http_status": None,
         "content_type": None,
@@ -147,41 +143,33 @@ def recuperar_fuente(fuente: dict, timeout: int) -> dict:
         "error": None,
     }
     try:
-        bruto, content_type, status, url_final = auditor.descargar(
-            fuente["url_oficial"], timeout
-        )
+        bruto, content_type, status, url_final = auditor.descargar(url_recuperacion, timeout)
         texto, formato = extraer_texto(bruto, content_type)
         identidad_ok, grupos = grupos_identidad_ok(texto, fuente)
-
-        base.update(
-            {
-                "url_final": url_final,
-                "http_status": status,
-                "content_type": content_type,
-                "formato_detectado": formato,
-                "grupos_identidad": grupos,
-                "bytes_respuesta": len(bruto),
-                "hash_respuesta": hash_bytes(bruto),
-            }
-        )
-
+        base.update({
+            "url_final": url_final,
+            "http_status": status,
+            "content_type": content_type,
+            "formato_detectado": formato,
+            "grupos_identidad": grupos,
+            "bytes_respuesta": len(bruto),
+            "hash_respuesta": hash_bytes(bruto),
+        })
         if not identidad_ok:
-            base["error"] = "La identidad dejó de verificarse durante la recuperación."
+            base["error"] = "La identidad dejó de verificarse en la representación documental recuperada."
             return base
-        if not texto:
+        minimo = int(fuente.get("min_chars_texto", 200))
+        if len(texto) < minimo:
             base["estado_identidad"] = "IDENTIDAD_VERIFICADA"
-            base["error"] = "La fuente no produjo texto legible."
+            base["error"] = f"Texto documental insuficiente: {len(texto)} chars; mínimo esperado {minimo}."
             return base
-
-        base.update(
-            {
-                "estado_identidad": "IDENTIDAD_VERIFICADA",
-                "estado_recuperacion": "RECUPERADA_PARA_REVISION",
-                "chars_texto_extraido": len(texto),
-                "hash_texto_extraido": hash_texto(texto),
-                "texto_extraido": texto,
-            }
-        )
+        base.update({
+            "estado_identidad": "IDENTIDAD_VERIFICADA",
+            "estado_recuperacion": "RECUPERADA_PARA_REVISION",
+            "chars_texto_extraido": len(texto),
+            "hash_texto_extraido": hash_texto(texto),
+            "texto_extraido": texto,
+        })
     except Exception as exc:
         base["error"] = f"{type(exc).__name__}: {exc}"
     return base
@@ -193,7 +181,6 @@ def main() -> int:
     ap.add_argument("--salida-json", required=True)
     ap.add_argument("--timeout", type=int, default=30)
     args = ap.parse_args()
-
     entrada = Path(args.auditoria_json).expanduser().resolve()
     salida = Path(args.salida_json).expanduser().resolve()
     try:
@@ -202,15 +189,12 @@ def main() -> int:
         print("ERROR: recuperación bloqueada antes de realizar descargas.")
         print(f"       {type(exc).__name__}: {exc}")
         return 2
-
     fuentes = auditoria["resultados"]
     print("=" * 78)
     print("CONSTRUCTOR TEMARIO V2 - RECUPERACION GENERAL FUENTES EXTERNAS - SIN BD")
     print("=" * 78)
     print(f"Caso.............................. {auditoria.get('caso')}")
-    print(f"Fuentes a recuperar............... {len(fuentes)}")
-    print()
-
+    print(f"Fuentes a recuperar............... {len(fuentes)}\n")
     resultados = []
     for fuente in fuentes:
         r = recuperar_fuente(fuente, args.timeout)
@@ -219,22 +203,16 @@ def main() -> int:
         marca = "OK" if ok else "ERROR"
         print(f"  {marca:<5} | {fuente['tipo_fuente']:<30} | {fuente['identificador_oficial']}")
         if ok:
-            print(
-                f"          formato={r['formato_detectado']} | "
-                f"texto={r['chars_texto_extraido']} chars | "
-                f"sha256={r['hash_texto_extraido'][:12]}..."
-            )
+            if r.get("url_recuperacion_usada") != fuente.get("url_oficial"):
+                print(f"          representación={r['url_recuperacion_usada']}")
+            print(f"          formato={r['formato_detectado']} | texto={r['chars_texto_extraido']} chars | sha256={r['hash_texto_extraido'][:12]}...")
         else:
             print(f"          {r['error']}")
-
-    recuperadas = sum(
-        r["estado_recuperacion"] == "RECUPERADA_PARA_REVISION" for r in resultados
-    )
+    recuperadas = sum(r["estado_recuperacion"] == "RECUPERADA_PARA_REVISION" for r in resultados)
     fallidas = len(resultados) - recuperadas
     estado = "LISTO_PARA_REVISION_CONTENIDO" if fallidas == 0 else "BLOQUEADO"
-
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "RECUPERACION_FUENTES_EXTERNAS_V2",
         "caso": auditoria.get("caso"),
         "pseudonorma": auditoria.get("pseudonorma"),
@@ -243,29 +221,23 @@ def main() -> int:
         "fecha_recuperacion_utc": datetime.now(timezone.utc).isoformat(),
         "auditoria_entrada": str(entrada),
         "resultados": resultados,
-        "resumen": {
-            "fuentes": len(resultados),
-            "recuperadas_para_revision": recuperadas,
-            "fallidas": fallidas,
-        },
+        "resumen": {"fuentes": len(resultados), "recuperadas_para_revision": recuperadas, "fallidas": fallidas},
         "reglas": {
             "bd_modificada": False,
             "corpus_modificado": False,
             "pertinencia_aceptada": False,
             "identidad_revalidada": True,
+            "representacion_documental_verificada_reutilizada": True,
             "texto_extraido_sin_interpretacion_juridica": True,
         },
     }
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    print()
-    print(f"Estado............................ {estado}")
+    print(f"\nEstado............................ {estado}")
     print(f"Recuperadas para revisión........ {recuperadas}")
     print(f"Fallidas.......................... {fallidas}")
     print(f"JSON.............................. {salida}")
-    print("La base de datos NO ha sido modificada.")
-    print("El corpus NO ha sido modificado.")
+    print("La base de datos NO ha sido modificada.\nEl corpus NO ha sido modificado.")
     return 0 if fallidas == 0 else 2
 
 

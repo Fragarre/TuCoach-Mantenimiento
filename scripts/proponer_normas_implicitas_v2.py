@@ -8,7 +8,8 @@ JURIDICO sin cita literal, mostrar evidencia reutilizable de OTROS temarios ya
 validados. No acepta ninguna norma, no resuelve artículos y no modifica datos.
 
 La convocatoria usada como prueba debe excluirse expresamente para evitar
-"copiar la respuesta" de su temario consolidado.
+"copiar la respuesta" de su temario consolidado. Además, la evidencia debe
+limitarse expresamente a convocatorias validadas mediante --evidencia-convocatorias.
 """
 from __future__ import annotations
 
@@ -48,9 +49,15 @@ def similitud(a: str, b: str) -> float:
     return len(ta & tb) / len(ta | tb)
 
 
-def cargar_evidencias(con, excluir_convocatoria: int):
+def cargar_evidencias(con, excluir_convocatoria: int, convocatorias_evidencia: list[int]):
+    ids = sorted(set(convocatorias_evidencia))
+    if excluir_convocatoria in ids:
+        raise ValueError(
+            f"La convocatoria excluida ({excluir_convocatoria}) no puede figurar como evidencia."
+        )
+    marcadores = ",".join("?" for _ in ids)
     filas = con.execute(
-        """
+        f"""
         SELECT c.id convocatoria_id, c.codigo convocatoria_codigo,
                tt.parte, tt.numero_tema, tt.titulo, n.id norma_id,
                n.nombre_canonico, COUNT(*) articulos
@@ -59,11 +66,11 @@ def cargar_evidencias(con, excluir_convocatoria: int):
         JOIN convocatorias c ON c.id=t.convocatoria_id
         JOIN temario_referencias tr ON tr.tema_id=tt.id
         JOIN normas n ON n.id=tr.norma_id
-        WHERE c.id<>? AND tr.estado='COMPLETADO'
+        WHERE c.id IN ({marcadores}) AND tr.estado='COMPLETADO'
         GROUP BY c.id,c.codigo,tt.id,n.id,n.nombre_canonico
         ORDER BY c.id,tt.parte,tt.numero_tema,n.id
         """,
-        (excluir_convocatoria,),
+        tuple(ids),
     ).fetchall()
     return filas
 
@@ -73,6 +80,8 @@ def main() -> int:
     ap.add_argument("--pdf", required=True)
     ap.add_argument("--excluir-convocatoria", required=True, type=int,
                     help="ID de la convocatoria usada como prueba; sus mappings quedan fuera del diagnóstico")
+    ap.add_argument("--evidencia-convocatorias", required=True, type=int, nargs="+",
+                    help="IDs de convocatorias consolidadas autorizadas como evidencia")
     ap.add_argument("--db", default=str(DB_PREDETERMINADA))
     ap.add_argument("--top", type=int, default=5)
     args = ap.parse_args()
@@ -91,7 +100,11 @@ def main() -> int:
             pendientes.append(t)
 
     with comun.conectar_sqlite_solo_lectura(db) as con:
-        evidencias = cargar_evidencias(con, args.excluir_convocatoria)
+        evidencias = cargar_evidencias(
+            con,
+            args.excluir_convocatoria,
+            args.evidencia_convocatorias,
+        )
 
     print("=" * 78)
     print("CONSTRUCTOR TEMARIO V2 - NORMAS IMPLICITAS - DIAGNOSTICO SOLO LECTURA")
@@ -99,8 +112,9 @@ def main() -> int:
     print(f"PDF.............................. {pdf}")
     print(f"BD............................... {db}")
     print(f"Convocatoria excluida............ {args.excluir_convocatoria}")
+    print("Convocatorias evidencia.......... " + ", ".join(map(str, sorted(set(args.evidencia_convocatorias)))))
     print(f"Temas pendientes analizados...... {len(pendientes)}")
-    print("La convocatoria excluida NO participa como evidencia.")
+    print("Sólo las convocatorias indicadas participan como evidencia.")
     print()
 
     for tema in pendientes:

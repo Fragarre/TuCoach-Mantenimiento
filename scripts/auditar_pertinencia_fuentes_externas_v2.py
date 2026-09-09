@@ -8,6 +8,10 @@ NO ACEPTA AUTOMÁTICAMENTE RESPALDOS.
 Las anclas y la cobertura SOLO priorizan fragmentos para revisión humana.
 Para fuentes normativas puede declararse `localizadores_estructurales`: se buscan antes
 que las anclas léxicas y reciben prioridad de revisión. Sirven para localizar, no validar.
+
+Los localizadores simples del tipo `Artículo 9`, `Artículo 70.` o equivalentes se
+interpretan como identificadores estructurales completos: `Artículo 9` no puede
+coincidir con `Artículo 90`, `Artículo 91`, etc.
 """
 from __future__ import annotations
 
@@ -30,13 +34,29 @@ def texto_fuente(r: dict) -> str:
     return ""
 
 
+def patron_localizador(valor: str, estructural: bool) -> str:
+    """Devuelve regex segura para un localizador.
+
+    En localizadores estructurales reconoce encabezados simples `Artículo N` y exige
+    que tras el número no continúe otro dígito. El resto se trata como texto literal.
+    """
+    literal = (valor or "").strip()
+    if estructural:
+        m = re.fullmatch(r"Artículo\s+(\d+[A-Za-z]*)(\.)?", literal, flags=re.IGNORECASE)
+        if m:
+            numero = re.escape(m.group(1))
+            # Permite punto, espacio o fin tras el número, pero nunca otro dígito/letra.
+            return rf"artículo\s+{numero}(?![0-9A-Za-z])"
+    return re.escape(literal.casefold())
+
+
 def _candidatos(texto: str, patrones: list[str], anclas: list[str], radio: int, estructural: bool) -> list[dict]:
     bajo = texto.casefold()
     anclas_cf = [(a, a.casefold()) for a in anclas if a and a.strip()]
     salida = []
     for patron_original in patrones:
-        patron = patron_original.casefold()
-        for m in re.finditer(re.escape(patron), bajo):
+        regex = patron_localizador(patron_original, estructural)
+        for m in re.finditer(regex, bajo):
             ini = max(0, m.start() - radio)
             fin = min(len(texto), m.end() + radio)
             ventana_cf = bajo[ini:fin]
@@ -55,7 +75,7 @@ def _candidatos(texto: str, patrones: list[str], anclas: list[str], radio: int, 
 
 def ventanas(texto: str, anclas: list[str], localizadores: list[str] | None = None,
              radio: int = 850, maximo: int = 10) -> list[dict]:
-    localizadores = [x for x in (localizadores or []) if x and x.strip()]
+    localizadores = [x for x in (localizadores or []) if isinstance(x, str) and x.strip()]
     candidatos = _candidatos(texto, localizadores, anclas, radio, True)
     candidatos += _candidatos(texto, anclas, anclas, radio, False)
     candidatos.sort(key=lambda x: (
@@ -144,7 +164,7 @@ def main() -> int:
                            "anclas": anclas, "localizadores_estructurales": localizadores,
                            "fragmentos_candidatos": hs})
     estado = "LISTO_PARA_REVISION_HUMANA" if not incidencias else "BLOQUEADO"
-    payload = {"version": 2, "naturaleza": "AUDITORIA_PERTINENCIA_FUENTES_EXTERNAS_V2",
+    payload = {"version": 3, "naturaleza": "AUDITORIA_PERTINENCIA_FUENTES_EXTERNAS_V2",
                "caso": definicion["caso"], "pseudonorma": definicion.get("pseudonorma") or rec.get("pseudonorma"),
                "unidad": definicion.get("unidad") or rec.get("unidad"), "estado": estado,
                "fecha_utc": datetime.now(timezone.utc).isoformat(), "recuperacion_entrada": str(entrada),
@@ -153,6 +173,7 @@ def main() -> int:
                            "pertinencia_aceptada_automaticamente": False,
                            "coincidencia_textual_no_implica_pertinencia": True,
                            "localizador_estructural_no_implica_pertinencia": True,
+                           "coincidencia_parcial_numero_articulo_bloqueada": True,
                            "ranking_solo_prioriza_revision": True}}
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

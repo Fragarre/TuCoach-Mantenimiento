@@ -123,12 +123,10 @@ def detectar_citas(texto: str) -> list[CitaLiteral]:
             citas.append(CitaLiteral(literal, clave, "NUMERO_ANIO_LITERAL"))
             vistos.add(clave)
 
-    texto_n = normalizar(texto)
     for patron, clave, tipo in CITAS_NOMINALES:
         m = patron.search(texto)
         if not m:
             continue
-        # Evita duplicar alias que ya aparezcan absorbidos por una cita numerada.
         if clave in vistos:
             continue
         citas.append(CitaLiteral(m.group(0), clave, tipo))
@@ -175,17 +173,48 @@ def cargar_catalogo(con) -> list[NormaCatalogo]:
     return resultado
 
 
-def claves_numeradas_catalogo(norma: NormaCatalogo) -> set[str]:
-    claves: set[str] = set()
-    for texto in norma.textos:
-        for m in PATRON_NUMERADA.finditer(texto):
-            claves.add(clave_numerada(m.group(1), m.group(2), m.group(3)))
-    return claves
+def primera_clave_numerada(texto: str) -> str | None:
+    """Devuelve la primera identidad tipo+número+año presente en un texto."""
+    m = PATRON_NUMERADA.search(texto)
+    if not m:
+        return None
+    return clave_numerada(m.group(1), m.group(2), m.group(3))
+
+
+def coincide_identidad_numerada(cita: CitaLiteral, norma: NormaCatalogo) -> bool:
+    """
+    Una ley citada dentro del título de OTRA norma no identifica esa otra norma.
+
+    Ejemplo que debe rechazarse:
+      cita: Ley 38/2003
+      catálogo: Real Decreto 887/2006 ... Reglamento de la Ley 38/2003
+
+    Se acepta sólo cuando la identidad principal del nombre/clave/título es la
+    misma cita numerada.
+    """
+    return any(
+        primera_clave_numerada(texto) == cita.clave
+        for texto in norma.textos
+    )
+
+
+def preferir_fuente_oficial_si_unica(candidatos: list[NormaCatalogo]) -> list[NormaCatalogo]:
+    """
+    Si varias entradas representan el mismo nombre literal pero sólo una está
+    vinculada a una fuente oficial, conserva esa única entrada. Si hay cero o
+    varias con fuente, no decide: mantiene la ambigüedad.
+    """
+    if len(candidatos) <= 1:
+        return candidatos
+    con_fuente = [n for n in candidatos if n.ids_fuente]
+    if len(con_fuente) == 1:
+        return con_fuente
+    return candidatos
 
 
 def candidatos_para_cita(cita: CitaLiteral, catalogo: list[NormaCatalogo]) -> list[NormaCatalogo]:
     if cita.tipo == "NUMERO_ANIO_LITERAL":
-        return [n for n in catalogo if cita.clave in claves_numeradas_catalogo(n)]
+        return [n for n in catalogo if coincide_identidad_numerada(cita, n)]
 
     if cita.tipo == "ALIAS_CONSTITUCION":
         por_fuente = [
@@ -194,10 +223,11 @@ def candidatos_para_cita(cita: CitaLiteral, catalogo: list[NormaCatalogo]) -> li
         ]
         if por_fuente:
             return por_fuente
-        return [
+        candidatos = [
             n for n in catalogo
             if any("constitucion espanola" in t for t in n.textos)
         ]
+        return preferir_fuente_oficial_si_unica(candidatos)
 
     if cita.tipo == "ALIAS_ESTATUTO_CV":
         por_fuente = [
@@ -206,7 +236,7 @@ def candidatos_para_cita(cita: CitaLiteral, catalogo: list[NormaCatalogo]) -> li
         ]
         if por_fuente:
             return por_fuente
-        return [
+        candidatos = [
             n for n in catalogo
             if any(
                 "ley organica 5/1982" in t
@@ -215,14 +245,16 @@ def candidatos_para_cita(cita: CitaLiteral, catalogo: list[NormaCatalogo]) -> li
                 for t in n.textos
             )
         ]
+        return preferir_fuente_oficial_si_unica(candidatos)
 
-    # Para nombres sin número/año no hay similitud libre: se exige que la
-    # expresión normalizada esté contenida literalmente en un texto canónico
-    # o en un título oficial de fuente y que el resultado sea único.
-    return [
+    # Para nombres sin número/año no hay similitud libre. Se exige presencia
+    # literal en el nombre/clave/título canónico. Si varias entradas describen
+    # el mismo nombre y exactamente una tiene fuente oficial, se prefiere esa.
+    candidatos = [
         n for n in catalogo
         if any(cita.clave in t for t in n.textos)
     ]
+    return preferir_fuente_oficial_si_unica(candidatos)
 
 
 def main() -> int:

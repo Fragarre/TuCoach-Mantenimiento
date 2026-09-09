@@ -33,7 +33,14 @@ REGLAS = {
             {
                 "codigo": "P05-B",
                 "descripcion": "Fundamento jurisprudencial de la primacía frente al Derecho interno.",
-                "anclas": ["precedence", "cannot be overridden", "domestic legal provisions", "community law"],
+                "anclas": [
+                    "primacía del Derecho comunitario",
+                    "ordenamiento jurídico propio",
+                    "norma interna",
+                    "no puede prevalecer",
+                    "imposibilidad de que los Estados hagan prevalecer",
+                    "Derecho comunitario",
+                ],
             }
         ]
     },
@@ -151,7 +158,7 @@ def main() -> int:
 
     estado = "LISTO_PARA_REVISION_HUMANA" if not incidencias else "BLOQUEADO"
     payload = {
-        "version": 2,
+        "version": 3,
         "naturaleza": "AUDITORIA_PERTINENCIA_JURIDICA_P05",
         "piloto": "A1_ESPECIAL_1_P05",
         "estado": estado,

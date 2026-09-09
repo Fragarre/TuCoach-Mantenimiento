@@ -49,7 +49,18 @@ REGLAS = {
             {
                 "codigo": "P05-C",
                 "descripcion": "Deber del juez nacional de garantizar plena eficacia e inaplicar la norma interna incompatible.",
-                "anclas": ["full effect", "national court", "set aside", "incompatible", "community law"],
+                "anclas": [
+                    "plena eficacia",
+                    "juez nacional",
+                    "órgano jurisdiccional nacional",
+                    "inaplicar",
+                    "inaplicación",
+                    "incompatible",
+                    "primacía del Derecho comunitario",
+                    "full effect",
+                    "national court",
+                    "set aside",
+                ],
             }
         ]
     },
@@ -58,12 +69,26 @@ REGLAS = {
             {
                 "codigo": "P05-D",
                 "descripcion": "Distinción entre primacía del Derecho de la Unión y supremacía constitucional.",
-                "anclas": ["primacía", "supremacía", "jerarquía", "aplicación preferente"],
+                "anclas": [
+                    "La primacía, en cambio",
+                    "primacía",
+                    "supremacía",
+                    "jerarquía",
+                    "aplicación preferente",
+                    "preferencia aplicativa",
+                ],
             },
             {
                 "codigo": "P05-E",
                 "descripcion": "Art. 93 CE como fundamento constitucional de la primacía en el ámbito propio del Derecho de la Unión.",
-                "anclas": ["art. 93", "primacía", "competencias", "Unión"],
+                "anclas": [
+                    "fundamento último",
+                    "art. 93 CE",
+                    "primacía del Derecho de la Unión",
+                    "ámbito que a ese Derecho le es propio",
+                    "competencias",
+                    "Unión",
+                ],
             },
         ]
     },
@@ -75,9 +100,6 @@ def norm(s: str) -> str:
 
 
 def texto_fuente(r: dict) -> str:
-    # Contrato actual de recuperar_fuentes_externas_p05_v2.py:
-    # el texto legible recuperado se guarda en `texto_extraido`.
-    # Se conservan alias anteriores por compatibilidad con artefactos de prueba.
     for clave in (
         "texto_extraido",
         "texto",
@@ -92,22 +114,41 @@ def texto_fuente(r: dict) -> str:
 
 
 def ventanas(texto: str, anclas: list[str], radio: int = 700, maximo: int = 8) -> list[dict]:
+    """Localiza todas las ventanas y prioriza las que concentran más anclas.
+
+    La versión anterior devolvía los primeros hallazgos cronológicos y podía agotar
+    el máximo antes de alcanzar el fundamento jurídico central del documento.
+    Aquí la puntuación solo ordena candidatos para revisión; nunca decide pertinencia.
+    """
     bajo = texto.casefold()
-    hallazgos = []
-    usados = []
-    for ancla in anclas:
-        patron = ancla.casefold()
+    anclas_cf = [(a, a.casefold()) for a in anclas]
+    candidatos: list[dict] = []
+
+    for ancla, patron in anclas_cf:
         for m in re.finditer(re.escape(patron), bajo):
             ini = max(0, m.start() - radio)
             fin = min(len(texto), m.end() + radio)
-            if any(abs(ini - x) < 250 for x in usados):
-                continue
-            usados.append(ini)
-            fragmento = norm(texto[ini:fin])
-            hallazgos.append({"ancla": ancla, "inicio": ini, "fin": fin, "fragmento": fragmento})
-            if len(hallazgos) >= maximo:
-                return hallazgos
-    return hallazgos
+            ventana_cf = bajo[ini:fin]
+            presentes = [a for a, p in anclas_cf if p in ventana_cf]
+            candidatos.append({
+                "ancla": ancla,
+                "inicio": ini,
+                "fin": fin,
+                "cobertura_anclas": len(presentes),
+                "anclas_presentes": presentes,
+                "fragmento": norm(texto[ini:fin]),
+            })
+
+    candidatos.sort(key=lambda x: (-x["cobertura_anclas"], x["inicio"]))
+
+    seleccionados: list[dict] = []
+    for cand in candidatos:
+        if any(abs(cand["inicio"] - x["inicio"]) < 250 for x in seleccionados):
+            continue
+        seleccionados.append(cand)
+        if len(seleccionados) >= maximo:
+            break
+    return seleccionados
 
 
 def main() -> int:
@@ -144,7 +185,11 @@ def main() -> int:
         for prop in regla["proposiciones"]:
             hs = ventanas(texto, prop["anclas"])
             estado = "CANDIDATO_PARA_REVISION" if hs else "REQUIERE_REVISION_MANUAL"
-            print(f"  {prop['codigo']} | {estado:<25} | fragmentos={len(hs)}")
+            mejor = max((h.get("cobertura_anclas", 0) for h in hs), default=0)
+            print(
+                f"  {prop['codigo']} | {estado:<25} | "
+                f"fragmentos={len(hs)} | mejor_cobertura={mejor}"
+            )
             fichas.append({
                 "identificador_oficial": ident,
                 "tipo_fuente": r.get("tipo_fuente"),
@@ -158,7 +203,7 @@ def main() -> int:
 
     estado = "LISTO_PARA_REVISION_HUMANA" if not incidencias else "BLOQUEADO"
     payload = {
-        "version": 3,
+        "version": 4,
         "naturaleza": "AUDITORIA_PERTINENCIA_JURIDICA_P05",
         "piloto": "A1_ESPECIAL_1_P05",
         "estado": estado,
@@ -171,6 +216,7 @@ def main() -> int:
             "corpus_modificado": False,
             "pertinencia_aceptada_automaticamente": False,
             "coincidencia_textual_no_implica_pertinencia": True,
+            "ranking_solo_prioriza_revision": True,
         },
     }
     salida.parent.mkdir(parents=True, exist_ok=True)

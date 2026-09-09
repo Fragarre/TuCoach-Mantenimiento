@@ -6,6 +6,10 @@ Objetivo:
     existente antes de introducir cualquier inferencia automática de normas
     o artículos.
 
+La medición del universo de preguntas reutiliza las mismas funciones de
+selección que scripts/mantener_banco_preguntas.py. El auditor no replica ni
+reinterpreta esas reglas.
+
 No modifica la base de datos. Sólo lee SQLite y genera un informe JSON de
 trazabilidad en auditorias/constructor_temario_v2/.
 
@@ -20,12 +24,12 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import comun
+import mantener_banco_preguntas as banco
 
 
 RAIZ = comun.raiz_proyecto()
@@ -37,11 +41,15 @@ TABLAS_REQUERIDAS = {
     "temarios",
     "temario_temas",
     "temario_referencias",
+    "equivalencias_temas_no_juridicos",
     "normas",
     "norma_fuentes",
     "articulos_fuente",
     "lote_preguntas",
     "banco_preguntas",
+    "banco_preguntas_temas",
+    "convocatoria_partes",
+    "convocatoria_parte_reglas",
     "documentos_corpus",
     "convocatoria_documentos_corpus",
 }
@@ -49,28 +57,31 @@ TABLAS_REQUERIDAS = {
 COLUMNAS_REQUERIDAS: dict[str, set[str]] = {
     "convocatorias": {"id", "codigo"},
     "temarios": {"id", "convocatoria_id", "nombre", "fichero_origen"},
-    "temario_temas": {"id", "temario_id", "parte", "numero_tema", "titulo", "tipo_contenido"},
-    "temario_referencias": {
-        "id",
-        "tema_id",
-        "nombre_norma_csv",
-        "nombre_norma_normalizada",
-        "articulo_solicitado",
-        "estado",
-        "articulo_fuente_id",
-        "norma_id",
+    "temario_temas": {
+        "id", "temario_id", "parte", "numero_tema", "titulo", "tipo_contenido"
     },
+    "temario_referencias": {
+        "id", "tema_id", "nombre_norma_csv", "nombre_norma_normalizada",
+        "articulo_solicitado", "estado", "articulo_fuente_id", "norma_id",
+    },
+    "equivalencias_temas_no_juridicos": {"id", "tema_no_juridico", "tema_id"},
     "normas": {"id", "nombre_canonico", "clave_normalizada"},
     "norma_fuentes": {"id", "norma_id", "id_fuente", "titulo_fuente"},
     "articulos_fuente": {"id", "articulo_boe", "texto"},
     "lote_preguntas": {
-        "id",
-        "norma_id_normalizada",
-        "articulo_normalizado",
-        "tipo_clasificacion",
+        "id", "enunciado", "tipo_clasificacion", "tipo_norma", "nombre_norma",
+        "articulo", "norma_id_normalizada", "articulo_normalizado",
+        "tema_no_juridico", "origen_oposicion", "tipo_fuente", "pagina_origen",
+        "teorica_practica", "tipo_norma_normalizado", "nombre_norma_normalizado",
         "estado_vigencia",
     },
-    "banco_preguntas": {"id", "convocatoria_id", "pregunta_id", "estado"},
+    "banco_preguntas": {
+        "id", "convocatoria_id", "pregunta_id", "estado", "tipo_vinculacion",
+        "metodo_vinculacion", "convocatoria_parte_id",
+    },
+    "banco_preguntas_temas": {"id", "banco_pregunta_id", "tema_id", "es_principal"},
+    "convocatoria_partes": {"id", "convocatoria_id"},
+    "convocatoria_parte_reglas": {"convocatoria_parte_id", "teorica_practica"},
     "documentos_corpus": {"id", "ruta_relativa", "nombre"},
     "convocatoria_documentos_corpus": {"convocatoria_id", "documento_id"},
 }
@@ -86,7 +97,10 @@ def tablas(con: sqlite3.Connection) -> set[str]:
 
 
 def columnas(con: sqlite3.Connection, tabla: str) -> set[str]:
-    return {str(fila[1]) for fila in con.execute(f"PRAGMA table_info({tabla})").fetchall()}
+    return {
+        str(fila[1])
+        for fila in con.execute(f"PRAGMA table_info({tabla})").fetchall()
+    }
 
 
 def validar_esquema(con: sqlite3.Connection) -> list[str]:
@@ -136,6 +150,62 @@ def entero(valor: Any) -> int:
     return int(valor or 0)
 
 
+def universo_banco_con_regla_consolidada(
+    con: sqlite3.Connection,
+    convocatoria_id: int,
+) -> dict[str, Any]:
+    """Calcula el universo actual reutilizando exactamente el selector consolidado."""
+    temario = banco.buscar_temario(con, convocatoria_id)
+    temario_id = int(temario["id"])
+
+    referencias, referencias_invalidas, referencias_duplicadas = (
+        banco.cargar_referencias_juridicas(con, temario_id)
+    )
+    equivalencias, equivalencias_invalidas, equivalencias_duplicadas = (
+        banco.cargar_equivalencias_no_juridicas(con, temario_id)
+    )
+
+    # existentes={} hace que toda pregunta apta se clasifique como "nueva" y
+    # permite medir el universo completo que hoy seleccionaría el constructor.
+    juridicas = banco.seleccionar_juridicas(
+        con, convocatoria_id, referencias, existentes={}
+    )
+    no_juridicas = banco.seleccionar_no_juridicas(
+        con, equivalencias, existentes={}
+    )
+
+    ids_juridicas = {int(f["id"]) for f in juridicas["nuevas"]}
+    ids_no_juridicas = {int(f["id"]) for f in no_juridicas["nuevas"]}
+    ids_universo = ids_juridicas | ids_no_juridicas
+
+    filas_banco = con.execute(
+        "SELECT pregunta_id FROM banco_preguntas WHERE convocatoria_id=?",
+        (convocatoria_id,),
+    ).fetchall()
+    ids_banco = {int(f["pregunta_id"]) for f in filas_banco}
+
+    return {
+        "juridicas_aptas": len(ids_juridicas),
+        "no_juridicas_aptas": len(ids_no_juridicas),
+        "total_aptas": len(ids_universo),
+        "en_banco_y_aptas": len(ids_banco & ids_universo),
+        "en_banco_fuera_universo_actual": len(ids_banco - ids_universo),
+        "aptas_no_presentes_en_banco": len(ids_universo - ids_banco),
+        "referencias_invalidas": len(referencias_invalidas),
+        "referencias_duplicadas": len(referencias_duplicadas),
+        "equivalencias_invalidas": len(equivalencias_invalidas),
+        "equivalencias_duplicadas": len(equivalencias_duplicadas),
+        "juridicas_descartadas": {
+            "sin_normalizacion_o_obsoletas": len(juridicas["sin_normalizacion"]),
+            "fuera_temario_o_practica_no_admitida": len(juridicas["fuera_temario"]),
+        },
+        "no_juridicas_descartadas": {
+            "sin_categoria": len(no_juridicas["sin_categoria"]),
+            "fuera_temario": len(no_juridicas["fuera_temario"]),
+        },
+    }
+
+
 def resumen_global(con: sqlite3.Connection, convocatoria_id: int) -> dict[str, Any]:
     temarios = entero(
         con.execute(
@@ -164,7 +234,8 @@ def resumen_global(con: sqlite3.Connection, convocatoria_id: int) -> dict[str, A
             SUM(CASE WHEN tr.articulo_fuente_id IS NOT NULL THEN 1 ELSE 0 END) AS con_articulo_fuente,
             COUNT(DISTINCT tr.norma_id) AS normas_distintas,
             COUNT(DISTINCT CASE
-                WHEN tr.norma_id IS NOT NULL AND TRIM(COALESCE(tr.articulo_solicitado,''))<>''
+                WHEN tr.norma_id IS NOT NULL
+                 AND TRIM(COALESCE(tr.articulo_solicitado,''))<>''
                 THEN CAST(tr.norma_id AS TEXT) || '|' || TRIM(tr.articulo_solicitado)
             END) AS pares_norma_articulo,
             SUM(CASE WHEN UPPER(TRIM(COALESCE(tr.estado,'')))='COMPLETADO' THEN 1 ELSE 0 END) AS completadas,
@@ -177,32 +248,7 @@ def resumen_global(con: sqlite3.Connection, convocatoria_id: int) -> dict[str, A
         (convocatoria_id,),
     ).fetchone()
 
-    lote = con.execute(
-        """
-        WITH pares AS (
-            SELECT DISTINCT tr.norma_id, TRIM(tr.articulo_solicitado) AS articulo
-            FROM temario_referencias tr
-            JOIN temario_temas tt ON tt.id=tr.tema_id
-            JOIN temarios t ON t.id=tt.temario_id
-            WHERE t.convocatoria_id=?
-              AND tr.norma_id IS NOT NULL
-              AND TRIM(COALESCE(tr.articulo_solicitado,''))<>''
-        )
-        SELECT
-            COUNT(DISTINCT lp.id) AS preguntas_disponibles,
-            COUNT(DISTINCT CASE
-                WHEN UPPER(TRIM(COALESCE(lp.estado_vigencia,''))) LIKE 'OBSOLETA%'
-                THEN lp.id END
-            ) AS obsoletas
-        FROM lote_preguntas lp
-        JOIN pares p
-          ON p.norma_id=lp.norma_id_normalizada
-         AND p.articulo=TRIM(COALESCE(lp.articulo_normalizado,''))
-        """,
-        (convocatoria_id,),
-    ).fetchone()
-
-    banco = con.execute(
+    banco_actual = con.execute(
         """
         SELECT
             COUNT(*) AS total,
@@ -235,20 +281,20 @@ def resumen_global(con: sqlite3.Connection, convocatoria_id: int) -> dict[str, A
             "completadas": entero(refs["completadas"]),
             "no_completadas": entero(refs["no_completadas"]),
         },
-        "lote": {
-            "preguntas_disponibles_para_referencias": entero(lote["preguntas_disponibles"]),
-            "obsoletas_entre_ellas": entero(lote["obsoletas"]),
-        },
+        "universo_banco_regla_consolidada": universo_banco_con_regla_consolidada(
+            con, convocatoria_id
+        ),
         "banco": {
-            "total": entero(banco["total"]),
-            "incluidas": entero(banco["incluidas"]),
-            "revision": entero(banco["revision"]),
+            "total": entero(banco_actual["total"]),
+            "incluidas": entero(banco_actual["incluidas"]),
+            "revision": entero(banco_actual["revision"]),
         },
         "documentos_corpus_asociados": entero(corpus),
     }
 
 
 def temas_detalle(con: sqlite3.Connection, convocatoria_id: int) -> list[dict[str, Any]]:
+    """Inventario estructural por tema; no intenta reproducir el selector del banco."""
     filas = con.execute(
         """
         SELECT
@@ -259,20 +305,10 @@ def temas_detalle(con: sqlite3.Connection, convocatoria_id: int) -> list[dict[st
             tt.tipo_contenido,
             COUNT(DISTINCT tr.id) AS referencias,
             COUNT(DISTINCT tr.norma_id) AS normas,
-            COUNT(DISTINCT tr.articulo_fuente_id) AS articulos_fuente,
-            COUNT(DISTINCT lp.id) AS preguntas_lote,
-            COUNT(DISTINCT CASE
-                WHEN UPPER(TRIM(COALESCE(bp.estado,'')))='INCLUIDA' THEN bp.pregunta_id
-            END) AS preguntas_banco
+            COUNT(DISTINCT tr.articulo_fuente_id) AS articulos_fuente
         FROM temario_temas tt
         JOIN temarios t ON t.id=tt.temario_id
         LEFT JOIN temario_referencias tr ON tr.tema_id=tt.id
-        LEFT JOIN lote_preguntas lp
-          ON lp.norma_id_normalizada=tr.norma_id
-         AND TRIM(COALESCE(lp.articulo_normalizado,''))=TRIM(COALESCE(tr.articulo_solicitado,''))
-        LEFT JOIN banco_preguntas bp
-          ON bp.convocatoria_id=t.convocatoria_id
-         AND bp.pregunta_id=lp.id
         WHERE t.convocatoria_id=?
         GROUP BY tt.id, tt.parte, tt.numero_tema, tt.titulo, tt.tipo_contenido
         ORDER BY tt.parte, tt.numero_tema, tt.id
@@ -290,8 +326,6 @@ def temas_detalle(con: sqlite3.Connection, convocatoria_id: int) -> list[dict[st
             "referencias": entero(f["referencias"]),
             "normas": entero(f["normas"]),
             "articulos_fuente": entero(f["articulos_fuente"]),
-            "preguntas_lote": entero(f["preguntas_lote"]),
-            "preguntas_banco": entero(f["preguntas_banco"]),
         }
         for f in filas
     ]
@@ -349,6 +383,8 @@ def documentos_corpus(con: sqlite3.Connection, convocatoria_id: int) -> list[dic
 
 
 def imprimir_resumen(codigo: str, resumen: dict[str, Any]) -> None:
+    universo = resumen["universo_banco_regla_consolidada"]
+
     print("=" * 78)
     print("AUDITORÍA LÍNEA BASE TEMARIO V2 - SOLO LECTURA")
     print("=" * 78)
@@ -362,8 +398,15 @@ def imprimir_resumen(codigo: str, resumen: dict[str, Any]) -> None:
     print(f"Pares norma+artículo............. {resumen['referencias']['pares_norma_articulo_distintos']}")
     print(f"Referencias COMPLETADO........... {resumen['referencias']['completadas']}")
     print(f"Referencias no completadas....... {resumen['referencias']['no_completadas']}")
-    print(f"Preguntas lote coincidentes...... {resumen['lote']['preguntas_disponibles_para_referencias']}")
-    print(f"  Obsoletas...................... {resumen['lote']['obsoletas_entre_ellas']}")
+    print()
+    print("Universo según regla consolidada del banco:")
+    print(f"  Jurídicas aptas................ {universo['juridicas_aptas']}")
+    print(f"  No jurídicas aptas............. {universo['no_juridicas_aptas']}")
+    print(f"  Total aptas.................... {universo['total_aptas']}")
+    print(f"  En banco y aptas............... {universo['en_banco_y_aptas']}")
+    print(f"  Banco fuera universo actual.... {universo['en_banco_fuera_universo_actual']}")
+    print(f"  Aptas ausentes del banco....... {universo['aptas_no_presentes_en_banco']}")
+    print()
     print(f"Banco total...................... {resumen['banco']['total']}")
     print(f"  INCLUIDA....................... {resumen['banco']['incluidas']}")
     print(f"  REVISION....................... {resumen['banco']['revision']}")
@@ -416,6 +459,7 @@ def main() -> int:
         informe = {
             "tipo": "linea_base_temario_v2",
             "modo": "SOLO_LECTURA",
+            "regla_banco": "REUTILIZADA_DESDE_MANTENER_BANCO_PREGUNTAS",
             "generado_en": datetime.now().isoformat(timespec="seconds"),
             "db": str(db),
             "convocatoria": {

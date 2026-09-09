@@ -62,6 +62,12 @@ def normalizar_slug(texto: str, max_len: int = 70) -> str:
     return x[:max_len].rstrip("_") or "TEMA"
 
 
+def normalizar_busqueda(texto: str) -> str:
+    x = unicodedata.normalize("NFKD", texto or "")
+    x = "".join(c for c in x if not unicodedata.combining(c)).lower()
+    return re.sub(r"\s+", " ", x).strip()
+
+
 def limpiar_fragmento(texto: str) -> str:
     return re.sub(r"\s+", " ", (texto or "")).strip(" ;.:\t\r\n")
 
@@ -80,6 +86,18 @@ def extraer_rotulo(texto: str) -> str:
     return " ".join(palabras[:12]) + "…"
 
 
+def _es_cola_dependiente(fragmento: str) -> bool:
+    """Detecta cláusulas que no tienen sentido como unidad autónoma.
+
+    No interpreta su contenido: sólo reconoce fórmulas literales cuya función
+    es calificar o completar la materia inmediatamente anterior.
+    """
+    n = normalizar_busqueda(fragmento)
+    return bool(
+        re.fullmatch(r"principales normas reguladoras\s*:\s*aspectos generales", n)
+    )
+
+
 def segmentar_tema(texto: str) -> list[str]:
     """Segmentación conservadora del texto oficial.
 
@@ -88,7 +106,10 @@ def segmentar_tema(texto: str) -> list[str]:
     - conserva dos puntos dentro del fragmento porque a menudo introducen una
       enumeración jurídicamente inseparable;
     - elimina fragmentos vacíos;
-    - no fusiona ni completa unidades mediante inferencia.
+    - una cláusula puramente dependiente (p. ej. «Principales normas
+      reguladoras: aspectos generales») se fusiona con la unidad anterior para
+      no crear pseudoartículos sin objeto propio;
+    - no completa ni resume unidades mediante inferencia.
     """
     bruto = re.sub(r"\s+", " ", texto or "").strip()
     if not bruto:
@@ -98,7 +119,11 @@ def segmentar_tema(texto: str) -> list[str]:
     salida: list[str] = []
     for parte in partes:
         frag = limpiar_fragmento(parte)
-        if frag:
+        if not frag:
+            continue
+        if salida and _es_cola_dependiente(frag):
+            salida[-1] = limpiar_fragmento(f"{salida[-1]}. {frag}")
+        else:
             salida.append(frag)
     return salida
 

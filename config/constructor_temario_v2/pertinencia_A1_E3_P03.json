@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "naturaleza": "DEFINICION_PERTINENCIA_FUENTES_EXTERNAS_V2",
   "caso": "A1_ESPECIAL_3_P03",
   "pseudonorma": "PSEUDO:ESPECIAL_3_LA_ADMINISTRACION_PUBLICA_COMO_PERSONA_JURIDICA",
@@ -29,7 +29,7 @@
       {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-21:1421-2016","anclas":["desviación de poder","fines distintos","arbitrariedad","control"]}
     ]},
     {"codigo":"A3P03-E","descripcion":"El control jurisdiccional no permite sustituir el contenido discrecional cuando subsiste un margen legítimo de elección.","fuentes":[
-      {"identificador_oficial":"BOE-A-1998-16718","localizadores_estructurales":["2. Los órganos jurisdiccionales no podrán determinar el contenido discrecional"],"anclas":["no podrán determinar el contenido discrecional","actos anulados"]},
+      {"identificador_oficial":"BOE-A-1998-16718","localizadores_estructurales":["ni podrán determinar el contenido discrecional de los actos anulados"],"anclas":["no podrán determinar el contenido discrecional","actos anulados"]},
       {"identificador_oficial":"PODERJUDICIAL:TS-S3:2017-06-27:4942-2016","anclas":["varias soluciones igualmente","discrecionalidad","facultades discrecionales","legalidad"]}
     ]}
   ],

@@ -1,20 +1,21 @@
 """
-Constructor Temario V2 - auditoría de cobertura de respaldos pseudonormativos.
+Constructor Temario V2 - auditoría de recuperabilidad de respaldos pseudonormativos.
 
 SOLO LECTURA.
 
-No intenta decidir qué artículo es jurídicamente correcto. Mide si la búsqueda
-textual sobre el corpus normativo oficial puede resolver razonablemente cada
-unidad o si hace falta una capa adicional de fuentes/doctrina/jurisprudencia.
+Esta auditoría NO mide corrección jurídica. Mide únicamente cuánto texto de la
+unidad encuentra el buscador léxico en algún artículo del corpus oficial.
 
-Reglas conservadoras:
-- COBERTURA_FUERTE: existe una propuesta con al menos 3 términos relevantes y
-  cobertura >= 0.70.
-- COBERTURA_PARCIAL: existe una propuesta con al menos 2 términos y cobertura
-  >= 0.45.
-- INSUFICIENTE: el resto.
+La salida usa RECUPERABILIDAD, no COBERTURA, para evitar interpretar una
+coincidencia textual como respaldo jurídicamente pertinente. Un resultado alto
+puede ser un falso positivo y siempre requiere revisión jurídica posterior.
 
-Estas etiquetas son diagnósticas; no aceptan ningún respaldo.
+Reglas diagnósticas:
+- RECUPERABILIDAD_ALTA: >=3 términos coincidentes y cobertura léxica >=0.70.
+- RECUPERABILIDAD_MEDIA: >=2 términos y cobertura léxica >=0.45.
+- RECUPERABILIDAD_BAJA: resto.
+
+Ninguna etiqueta acepta o valida respaldos.
 """
 from __future__ import annotations
 
@@ -34,29 +35,28 @@ DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
 
 def diagnosticar(propuestas):
     if not propuestas:
-        return "INSUFICIENTE", "sin coincidencias"
+        return "RECUPERABILIDAD_BAJA", "sin coincidencias"
 
     mejor = propuestas[0]
     n_terminos = len(mejor.terminos)
     if n_terminos >= 3 and mejor.cobertura >= 0.70:
-        return "COBERTURA_FUERTE", (
-            f"mejor={mejor.norma} art.{mejor.articulo}; "
-            f"cobertura={mejor.cobertura:.3f}; terminos={n_terminos}"
-        )
-    if n_terminos >= 2 and mejor.cobertura >= 0.45:
-        return "COBERTURA_PARCIAL", (
-            f"mejor={mejor.norma} art.{mejor.articulo}; "
-            f"cobertura={mejor.cobertura:.3f}; terminos={n_terminos}"
-        )
-    return "INSUFICIENTE", (
-        f"mejor={mejor.norma} art.{mejor.articulo}; "
-        f"cobertura={mejor.cobertura:.3f}; terminos={n_terminos}"
+        estado = "RECUPERABILIDAD_ALTA"
+    elif n_terminos >= 2 and mejor.cobertura >= 0.45:
+        estado = "RECUPERABILIDAD_MEDIA"
+    else:
+        estado = "RECUPERABILIDAD_BAJA"
+
+    motivo = (
+        f"coincidencia_top={mejor.norma} art.{mejor.articulo}; "
+        f"cobertura_lexica={mejor.cobertura:.3f}; terminos={n_terminos}; "
+        "pertinencia_juridica=NO_EVALUADA"
     )
+    return estado, motivo
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Audita cobertura del corpus oficial para pseudonormas sin modificar datos."
+        description="Audita recuperabilidad léxica del corpus oficial para pseudonormas."
     )
     ap.add_argument("--pdf", required=True)
     ap.add_argument("--db", default=str(DB_PREDETERMINADA))
@@ -88,7 +88,7 @@ def main() -> int:
     idf = respaldos_mod.construir_idf(articulos)
 
     print("=" * 78)
-    print("CONSTRUCTOR TEMARIO V2 - COBERTURA RESPALDOS PSEUDONORMATIVOS - SOLO LECTURA")
+    print("CONSTRUCTOR TEMARIO V2 - RECUPERABILIDAD RESPALDOS - SOLO LECTURA")
     print("=" * 78)
     print(f"PDF.............................. {pdf}")
     print(f"BD............................... {db}")
@@ -107,17 +107,18 @@ def main() -> int:
             )
             estado, motivo = diagnosticar(propuestas)
             conteo[estado] += 1
-            print(f"  {unidad.codigo} | {estado:<18} | {unidad.texto_temario}")
+            print(f"  {unidad.codigo} | {estado:<22} | {unidad.texto_temario}")
             print(f"       {motivo}")
         print()
 
     print("Resumen:")
     print(f"  Unidades evaluadas.............. {total}")
-    print(f"  Cobertura fuerte................ {conteo['COBERTURA_FUERTE']}")
-    print(f"  Cobertura parcial............... {conteo['COBERTURA_PARCIAL']}")
-    print(f"  Insuficiente.................... {conteo['INSUFICIENTE']}")
+    print(f"  Recuperabilidad alta............ {conteo['RECUPERABILIDAD_ALTA']}")
+    print(f"  Recuperabilidad media........... {conteo['RECUPERABILIDAD_MEDIA']}")
+    print(f"  Recuperabilidad baja............ {conteo['RECUPERABILIDAD_BAJA']}")
     print()
-    print("Las etiquetas son diagnósticas y NO validan jurídicamente los respaldos.")
+    print("IMPORTANTE: recuperabilidad léxica != pertinencia jurídica.")
+    print("Todos los candidatos siguen requiriendo validación jurídica.")
     print("La base de datos NO ha sido modificada.")
     return 0
 

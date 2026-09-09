@@ -88,7 +88,7 @@ CITAS_NOMINALES = (
     (
         re.compile(r"\bLey de Contratos del Sector P[uú]blico\b", re.I),
         "ley de contratos del sector publico",
-        "NOMBRE_LITERAL",
+        "ALIAS_LCSP",
     ),
 )
 
@@ -246,6 +246,21 @@ def candidatos_para_cita(cita: CitaLiteral, catalogo: list[NormaCatalogo]) -> li
             )
         ]
         return preferir_fuente_oficial_si_unica(candidatos)
+
+    if cita.tipo == "ALIAS_LCSP":
+        por_fuente = [
+            n for n in catalogo
+            if "BOE-A-2017-12902" in n.ids_fuente
+        ]
+        if len(por_fuente) == 1:
+            return por_fuente
+        # Respaldo igualmente estricto: identidad canónica exacta Ley 9/2017.
+        candidatos = [
+            n for n in catalogo
+            if normalizar(n.nombre_canonico) == "ley 9/2017"
+            or normalizar(n.clave_normalizada) == "ley 9/2017"
+        ]
+        return candidatos if len(candidatos) == 1 else []
 
     # Para nombres sin número/año no hay similitud libre. Se exige presencia
     # literal en el nombre/clave/título canónico. Si varias entradas describen

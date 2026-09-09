@@ -4,7 +4,7 @@
 
 Construir un procedimiento reutilizable para incorporar futuras convocatorias a OpoCoach/Tu Coach partiendo del temario oficial, conservando la estructura y los contratos actuales del proyecto.
 
-El objetivo no es inferir automáticamente todo el contenido jurídico de un temario sin supervisión. El objetivo es automatizar únicamente aquello que pueda determinarse con evidencia suficiente, registrar los casos dudosos y facilitar una revisión humana limitada y trazable.
+El objetivo no es inferir automáticamente todo el contenido de un temario sin supervisión. El objetivo es automatizar únicamente aquello que pueda determinarse con evidencia suficiente, registrar los casos dudosos y facilitar una revisión humana limitada y trazable.
 
 ## 2. Principio de compatibilidad
 
@@ -22,16 +22,53 @@ Se mantienen como contratos finales:
 - `convocatoria_documentos_corpus`.
 - `lote_preguntas`.
 - `banco_preguntas`.
+- `equivalencias_temas_no_juridicos` y demás estructuras consolidadas utilizadas por el mantenimiento del banco.
 
-El nuevo sistema actúa antes de estas estructuras: ayuda a construir y revisar las referencias del temario y, una vez aprobadas, entrega datos compatibles con el flujo actual.
+El nuevo sistema actúa antes de estas estructuras: ayuda a construir y revisar la representación del temario y, una vez aprobada, entrega datos compatibles con el flujo actual.
 
-## 3. Tres productos distintos
+## 3. Dos clases de puntos del temario
 
-Una convocatoria necesita tres resultados diferentes y no deben confundirse.
+El Constructor V2 no debe asumir que todos los puntos de una convocatoria están sometidos a una norma jurídica.
 
-### 3.1. Mapa jurídico del temario
+Cada punto debe conservar su `tipo_contenido` y seguir uno de los dos caminos consolidados.
 
-Relación:
+### 3.1. Puntos jurídicos
+
+Son los puntos cuyo contenido se delimita mediante normas y artículos.
+
+Relación principal:
+
+`tema -> norma -> artículo`
+
+La validación de preguntas para el banco se realiza por las propiedades de la pregunta y por la coincidencia entre:
+
+`lote_preguntas.norma_id_normalizada + articulo_normalizado`
+
+y las referencias jurídicas aprobadas del temario.
+
+### 3.2. Puntos no jurídicos
+
+Son puntos que no se delimitan por una relación `norma + artículo`, por ejemplo determinados contenidos de informática.
+
+No deben crearse normas ni artículos ficticios para representarlos.
+
+Su definición parte del texto oficial del punto y de su ámbito temático. Las preguntas pueden proceder de generación IA o de otras fuentes y se incorporan primero a `lote_preguntas`.
+
+La vinculación posterior con un banco se realiza por el mecanismo no jurídico consolidado: categoría/equivalencia temática y correspondencia de contenido con un punto del temario.
+
+Relación conceptual:
+
+`texto oficial del tema -> categoría/ámbito temático -> preguntas compatibles -> banco`
+
+El Constructor V2 debe conservar ambos caminos y no convertir un problema no jurídico en uno jurídico.
+
+## 4. Productos distintos de una convocatoria
+
+Una convocatoria necesita varios resultados relacionados, pero no intercambiables.
+
+### 4.1. Mapa jurídico del temario
+
+Sólo para puntos jurídicos:
 
 `tema -> norma -> artículo`
 
@@ -40,30 +77,52 @@ Debe representar los artículos que realmente forman parte del temario, aunque a
 Sirve para:
 
 - construir `temario_referencias`;
-- generar el corpus preciso utilizado como contexto de generación IA;
+- generar el corpus preciso utilizado como contexto de generación IA jurídica;
 - determinar qué preguntas jurídicas pueden entrar en el banco.
 
-### 3.2. Banco de preguntas
+### 4.2. Mapa no jurídico del temario
 
-Se obtiene cruzando el mapa jurídico aprobado con `lote_preguntas`.
+Para puntos no jurídicos:
 
-El contenido de `lote_preguntas` no define el temario. Sólo permite saber qué preguntas disponibles coinciden con las referencias jurídicas ya aprobadas.
+`tema -> texto oficial -> categoría/ámbito temático`
 
-Relación:
+Sirve para:
 
-`temario_referencias aprobadas -> lote_preguntas -> banco_preguntas`
+- generar preguntas IA basadas en el contenido real del punto;
+- clasificar preguntas importadas de otras fuentes;
+- mantener las equivalencias necesarias para vincular preguntas no jurídicas con el punto correcto.
 
-### 3.3. Corpus RAG de convocatoria
+No utiliza `norma + artículo` como criterio de pertenencia.
 
-Incluye las normas completas que pertenecen al temario, aunque sólo algunos artículos sean objeto directo de examen.
+### 4.3. Banco de preguntas
+
+`lote_preguntas` es el repositorio maestro y acumulativo de preguntas disponibles. No pertenece a una convocatoria concreta y no debe modificarse como efecto colateral de construir o sincronizar un banco.
+
+Todas las preguntas, incluidas las generadas por IA, deben incorporarse primero a `lote_preguntas` con sus propiedades y normalizaciones correspondientes.
+
+Después, el mantenimiento consolidado decide si una pregunta es apta para un banco concreto.
+
+Camino jurídico:
+
+`temario_referencias aprobadas -> propiedades/normalización de lote_preguntas -> banco_preguntas`
+
+Camino no jurídico:
+
+`equivalencias temáticas aprobadas -> propiedades/categoría de lote_preguntas -> banco_preguntas`
+
+Una pregunta que no pertenezca a una convocatoria permanece en `lote_preguntas` y puede ser válida para otra convocatoria presente o futura.
+
+### 4.4. Corpus RAG de convocatoria
+
+Incluye las normas completas que pertenecen al temario jurídico, aunque sólo algunos artículos sean objeto directo de examen.
 
 Relación:
 
 `normas aprobadas para la convocatoria -> documentos completos -> convocatoria_documentos_corpus`
 
-Este corpus no debe depender de que todos los artículos de una norma pertenezcan al temario.
+Este corpus no debe depender de que todos los artículos de una norma pertenezcan al temario ni de que existan preguntas sobre ellos.
 
-## 4. Catálogo de normas
+## 5. Catálogo de normas
 
 El catálogo `normas` continúa siendo la fuente canónica.
 
@@ -73,16 +132,17 @@ Reglas:
 2. Toda norma candidata debe intentar resolverse primero contra el catálogo existente.
 3. Si no existe una correspondencia segura, el sistema debe marcarla para revisión en vez de crear una norma automáticamente.
 4. La normalización de nombres debe ser trazable.
+5. Estas reglas sólo se aplican a puntos jurídicos. Un punto no jurídico no debe recibir una norma artificial para encajar en este modelo.
 
-## 5. Flujo de construcción
+## 6. Flujo de construcción
 
-El flujo previsto es:
+El flujo general previsto es:
 
-`temario oficial -> temas -> normas candidatas -> artículos candidatos -> revisión -> temario definitivo -> flujo actual`
+`temario oficial -> temas -> clasificación jurídica/no jurídica -> tratamiento específico -> revisión -> temario definitivo -> flujo actual`
 
 ### Fase A. Extraer temas
 
-Se extraen del documento oficial, sin interpretación jurídica adicional:
+Se extraen del documento oficial, sin interpretación adicional:
 
 - parte;
 - número de tema;
@@ -92,7 +152,13 @@ Se extraen del documento oficial, sin interpretación jurídica adicional:
 
 La extracción debe conservar el texto original para poder auditar cualquier decisión posterior.
 
-### Fase B. Resolver normas candidatas
+### Fase B. Clasificar el tipo de contenido
+
+Cada punto debe identificarse como jurídico o no jurídico utilizando la información del temario y las reglas ya consolidadas cuando existan.
+
+Una clasificación dudosa se marca para revisión. No se fuerza una clasificación jurídica para poder aplicar normas y artículos.
+
+### Fase C. Resolver normas candidatas de puntos jurídicos
 
 Las normas se clasifican por origen.
 
@@ -103,19 +169,33 @@ Las normas se clasifican por origen.
 
 Regla crítica: una norma `INFERIDO` nunca debe pasar automáticamente a definitiva sólo por una respuesta de IA.
 
-### Fase C. Resolver artículos candidatos
+### Fase D. Resolver artículos candidatos de puntos jurídicos
 
 Se utilizan, por orden de fiabilidad:
 
-1. estructuras jurídicas explícitas del temario (título, capítulo, sección, rango claramente indicado);
-2. mapeos ya revisados en otras convocatorias cuando la equivalencia del contenido sea comprobable;
+1. estructuras jurídicas explícitas del temario;
+2. mapeos ya revisados en otras convocatorias cuando la equivalencia sea comprobable;
 3. texto oficial de `articulos_fuente`;
 4. preguntas disponibles en `lote_preguntas` como evidencia auxiliar;
-5. análisis semántico/IA únicamente como propuesta, nunca como fuente jurídica definitiva.
+5. análisis semántico/IA únicamente como propuesta.
 
 La IA puede ayudar a encontrar candidatos. No puede convertir por sí sola una asociación dudosa en una referencia definitiva.
 
-## 6. Estados de trabajo
+### Fase E. Resolver puntos no jurídicos
+
+Para un punto no jurídico se conserva como fuente principal el texto literal del temario.
+
+El proceso debe permitir:
+
+- identificar o mantener su categoría temática;
+- reutilizar equivalencias no jurídicas ya validadas cuando corresponda;
+- proponer equivalencias por similitud de contenido únicamente como candidatos;
+- utilizar el texto del punto como contexto para generación IA;
+- revisar manualmente casos ambiguos.
+
+No se generan filas ficticias de `temario_referencias` con normas o artículos inexistentes.
+
+## 7. Estados de trabajo
 
 Los candidatos deben tener como mínimo estos estados:
 
@@ -124,9 +204,9 @@ Los candidatos deben tener como mínimo estos estados:
 - `RECHAZADO`;
 - `REVISION`.
 
-No se escribirá en `temario_referencias` ninguna asociación que no esté en estado `ACEPTADO`.
+No se escribirá en estructuras definitivas ninguna asociación que no esté en estado `ACEPTADO`.
 
-## 7. Evidencia y trazabilidad
+## 8. Evidencia y trazabilidad
 
 Cada candidato debe registrar por qué existe.
 
@@ -134,19 +214,22 @@ Campos conceptuales mínimos:
 
 - convocatoria;
 - tema;
-- norma;
-- artículo cuando proceda;
+- tipo de contenido;
+- norma y artículo cuando proceda;
+- categoría/equivalencia cuando proceda;
 - origen;
 - estado;
 - evidencia o justificación breve;
 - fecha de decisión;
 - decisión automática o manual.
 
-No se utilizará una puntuación numérica de confianza como sustituto de la evidencia. Si se añade una puntuación, será sólo auxiliar.
+No se utilizará una puntuación numérica de confianza como sustituto de la evidencia.
 
-## 8. Calidad de la generación IA
+## 9. Calidad de la generación IA
 
-La generación IA debe seguir apoyándose en textos jurídicos oficiales, no en resúmenes inventados por el constructor.
+### 9.1. Generación jurídica
+
+Debe seguir apoyándose en textos jurídicos oficiales, no en resúmenes inventados por el constructor.
 
 El Constructor V2 debe intentar conseguir un mapa jurídico suficientemente completo del tema, incluyendo artículos aunque no tengan todavía preguntas en `lote_preguntas`.
 
@@ -157,30 +240,47 @@ Debe distinguirse:
 
 Una baja cobertura de banco no implica una baja cobertura del corpus.
 
-## 9. Uso de `lote_preguntas`
+### 9.2. Generación no jurídica
 
-`lote_preguntas` se utiliza para:
+Debe apoyarse en el texto oficial del punto del temario y en los apoyos de contenido que utilice actualmente la aplicación para ese tipo de materia.
 
-- localizar pares `norma + artículo` ya presentes;
-- conocer cuántas preguntas disponibles existen por referencia;
-- contrastar decisiones sobre artículos;
-- incorporar al banco las preguntas que coincidan con referencias aprobadas.
+La ausencia de norma o artículo no es una carencia que deba corregirse: es una propiedad legítima del punto no jurídico.
 
-No se utiliza para definir por sí solo el alcance jurídico de un tema.
+Las preguntas generadas se incorporan a `lote_preguntas` y posteriormente se someten al mismo mecanismo consolidado de clasificación y pertenencia al banco.
 
-## 10. Reutilización entre convocatorias
+## 10. Uso de `lote_preguntas`
+
+`lote_preguntas` es el repositorio maestro acumulativo de todas las preguntas disponibles.
+
+Se utiliza para:
+
+- almacenar preguntas procedentes de IA, exámenes, academias u otras fuentes;
+- conservar sus propiedades y normalizaciones;
+- localizar pares `norma + artículo` ya presentes en preguntas jurídicas;
+- conocer disponibilidad de preguntas por referencia;
+- contrastar decisiones sobre artículos como evidencia auxiliar;
+- localizar preguntas no jurídicas por su categoría/contenido;
+- incorporar a cada banco únicamente las preguntas que cumplan las reglas de esa convocatoria.
+
+Reglas críticas:
+
+1. El Constructor V2 no elimina preguntas de `lote_preguntas`.
+2. El Constructor V2 no modifica una pregunta de `lote_preguntas` como efecto de decidir si pertenece o no a un temario.
+3. Una pregunta fuera del temario de una convocatoria sigue disponible para otras convocatorias.
+4. Las bajas, correcciones, cambios de vigencia o normalización de `lote_preguntas` son operaciones expresas de mantenimiento, independientes de la construcción de un banco.
+5. `lote_preguntas` no define por sí sola el alcance de un temario jurídico ni no jurídico.
+
+## 11. Reutilización entre convocatorias
 
 La reutilización es deseable, pero debe ser explícita.
 
-Se puede reutilizar una relación `tema -> norma -> artículo` cuando:
+En puntos jurídicos se puede reutilizar una relación `tema -> norma -> artículo` cuando la equivalencia esté comprobada y la relación de origen ya esté validada.
 
-- el contenido del nuevo tema sea equivalente o más amplio de forma comprobable;
-- la relación de origen ya esté validada;
-- se conserve la procedencia de la reutilización.
+En puntos no jurídicos se pueden reutilizar categorías o equivalencias temáticas validadas cuando el contenido oficial sea realmente equivalente.
 
 No se debe asumir equivalencia sólo por similitud verbal del título del tema.
 
-## 11. Modo de seguridad
+## 12. Modo de seguridad
 
 La primera implementación será exclusivamente `SOLO LECTURA`.
 
@@ -190,19 +290,20 @@ No podrá:
 - modificar `normas`;
 - modificar corpus;
 - modificar bancos;
-- modificar `lote_preguntas`.
+- modificar `lote_preguntas`;
+- modificar equivalencias no jurídicas.
 
 Sólo generará informes/candidatos para comparación.
 
 Las operaciones de escritura se añadirán únicamente después de validar el comportamiento sobre convocatorias existentes.
 
-## 12. Validación antes de usar A1
+## 13. Validación antes de usar A1
 
 El primer banco de pruebas será una convocatoria existente con temario ya revisado, inicialmente C1.
 
-El Constructor V2 recibirá el documento oficial y las fuentes disponibles, pero su resultado se comparará posteriormente con el temario consolidado ya existente.
+La validación debe comprobar por separado ambos caminos.
 
-Se medirán al menos:
+### Jurídico
 
 - referencias existentes reproducidas correctamente;
 - referencias existentes no detectadas;
@@ -210,30 +311,39 @@ Se medirán al menos:
 - falsos positivos;
 - casos enviados correctamente a revisión.
 
-No se fijará de antemano un porcentaje de éxito que obligue a aceptar resultados incorrectos. Los tipos de error serán más importantes que una cifra global.
+### No jurídico
+
+- puntos no jurídicos correctamente identificados;
+- categorías/equivalencias existentes reproducidas;
+- preguntas que el proceso consolidado considera aptas;
+- ausencia de falsas referencias `norma + artículo`.
+
+La línea base del banco debe reproducir exactamente el universo que determina el mantenimiento consolidado, no una reimplementación aproximada de sus reglas.
 
 Después se repetirá con C2.
 
 Sólo tras estas pruebas se utilizará el procedimiento para construir A1.
 
-## 13. Integración futura en el menú
+## 14. Integración futura en el menú
 
 El Constructor V2 se integrará en `menu_mantenimiento.py`, pero no en la primera fase.
 
 La secuencia prevista será aproximadamente:
 
 1. Analizar temario oficial.
-2. Proponer normas.
-3. Proponer artículos.
-4. Revisar candidatos.
-5. Generar `temario.csv` compatible.
-6. Aplicar el flujo actual de alta/importación.
-7. Construir/verificar corpus.
-8. Mantener banco con el procedimiento consolidado.
+2. Clasificar puntos jurídicos/no jurídicos.
+3. Proponer normas para puntos jurídicos.
+4. Proponer artículos para puntos jurídicos.
+5. Proponer/mantener categorías y equivalencias para puntos no jurídicos.
+6. Revisar candidatos.
+7. Generar `temario.csv` compatible y los demás datos necesarios según el contrato actual.
+8. Aplicar el flujo actual de alta/importación.
+9. Construir/verificar corpus.
+10. Mantener banco con el procedimiento consolidado.
 
 El menú debe dejar claro qué operaciones son sólo lectura y cuáles escriben en la BD.
 
-## 14. Papel de `temario.csv`
+## 15. Papel de `temario.csv`
 
 `temario.csv` se conserva.
 
@@ -241,61 +351,70 @@ Deja de ser necesariamente un fichero elaborado a mano y pasa a poder ser el pro
 
 Debe continuar siendo compatible con el importador actual mientras no exista una razón validada para modificar ese contrato.
 
-## 15. Regla contra inferencias no verificadas
+Los puntos no jurídicos deben conservar la representación que actualmente espera el sistema, sin forzarlos al modelo jurídico.
+
+## 16. Regla contra inferencias no verificadas
 
 Ante cualquier ambigüedad:
 
 - no completar huecos con conocimiento general;
 - no asumir que una norma es aplicable por plausibilidad;
 - no expandir automáticamente una materia a artículos no demostrados;
+- no convertir un punto no jurídico en jurídico para simplificar el procesamiento;
 - no interpretar silencio del temario como autorización para incluir contenido;
 - marcar `REVISION` y mostrar la evidencia disponible.
 
-Es preferible dejar una referencia pendiente a introducir una referencia falsa.
+Es preferible dejar una asociación pendiente a introducir una asociación falsa.
 
-## 16. Desarrollo por fases
+## 17. Desarrollo por fases
 
 ### Fase 1
 
-Sólo lectura: inventario técnico y reconstrucción de C1.
+Sólo lectura: inventario técnico y línea base consolidada de C1, incluyendo camino jurídico y no jurídico.
 
 ### Fase 2
 
-Propuestas de normas, todavía sin escritura.
+Repetición de la línea base en C2.
 
 ### Fase 3
 
-Propuestas de artículos, todavía sin escritura.
+Extracción y clasificación de puntos del PDF, todavía sin escritura.
 
 ### Fase 4
 
-Comparación sistemática contra C1 y C2 consolidados.
+Propuestas de normas y artículos jurídicos y equivalencias no jurídicas, todavía sin escritura.
 
 ### Fase 5
 
-Interfaz de revisión y exportación de `temario.csv`.
+Comparación sistemática contra C1 y C2 consolidados.
 
 ### Fase 6
 
-Integración controlada con los procesos existentes de corpus y bancos.
+Interfaz de revisión y exportación compatible.
 
 ### Fase 7
+
+Integración controlada con los procesos existentes de corpus y bancos.
+
+### Fase 8
 
 Alta de A1 mediante el nuevo procedimiento.
 
 Cada fase debe poder detenerse sin afectar al funcionamiento actual de Mantenimiento ni de Tu Coach.
 
-## 17. Primer paso de implementación
+## 18. Línea base de referencia
 
-El primer script nuevo no intentará resolver normas ni artículos.
+La auditoría V2 no debe inventar reglas propias para reproducir el banco. Debe reutilizar las reglas consolidadas de `mantener_banco_preguntas.py`.
 
-Su única función será auditar, en solo lectura, la información disponible para una convocatoria consolidada (C1):
+Para C1, la línea base validada es:
 
-- temas oficiales existentes en BD;
-- referencias actuales por tema;
-- catálogo de normas utilizado;
-- artículos enlazados;
-- preguntas disponibles por referencia;
-- corpus asociados.
+- 35 temas;
+- 1.146 referencias jurídicas completas;
+- 10.843 preguntas jurídicas aptas;
+- 1.060 preguntas no jurídicas aptas;
+- 11.903 preguntas aptas en total;
+- 11.903 preguntas presentes en banco;
+- 0 preguntas del banco fuera del universo actual;
+- 0 preguntas aptas ausentes del banco.
 
-Ese inventario servirá como línea base antes de implementar cualquier inferencia.
+Esta línea base sirve como prueba de regresión del Constructor V2. No redefine el funcionamiento de `lote_preguntas` ni del banco.

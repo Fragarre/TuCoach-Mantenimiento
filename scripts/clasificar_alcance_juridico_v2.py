@@ -36,8 +36,8 @@ def _norm(texto: str) -> str:
     return re.sub(r"\s+", " ", x).strip()
 
 
-# Señales de teoría general/transversal. Se exigen señales fuertes; no basta con
-# palabras genéricas como "principios" o "ley" aisladas.
+# Señales fuertes de teoría general o de alcance transversal. Deben describir
+# una estructura abierta del tema; no basta una palabra genérica aislada.
 PATRONES_DOCTRINALES_FUERTES = tuple(
     re.compile(p, re.I)
     for p in (
@@ -50,6 +50,14 @@ PATRONES_DOCTRINALES_FUERTES = tuple(
         r"\bjurisprudencia\b",
         r"\bdoctrina\b",
         r"\baplicacion\s+e\s+interpretacion\s+de\s+las\s+normas\b",
+        # Fórmula típica de materias competenciales amplias: exige conocer
+        # varias normas sectoriales, sin que el temario delimite una sola.
+        r"\bcompetencias?\s+de\s+la\s+generalitat\s+en\s+materia\s+de\b",
+        r"\bprincipales\s+normas\s+reguladoras\s*:\s*aspectos\s+generales\b",
+        # Marcos normativos expresamente multinivel, también abiertos si no se
+        # identifica una norma concreta que cierre el alcance.
+        r"\bmarco\s+normativo\s+(?:estatal\s+y\s+autonomico|europeo\s+y\s+estatal)\b",
+        r"\bnormativa\s+(?:europea,?\s+estatal\s+y\s+autonomica|europea,?\s+estatal\s+o\s+autonomica)\b",
     )
 )
 

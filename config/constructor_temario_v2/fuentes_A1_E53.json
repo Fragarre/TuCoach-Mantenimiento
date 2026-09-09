@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "naturaleza": "DEFINICION_FUENTES_EXTERNAS_PSEUDONORMA",
   "caso": "A1_ESPECIAL_53",
   "pseudonorma": "PSEUDO:ESPECIAL_53_GOBIERNO_ABIERTO",
@@ -7,83 +7,13 @@
   "texto_temario": "Gobierno abierto: principios. Grupos de interés. La participación ciudadana en la Administración Valenciana. La Gobernanza como paradigma de gestión pública. El libro blanco de la UE y los cinco principios de la buena gobernanza. El derecho a la buena administración en la normativa europea, estatal y autonómica. La Agenda 2030 y los Objetivos de Desarrollo Sostenible de Naciones Unidas.",
   "estado": "FUENTES_CANDIDATAS_PARA_IDENTIDAD",
   "fuentes": [
-    {
-      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL",
-      "identificador_oficial": "BOE-A-2022-8187",
-      "identificador_recuperacion": "BOE-A-2022-8187",
-      "descripcion": "Ley 1/2022, de 13 de abril, de Transparencia y Buen Gobierno de la Comunitat Valenciana",
-      "organismo": "BOE",
-      "url_oficial": "https://www.boe.es/buscar/act.php?id=BOE-A-2022-8187",
-      "grupos_senales": [["BOE-A-2022-8187"],["Ley 1/2022"],["Transparencia y Buen Gobierno"],["Gobierno abierto"]],
-      "proposiciones_objetivo": ["A1E53-P01", "A1E53-P04", "A1E53-P06"]
-    },
-    {
-      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL",
-      "identificador_oficial": "BOE-A-2019-967",
-      "identificador_recuperacion": "BOE-A-2019-967",
-      "descripcion": "Ley 25/2018, de 10 de diciembre, reguladora de la actividad de los grupos de interés de la Comunitat Valenciana",
-      "organismo": "BOE",
-      "url_oficial": "https://www.boe.es/buscar/act.php?id=BOE-A-2019-967",
-      "grupos_senales": [["BOE-A-2019-967"],["Ley 25/2018"],["grupos de interés"],["actividad de influencia"]],
-      "proposiciones_objetivo": ["A1E53-P02"]
-    },
-    {
-      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL",
-      "identificador_oficial": "BOE-A-2023-10640",
-      "identificador_recuperacion": "BOE-A-2023-10640",
-      "descripcion": "Ley 4/2023, de 13 de abril, de Participación Ciudadana y Fomento del Asociacionismo de la Comunitat Valenciana",
-      "organismo": "BOE",
-      "url_oficial": "https://www.boe.es/buscar/act.php?id=BOE-A-2023-10640",
-      "grupos_senales": [["BOE-A-2023-10640"],["Ley 4/2023"],["Participación Ciudadana"],["mecanismos de participación ciudadana"]],
-      "proposiciones_objetivo": ["A1E53-P03", "A1E53-P04"]
-    },
-    {
-      "tipo_fuente": "FUENTE_INSTITUCIONAL_UE",
-      "identificador_oficial": "CELEX:52001DC0428",
-      "identificador_recuperacion": "CELEX:52001DC0428",
-      "descripcion": "Comisión Europea, La gobernanza europea - Un Libro Blanco, COM(2001) 428 final",
-      "organismo": "EUR-Lex / Comisión Europea",
-      "url_oficial": "https://eur-lex.europa.eu/legal-content/ES/ALL/?uri=CELEX:52001DC0428",
-      "grupos_senales": [["52001DC0428"],["La gobernanza Europea", "gobernanza europea"],["Libro Blanco"],["apertura", "participación", "responsabilidad", "eficacia", "coherencia"]],
-      "proposiciones_objetivo": ["A1E53-P04", "A1E53-P05"]
-    },
-    {
-      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL_UE",
-      "identificador_oficial": "CELEX:12012P/TXT",
-      "identificador_recuperacion": "CELEX:12012P/TXT",
-      "descripcion": "Carta de los Derechos Fundamentales de la Unión Europea, 2012/C 326/02",
-      "organismo": "EUR-Lex",
-      "url_oficial": "https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:12012P/TXT",
-      "grupos_senales": [["12012P/TXT"],["Carta de los Derechos Fundamentales de la Unión Europea"],["Artículo 41", "Articulo 41"],["Derecho a una buena administración", "buena administración"]],
-      "proposiciones_objetivo": ["A1E53-P06"]
-    },
-    {
-      "tipo_fuente": "FUENTE_PRIMARIA_OFICIAL",
-      "identificador_oficial": "BOE-A-1982-17235",
-      "identificador_recuperacion": "BOE-A-1982-17235",
-      "descripcion": "Ley Orgánica 5/1982, de 1 de julio, de Estatuto de Autonomía de la Comunidad Valenciana",
-      "organismo": "BOE",
-      "url_oficial": "https://www.boe.es/buscar/act.php?id=BOE-A-1982-17235",
-      "grupos_senales": [["BOE-A-1982-17235"],["Estatuto de Autonomía"],["Artículo 9", "Artículo 9."],["buena administración"]],
-      "proposiciones_objetivo": ["A1E53-P06"]
-    },
-    {
-      "tipo_fuente": "FUENTE_INSTITUCIONAL_ONU",
-      "identificador_oficial": "A/RES/70/1",
-      "identificador_recuperacion": "A_RES_70_1_ES",
-      "descripcion": "Asamblea General de Naciones Unidas, Resolución 70/1, Transformar nuestro mundo: la Agenda 2030 para el Desarrollo Sostenible",
-      "organismo": "Naciones Unidas",
-      "url_oficial": "https://digitallibrary.un.org/record/3923923/files/A_RES_70_1-ES.pdf",
-      "grupos_senales": [["A/RES/70/1"],["Transformar nuestro mundo"],["Agenda 2030"],["Objetivos de Desarrollo Sostenible"]],
-      "proposiciones_objetivo": ["A1E53-P07"]
-    }
+    {"tipo_fuente":"FUENTE_PRIMARIA_OFICIAL","identificador_oficial":"BOE-A-2022-8187","identificador_recuperacion":"BOE-A-2022-8187","descripcion":"Ley 1/2022, de 13 de abril, de Transparencia y Buen Gobierno de la Comunitat Valenciana","organismo":"BOE","url_oficial":"https://www.boe.es/buscar/act.php?id=BOE-A-2022-8187","grupos_senales":[["BOE-A-2022-8187"],["Ley 1/2022"],["Transparencia y Buen Gobierno"],["Gobierno abierto"]],"proposiciones_objetivo":["A1E53-P01","A1E53-P04","A1E53-P06"]},
+    {"tipo_fuente":"FUENTE_PRIMARIA_OFICIAL","identificador_oficial":"BOE-A-2019-967","identificador_recuperacion":"BOE-A-2019-967","descripcion":"Ley 25/2018, de 10 de diciembre, reguladora de la actividad de los grupos de interés de la Comunitat Valenciana","organismo":"BOE","url_oficial":"https://www.boe.es/buscar/act.php?id=BOE-A-2019-967","grupos_senales":[["BOE-A-2019-967"],["Ley 25/2018"],["grupos de interés"],["actividad de influencia"]],"proposiciones_objetivo":["A1E53-P02"]},
+    {"tipo_fuente":"FUENTE_PRIMARIA_OFICIAL","identificador_oficial":"BOE-A-2023-10640","identificador_recuperacion":"BOE-A-2023-10640","descripcion":"Ley 4/2023, de 13 de abril, de Participación Ciudadana y Fomento del Asociacionismo de la Comunitat Valenciana","organismo":"BOE","url_oficial":"https://www.boe.es/buscar/act.php?id=BOE-A-2023-10640","grupos_senales":[["BOE-A-2023-10640"],["Ley 4/2023"],["Participación Ciudadana"],["mecanismos de participación ciudadana"]],"proposiciones_objetivo":["A1E53-P03","A1E53-P04"]},
+    {"tipo_fuente":"FUENTE_INSTITUCIONAL_UE","identificador_oficial":"CELEX:52001DC0428","identificador_recuperacion":"CELEX:52001DC0428","descripcion":"Comisión Europea, La gobernanza europea - Un Libro Blanco, COM(2001) 428 final","organismo":"EUR-Lex / Comisión Europea","url_oficial":"https://eur-lex.europa.eu/legal-content/ES/ALL/?uri=CELEX%3A52001DC0428","grupos_senales":[["52001DC0428","COM/2001/0428"],["gobernanza Europea","gobernanza europea"],["libro blanco","Libro Blanco"],["PRINCIPIOS DE LA BUENA GOBERNANZA","principios de la buena gobernanza"]],"proposiciones_objetivo":["A1E53-P04","A1E53-P05"]},
+    {"tipo_fuente":"FUENTE_PRIMARIA_OFICIAL_UE","identificador_oficial":"CELEX:12012P/TXT","identificador_recuperacion":"CELEX:12012P/TXT","descripcion":"Carta de los Derechos Fundamentales de la Unión Europea, 2012/C 326/02","organismo":"EUR-Lex","url_oficial":"https://eur-lex.europa.eu/eli/treaty/char_2012/oj?locale=es","grupos_senales":[["Carta de los Derechos Fundamentales de la Unión Europea"],["Artículo 41","Articulo 41"],["Derecho a una buena administración","buena administración"],["imparcial y equitativamente","plazo razonable"]],"proposiciones_objetivo":["A1E53-P06"]},
+    {"tipo_fuente":"FUENTE_PRIMARIA_OFICIAL","identificador_oficial":"BOE-A-1982-17235","identificador_recuperacion":"BOE-A-1982-17235","descripcion":"Ley Orgánica 5/1982, de 1 de julio, de Estatuto de Autonomía de la Comunidad Valenciana","organismo":"BOE","url_oficial":"https://www.boe.es/buscar/act.php?id=BOE-A-1982-17235","grupos_senales":[["BOE-A-1982-17235"],["Estatuto de Autonomía"],["Artículo 9","Artículo 9."],["buena administración"]],"proposiciones_objetivo":["A1E53-P06"]},
+    {"tipo_fuente":"FUENTE_INSTITUCIONAL_ONU","identificador_oficial":"A/RES/70/1","identificador_recuperacion":"A_RES_70_1_ES","descripcion":"Asamblea General de Naciones Unidas, Resolución 70/1, Transformar nuestro mundo: la Agenda 2030 para el Desarrollo Sostenible","organismo":"Naciones Unidas","url_oficial":"https://digitallibrary.un.org/record/3923923?ln=es&v=pdf","grupos_senales":[["A/RES/70/1"],["2030 Agenda for Sustainable Development","Agenda 2030 para el Desarrollo Sostenible"],["resolution / adopted by the General Assembly","resolución"],["Español","A_RES_70_1-ES"]],"proposiciones_objetivo":["A1E53-P07"]}
   ],
-  "reglas": {
-    "solo_fuentes_oficiales_o_institucionales": true,
-    "identidad_no_equivale_a_pertinencia": true,
-    "documento_institucional_no_equivale_a_norma_juridica": true,
-    "bd_modificada": false,
-    "corpus_modificado": false,
-    "pertinencia_aceptada": false
-  }
+  "reglas":{"solo_fuentes_oficiales_o_institucionales":true,"identidad_no_equivale_a_pertinencia":true,"documento_institucional_no_equivale_a_norma_juridica":true,"bd_modificada":false,"corpus_modificado":false,"pertinencia_aceptada":false}
 }

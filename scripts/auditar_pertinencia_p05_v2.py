@@ -68,7 +68,16 @@ def norm(s: str) -> str:
 
 
 def texto_fuente(r: dict) -> str:
-    for clave in ("texto", "texto_recuperado", "contenido", "texto_normalizado"):
+    # Contrato actual de recuperar_fuentes_externas_p05_v2.py:
+    # el texto legible recuperado se guarda en `texto_extraido`.
+    # Se conservan alias anteriores por compatibilidad con artefactos de prueba.
+    for clave in (
+        "texto_extraido",
+        "texto",
+        "texto_recuperado",
+        "contenido",
+        "texto_normalizado",
+    ):
         valor = r.get(clave)
         if isinstance(valor, str) and valor.strip():
             return valor
@@ -142,7 +151,7 @@ def main() -> int:
 
     estado = "LISTO_PARA_REVISION_HUMANA" if not incidencias else "BLOQUEADO"
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "AUDITORIA_PERTINENCIA_JURIDICA_P05",
         "piloto": "A1_ESPECIAL_1_P05",
         "estado": estado,

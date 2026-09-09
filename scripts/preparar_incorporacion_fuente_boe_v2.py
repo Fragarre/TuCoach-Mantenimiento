@@ -6,6 +6,11 @@ FASE DE PREPARACIÓN: NO MODIFICA LA BASE DE DATOS.
 A partir de un plan generado por planificar_alta_fuente_boe_v2.py:
 - exige una única norma canónica candidata cuando falta norma_fuentes;
 - recupera desde BOE el texto vigente de cada artículo objetivo;
+- usa la fecha_actualizacion del índice cuando existe;
+- cuando el índice no aporta fecha_actualizacion, aplica un respaldo conservador:
+  * una única versión del bloque -> se acepta esa versión;
+  * varias versiones -> se exige una única fecha_publicacion máxima;
+  * si persiste ambigüedad -> se bloquea;
 - valida que el encabezado corresponde al artículo esperado;
 - calcula el hash con la misma estructura usada por ampliar_corpus_chat.py;
 - prepara una operación atómica futura: norma_fuentes + articulos_fuente;
@@ -18,6 +23,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import comun
@@ -28,37 +34,102 @@ def limpiar(valor) -> str:
     return " ".join(str(valor or "").split()).strip()
 
 
-def construir_articulo(id_boe: str, articulo: str, id_bloque: str, titulo: str) -> dict:
+def fecha_version(version) -> str:
+    return re.sub(
+        r"\D",
+        "",
+        limpiar(version.attrib.get("fecha_publicacion", "")),
+    )
+
+
+def seleccionar_version_sin_fecha_indice(raiz_bloque):
+    """
+    Respaldo conservador para bloques cuyo índice BOE no informa
+    fecha_actualizacion.
+
+    Nunca elige arbitrariamente:
+    - 1 versión: se usa;
+    - varias: sólo se usa la de fecha_publicacion máxima si es única;
+    - fechas ausentes o empate en la máxima: error controlado.
+    """
+    versiones = ampliar._versiones_bloque(raiz_bloque)
+    if not versiones:
+        raise ampliar.BOEError("El bloque BOE no contiene ninguna versión.")
+
+    if len(versiones) == 1:
+        return versiones[0], "UNICA_VERSION_SIN_FECHA_INDICE"
+
+    con_fecha = [(fecha_version(v), v) for v in versiones]
+    if any(not fecha for fecha, _ in con_fecha):
+        raise ampliar.BOEError(
+            "El índice no aporta fecha_actualizacion y alguna versión del bloque "
+            "tampoco aporta fecha_publicacion; no se selecciona arbitrariamente."
+        )
+
+    fecha_maxima = max(fecha for fecha, _ in con_fecha)
+    recientes = [v for fecha, v in con_fecha if fecha == fecha_maxima]
+    if len(recientes) != 1:
+        raise ampliar.BOEError(
+            "El índice no aporta fecha_actualizacion y hay varias versiones "
+            f"igualmente recientes ({fecha_maxima}); no se selecciona arbitrariamente."
+        )
+
+    return recientes[0], "VERSION_MAXIMA_UNICA_SIN_FECHA_INDICE"
+
+
+def construir_articulo(
+    id_boe: str,
+    articulo: str,
+    id_bloque: str,
+    titulo: str,
+    fecha_actualizacion: str,
+) -> dict:
     raiz = ampliar.obtener_bloque_texto(id_boe, id_bloque)
-    # El índice ya ha seleccionado el bloque actual. La función consolidada
-    # elige la versión vigente dentro de ese bloque.
-    version = ampliar._seleccionar_version_actualizada(raiz, "")
-    texto = ampliar._texto_version(version)
-    texto = limpiar(texto)
-    if not ampliar.texto_articulo_suficiente(texto):
+    fecha_actualizacion = re.sub(r"\D", "", limpiar(fecha_actualizacion))
+
+    if fecha_actualizacion:
+        version = ampliar._seleccionar_version_actualizada(
+            raiz,
+            fecha_actualizacion,
+        )
+        criterio_version = "FECHA_ACTUALIZACION_INDICE"
+    else:
+        version, criterio_version = seleccionar_version_sin_fecha_indice(raiz)
+
+    texto = limpiar(ampliar._texto_version(version))
+    if not ampliar.texto_articulo_suficiente(texto, titulo):
         raise RuntimeError(f"{id_boe} art. {articulo}: texto insuficiente")
 
     numero_real = ampliar.extraer_numero_encabezado(texto)
-    if numero_real and ampliar.normalizar_articulo(numero_real) != ampliar.normalizar_articulo(articulo):
+    if (
+        numero_real
+        and ampliar.normalizar_articulo(numero_real)
+        != ampliar.normalizar_articulo(articulo)
+    ):
         raise RuntimeError(
-            f"{id_boe}/{id_bloque}: encabezado {numero_real!r} no corresponde al art. {articulo}"
+            f"{id_boe}/{id_bloque}: encabezado {numero_real!r} "
+            f"no corresponde al art. {articulo}"
         )
 
-    departamento = ""
     hash_texto = hashlib.sha256(texto.encode("utf-8")).hexdigest()
     return {
         "id_boe": id_boe,
         "id_bloque": id_bloque,
         "articulo_boe": articulo,
         "titulo_bloque": titulo,
-        "departamento": departamento,
+        "departamento": "",
         "texto": texto,
         "hash_texto": hash_texto,
+        "fecha_actualizacion_indice": fecha_actualizacion,
+        "fecha_publicacion_version": fecha_version(version),
+        "criterio_version": criterio_version,
     }
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Prepara, sin aplicar, el alta atómica de una fuente BOE nueva.")
+    ap = argparse.ArgumentParser(
+        description="Prepara, sin aplicar, el alta atómica de una fuente BOE nueva."
+    )
     ap.add_argument("--plan-json", required=True)
     ap.add_argument("--salida-json", required=True)
     args = ap.parse_args()
@@ -83,7 +154,8 @@ def main() -> int:
     else:
         if len(candidatos) != 1:
             raise SystemExit(
-                f"Se requiere exactamente una norma canónica candidata; encontradas: {len(candidatos)}"
+                "Se requiere exactamente una norma canónica candidata; "
+                f"encontradas: {len(candidatos)}"
             )
         norma_id = int(candidatos[0]["norma_id"])
         crear_enlace = True
@@ -91,12 +163,30 @@ def main() -> int:
     objetivos = plan.get("indice_boe", {}).get("articulos_objetivo") or []
     if not objetivos:
         raise SystemExit("El plan no contiene artículos objetivo.")
-    no_localizados = [x.get("articulo") for x in objetivos if x.get("estado") != "LOCALIZADO_EN_INDICE"]
+
+    no_localizados = [
+        x.get("articulo")
+        for x in objetivos
+        if x.get("estado") != "LOCALIZADO_EN_INDICE"
+    ]
     if no_localizados:
         raise SystemExit(f"Hay artículos no localizados en BOE: {no_localizados}")
 
+    # Reconstruimos el índice actual para recuperar fecha_actualizacion por bloque.
+    indice_fechas = {}
+    raiz_indice = ampliar.obtener_indice_texto(id_boe)
+    for elemento in raiz_indice.iter():
+        datos = ampliar._datos_bloque_indice(elemento)
+        if not datos:
+            continue
+        id_bloque, _, fecha_actualizacion = datos
+        indice_fechas[id_bloque] = fecha_actualizacion
+
     print("=" * 78)
-    print("CONSTRUCTOR TEMARIO V2 - PREPARAR INCORPORACION FUENTE BOE - SIN ESCRITURAS BD")
+    print(
+        "CONSTRUCTOR TEMARIO V2 - PREPARAR INCORPORACION FUENTE BOE - "
+        "SIN ESCRITURAS BD"
+    )
     print("=" * 78)
     print(f"Plan.............................. {plan_path}")
     print(f"Fuente BOE....................... {id_boe}")
@@ -109,17 +199,35 @@ def main() -> int:
     errores = []
     for obj in objetivos:
         art = limpiar(obj.get("articulo"))
+        id_bloque = limpiar(obj.get("id_bloque"))
         try:
-            item = construir_articulo(id_boe, art, limpiar(obj.get("id_bloque")), limpiar(obj.get("titulo")))
+            item = construir_articulo(
+                id_boe,
+                art,
+                id_bloque,
+                limpiar(obj.get("titulo")),
+                indice_fechas.get(id_bloque, ""),
+            )
             preparados.append(item)
-            print(f"  OK    | art. {art} | bloque={item['id_bloque']} | chars={len(item['texto'])}")
+            print(
+                f"  OK    | art. {art} | bloque={item['id_bloque']} "
+                f"| chars={len(item['texto'])} "
+                f"| criterio={item['criterio_version']}"
+            )
         except Exception as exc:
-            errores.append({"articulo": art, "error": f"{type(exc).__name__}: {exc}"})
+            errores.append(
+                {"articulo": art, "error": f"{type(exc).__name__}: {exc}"}
+            )
             print(f"  ERROR | art. {art} | {type(exc).__name__}: {exc}")
 
-    estado = "LISTO_PARA_REVISION" if len(preparados) == len(objetivos) and not errores else "BLOQUEADO"
+    estado = (
+        "LISTO_PARA_REVISION"
+        if len(preparados) == len(objetivos) and not errores
+        else "BLOQUEADO"
+    )
+
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "PREPARACION_INCORPORACION_FUENTE_BOE",
         "estado": estado,
         "plan_origen": str(plan_path),
@@ -132,7 +240,11 @@ def main() -> int:
         "errores": errores,
         "operacion_futura": {
             "atomica": True,
-            "tablas": ["norma_fuentes", "articulos_fuente"] if crear_enlace else ["articulos_fuente"],
+            "tablas": (
+                ["norma_fuentes", "articulos_fuente"]
+                if crear_enlace
+                else ["articulos_fuente"]
+            ),
             "aplicada": False,
         },
         "reglas": {
@@ -140,10 +252,15 @@ def main() -> int:
             "temarios_modificados": False,
             "bancos_modificados": False,
             "aceptacion_automatica": False,
+            "seleccion_version_sin_fecha_indice_no_arbitraria": True,
         },
     }
+
     salida.parent.mkdir(parents=True, exist_ok=True)
-    salida.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    salida.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     print()
     print(f"Estado............................ {estado}")

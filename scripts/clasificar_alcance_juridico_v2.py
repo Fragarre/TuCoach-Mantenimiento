@@ -53,17 +53,20 @@ PATRONES_DOCTRINALES_FUERTES = tuple(
         r"\beficacia\s+temporal\s+de\s+las\s+normas\b",
         r"\bderecho\s+transitorio\b",
         r"\bprincipio\s+de\s+irretroactividad\b",
+        r"\badministracion\s+publica\s+como\s+persona\s+juridica\b",
+        r"\bactividad\s+discrecional\b",
         r"\bformas?\s+de\s+actividad\s+administrativa\b",
         r"\bactividad\s+de\s+limitacion\s+o\s+policia\b",
         r"\bfinanciacion\s+de\s+las\s+comunidades\s+autonomas\b",
+        r"\bplanificacion\s+estrategica\b",
+        r"\bfases?\s+de\s+la\s+planificacion\b",
         # Fórmula típica de materias competenciales amplias: exige conocer
         # varias normas sectoriales, sin que el temario delimite una sola.
         r"\bcompetencias?\s+de\s+la\s+generalitat\s+en\s+materia\s+de\b",
         r"\bprincipales\s+normas\s+reguladoras\s*:\s*aspectos\s+generales\b",
-        # Marcos normativos expresamente multinivel, también abiertos si no se
-        # identifica una norma concreta que cierre el alcance.
-        r"\bmarco\s+normativo\s+(?:estatal\s+y\s+autonomico|europeo\s+y\s+estatal)\b",
-        r"\bmarco\s+europeo\s+y\s+estatal\b",
+        # Marcos normativos claramente multicapas y abiertos. No se utiliza la
+        # sola expresión 'marco europeo y estatal': puede describir una materia
+        # estrecha y jurídicamente delimitable.
         r"\bnormativa\s+basica\s+estatal\s+y\s+autonomica\b",
         r"\bnormativa\s+europea,?\s+basica\s+estatal\s+y\s+autonomica\b",
         r"\bnormativa\s+(?:europea,?\s+estatal\s+y\s+autonomica|europea,?\s+estatal\s+o\s+autonomica)\b",
@@ -114,6 +117,7 @@ GRUPOS_DELIMITABLES = (
         r"\btribunal\s+de\s+justicia\s+de\s+la\s+union\s+europea\b",
         r"\bbanco\s+central\s+europeo\b",
         r"\bcompetencias?\s+de\s+la\s+union\s+europea\b",
+        r"\bmiembros?\s+de\s+la\s+union\s+europea\b",
         r"\bciudadania\s+de\s+la\s+union\b",
         r"\bmercado\s+interior\b",
         r"\blibre\s+circulacion\b",
@@ -121,7 +125,6 @@ GRUPOS_DELIMITABLES = (
     )),
     ("ADMINISTRATIVO_GENERAL", (
         r"\bpotestades?\s+administrativas?\b",
-        r"\bactividad\s+discrecional\b",
         r"\bacto\s+administrativo\b",
         r"\bactos?\s+de\s+tramite\b",
         r"\biniciativa\s+legislativa\b",
@@ -161,6 +164,11 @@ GRUPOS_DELIMITABLES = (
         r"\bexpropiacion\s+forzosa\b",
         r"\bprocedimiento\s+general\b",
         r"\bprocedimiento\s+de\s+urgencia\b",
+    )),
+    ("INFORMANTES_IRREGULARIDADES", (
+        r"\bproteccion\s+de\s+las\s+personas\s+que\s+informen\s+sobre\s+irregularidades\b",
+        r"\bsistema\s+interno\s+de\s+informacion\b",
+        r"\bley\s+valenciana\s+de\s+funcion\s+publica\b",
     )),
     ("EMPLEO_PUBLICO", (
         r"\bpersonal\s+al\s+servicio\s+de\s+las?\s+administraciones?\s+publicas?\b",
@@ -204,14 +212,6 @@ GRUPOS_DELIMITABLES = (
     )),
 )
 
-# Un bloque expresamente jurídico es evidencia contextual de que un tema sin
-# cita literal sigue siendo jurídico. No decide la norma: sólo permite tratarlo
-# como delimitable cuando tampoco existen señales doctrinales/transversales.
-PATRON_BLOQUE_JURIDICO = re.compile(
-    r"\b(?:derecho\s+administrativo|funcion\s+publica|gestion\s+economico[- ]presupuestaria|union\s+europea|contratacion|administracion\s+publica)\b",
-    re.I,
-)
-
 
 def _senales_doctrinales(texto: str) -> list[str]:
     n = _norm(texto)
@@ -250,12 +250,9 @@ def clasificar(tema: estructura.TemaExtraido) -> tuple[str, str]:
     if grupo and n_senales >= 2:
         return "JURIDICO_DELIMITABLE", f"MATERIA_ACOTADA:{grupo};senales={n_senales}"
 
-    bloque = _norm(tema.bloque_titulo)
-    if bloque and PATRON_BLOQUE_JURIDICO.search(bloque):
-        return "JURIDICO_DELIMITABLE", f"BLOQUE_JURIDICO_ACOTABLE:{tema.bloque_titulo}"
-
-    # Ante falta real de evidencia, se mantiene REVISION. Esta categoría no es
-    # un error: evita convertir conocimiento general en una decisión automática.
+    # El bloque aporta contexto, pero no basta por sí solo para afirmar que una
+    # materia sea delimitable. En ausencia de evidencia temática se conserva
+    # REVISION para evitar falsa precisión.
     return "REVISION", "ALCANCE_NO_DETERMINADO"
 
 

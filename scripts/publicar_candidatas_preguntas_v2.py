@@ -1,4 +1,4 @@
-"""Publica candidatas PSEUDO V2 validadas en lote_preguntas + pregunta_contextos_v2.
+"""Publica candidatas PSEUDO V2 auditadas en lote_preguntas + pregunta_contextos_v2.
 
 Vía estrictamente aditiva y separada del generador jurídico REAL consolidado.
 Por defecto SOLO REVISION. Con --aplicar crea backup y escribe únicamente:
@@ -9,6 +9,7 @@ No modifica bancos. La vinculación posterior corresponde a
 mantener_banco_preguntas_v2.py.
 
 Contrato actual: solo PSEUDO TEORICA. MIXTA y PRACTICA no se infieren.
+Solo admite candidatas que hayan superado validar_candidatas_preguntas_v2.py.
 """
 from __future__ import annotations
 
@@ -21,6 +22,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from validar_candidatas_preguntas_v2 import auditoria_ok, revision_ok
+
 RAIZ = Path(__file__).resolve().parent.parent
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 ESTADOS_FINALES = {
@@ -29,6 +32,7 @@ ESTADOS_FINALES = {
 }
 TIPO_FUENTE = "ia_generada_v2"
 CRITERIO = "PSEUDOARTICULO_V2"
+ESTADO_PUBLICABLE = "VALIDADA_AUDITADA_V2"
 
 
 def leer_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -100,6 +104,21 @@ def seleccionar_convocatoria(con: sqlite3.Connection, codigo: str) -> tuple[int,
     return int(conv["id"]), int(temarios[0]["id"])
 
 
+def validar_auditoria_embebida(candidata: dict[str, Any]) -> None:
+    bloque = candidata.get("validacion_v2")
+    if not isinstance(bloque, dict):
+        raise RuntimeError("La candidata no contiene validacion_v2.")
+    v1 = bloque.get("revision_1")
+    v2 = bloque.get("revision_2")
+    aud = bloque.get("auditoria_ciega")
+    if not all(isinstance(x, dict) for x in (v1, v2, aud)):
+        raise RuntimeError("validacion_v2 está incompleta.")
+    if not revision_ok(v1) or not revision_ok(v2):
+        raise RuntimeError("La candidata no supera las dos revisiones V2.")
+    if not auditoria_ok(aud, str(candidata.get("respuesta_correcta") or "")):
+        raise RuntimeError("La candidata no supera la auditoría ciega V2.")
+
+
 def validar_candidata(
     con: sqlite3.Connection,
     candidata: dict[str, Any],
@@ -107,15 +126,17 @@ def validar_candidata(
 ) -> dict[str, Any]:
     if candidata.get("tipo_registro") != "CANDIDATA_PREGUNTA_V2":
         raise RuntimeError("El registro no es CANDIDATA_PREGUNTA_V2.")
-    if str(candidata.get("estado") or "") != "CANDIDATA_VALIDADA":
-        raise RuntimeError("Solo se publican candidatas con estado CANDIDATA_VALIDADA.")
+    if str(candidata.get("estado") or "") != ESTADO_PUBLICABLE:
+        raise RuntimeError(
+            "Solo se publican candidatas en estado VALIDADA_AUDITADA_V2."
+        )
     if str(candidata.get("tipo_contexto") or "").upper() != "PSEUDO":
         raise RuntimeError("Esta fase solo publica PSEUDO; MIXTA no se infiere.")
 
     obligatorios = (
         "tema_id", "pseudoarticulo_id", "pseudonorma", "pseudoarticulo",
         "enunciado", "opcion_a", "opcion_b", "opcion_c", "opcion_d",
-        "respuesta_correcta", "explicacion", "respaldo_ids",
+        "respuesta_correcta", "explicacion", "respaldo_ids", "validacion_v2",
     )
     for campo in obligatorios:
         if candidata.get(campo) in (None, "", []):
@@ -123,6 +144,7 @@ def validar_candidata(
     correcta = str(candidata["respuesta_correcta"]).strip().upper()
     if correcta not in {"A", "B", "C", "D"}:
         raise RuntimeError("respuesta_correcta debe ser A, B, C o D.")
+    validar_auditoria_embebida(candidata)
 
     tema_id = int(candidata["tema_id"])
     pseudoarticulo_id = int(candidata["pseudoarticulo_id"])
@@ -267,7 +289,7 @@ def insertar(
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Publica candidatas PSEUDO V2 sin intervenir en los bancos."
+        description="Publica candidatas PSEUDO V2 auditadas sin intervenir en los bancos."
     )
     ap.add_argument("--candidatas", required=True)
     ap.add_argument("--codigo", required=True)
@@ -289,7 +311,8 @@ def main() -> int:
     nuevas: list[dict[str, Any]] = []
     existentes: list[tuple[dict[str, Any], int]] = []
 
-    with sqlite3.connect(db) as con:
+    con = sqlite3.connect(db)
+    try:
         con.row_factory = sqlite3.Row
         con.execute("PRAGMA foreign_keys=ON")
         comprobar_tablas(con)
@@ -325,6 +348,11 @@ def main() -> int:
                 con.close()
                 shutil.copy2(backup, db)
                 raise
+    finally:
+        try:
+            con.close()
+        except Exception:
+            pass
 
     print("=" * 78)
     print("CONSTRUCTOR TEMARIO V2 - PUBLICACION CANDIDATAS PSEUDO")
@@ -334,6 +362,7 @@ def main() -> int:
     print(f"Candidatas....................... {len(candidatas)}")
     print(f"Nuevas........................... {len(nuevas)}")
     print(f"Ya existentes.................... {len(existentes)}")
+    print("Estado exigido................... VALIDADA_AUDITADA_V2")
     print("Tipo contexto.................... PSEUDO")
     print("Tipo pregunta.................... TEORICA")
     print("Criterio banco................... PSEUDOARTICULO_V2")

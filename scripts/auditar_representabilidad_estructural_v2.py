@@ -5,11 +5,18 @@ SOLO LECTURA.
 
 Objetivo: comprobar si el alcance consolidado de los temas JURIDICO_DELIMITABLE
 puede representarse razonablemente mediante bloques reales de la jerarquía oficial
-(Título / Capítulo / Sección) reconstruida desde los índices HTML cacheados.
+(Título / Capítulo / Sección) reconstruida desde índices HTML cacheados.
 
 La verdad consolidada (temario_referencias) se usa EXCLUSIVAMENTE para evaluar.
 No forma parte de ninguna lógica productiva de propuesta.
 No modifica BD, corpus, temario.csv ni bancos.
+
+Correcciones de la auditoría:
+- compara artículos por etiqueta jurídica normalizada, no por articulo_fuente_id;
+- permite evaluar contra cualquier fuente oficial cacheada enlazada a la misma norma;
+- distingue bloques homónimos por su contexto jerárquico completo
+  (Título -> Capítulo -> Sección), evitando mezclar, por ejemplo, distintos
+  "CAPÍTULO I" pertenecientes a títulos diferentes.
 """
 from __future__ import annotations
 
@@ -45,8 +52,6 @@ def cargar_verdad(con, convocatoria_id: int):
         SELECT UPPER(TRIM(tt.parte)) AS parte,
                tt.numero_tema,
                tr.norma_id,
-               tr.articulo_fuente_id,
-               af.id_boe AS id_fuente,
                af.articulo_boe AS articulo
         FROM temarios t
         JOIN temario_temas tt ON tt.temario_id=t.id
@@ -58,14 +63,34 @@ def cargar_verdad(con, convocatoria_id: int):
         """,
         (convocatoria_id,),
     ).fetchall()
-    verdad = defaultdict(lambda: defaultdict(set))
+    verdad = defaultdict(set)
     for r in filas:
         clave = (str(r["parte"]), int(r["numero_tema"]), int(r["norma_id"]))
-        fid = str(r["id_fuente"] or "")
         art = norm_articulo(r["articulo"])
-        if fid and art:
-            verdad[clave][fid].add(art)
-    return {k: dict(v) for k, v in verdad.items()}
+        if art:
+            verdad[clave].add(art)
+    return dict(verdad)
+
+
+def cargar_fuentes_normas(con, norma_ids: set[int]) -> dict[int, list[str]]:
+    if not norma_ids:
+        return {}
+    marcas = ",".join("?" for _ in norma_ids)
+    filas = con.execute(
+        f"""
+        SELECT norma_id, id_fuente
+        FROM norma_fuentes
+        WHERE norma_id IN ({marcas})
+        ORDER BY norma_id, id
+        """,
+        tuple(sorted(norma_ids)),
+    ).fetchall()
+    out = defaultdict(list)
+    for r in filas:
+        fid = str(r["id_fuente"] or "").strip()
+        if fid and fid not in out[int(r["norma_id"])]:
+            out[int(r["norma_id"])].append(fid)
+    return dict(out)
 
 
 def temas_delimitables(pdf: Path):
@@ -80,17 +105,39 @@ def temas_delimitables(pdf: Path):
 
 
 def bloques(payload: dict) -> list[dict]:
+    """Construye bloques estructurales sin mezclar homónimos de ramas distintas."""
     arts = payload["articulos"]
+    grupos = {
+        "TITULO": defaultdict(set),
+        "CAPITULO": defaultdict(set),
+        "SECCION": defaultdict(set),
+    }
+
+    for a in arts:
+        art = norm_articulo(a.get("articulo"))
+        if not art:
+            continue
+        titulo = a.get("titulo")
+        capitulo = a.get("capitulo")
+        seccion = a.get("seccion")
+
+        if titulo:
+            grupos["TITULO"][(titulo,)].add(art)
+        if capitulo:
+            grupos["CAPITULO"][(titulo, capitulo)].add(art)
+        if seccion:
+            grupos["SECCION"][(titulo, capitulo, seccion)].add(art)
+
     out = []
-    for nivel, campo in (("SECCION", "seccion"), ("CAPITULO", "capitulo"), ("TITULO", "titulo")):
-        grupos = defaultdict(set)
-        for a in arts:
-            nombre = a.get(campo)
-            art = norm_articulo(a.get("articulo"))
-            if nombre and art:
-                grupos[nombre].add(art)
-        for nombre, aset in grupos.items():
-            out.append({"nivel": nivel, "nombre": nombre, "articulos": aset})
+    for nivel in ("SECCION", "CAPITULO", "TITULO"):
+        for ruta, aset in grupos[nivel].items():
+            nombre = ruta[-1]
+            out.append({
+                "nivel": nivel,
+                "nombre": nombre,
+                "ruta": [x for x in ruta if x],
+                "articulos": aset,
+            })
     return out
 
 
@@ -139,6 +186,7 @@ def main() -> int:
 
     with comun.conectar_sqlite_solo_lectura(db) as con:
         verdad = cargar_verdad(con, args.convocatoria_patron)
+        fuentes_norma = cargar_fuentes_normas(con, {k[2] for k in verdad})
 
     delimitables = {(t.parte.upper(), t.numero_tema): t for t in temas_delimitables(pdf)}
     pares = [k for k in sorted(verdad) if (k[0], k[1]) in delimitables]
@@ -152,6 +200,7 @@ def main() -> int:
     print(f"Pares tema-norma................. {len(pares)}")
     print()
     print("La verdad consolidada se usa únicamente como referencia de evaluación.")
+    print("Los artículos se comparan por etiqueta jurídica normalizada entre fuentes equivalentes.")
     print()
 
     n = 0
@@ -161,37 +210,41 @@ def main() -> int:
 
     for clave in pares:
         parte, tema_num, nid = clave
-        por_fuente = verdad[clave]
+        refs = verdad[clave]
         mejor_global = None
-        for fid, refs in por_fuente.items():
+        fuentes_cacheadas = []
+
+        for fid in fuentes_norma.get(nid, []):
             ruta = CACHE / fid / "indice.html"
             if not ruta.exists():
                 continue
+            fuentes_cacheadas.append(fid)
             payload = jerarquia_v2.reconstruir(fid, ruta)
             bs = bloques(payload)
             elegidos, union, pre, rec, f1 = mejor_union_bloques(refs, bs)
-            cand = (f1, rec, pre, fid, refs, elegidos, union)
+            cand = (f1, rec, pre, fid, elegidos, union)
             if mejor_global is None or cand[:3] > mejor_global[:3]:
                 mejor_global = cand
 
-        print(f"{parte:<8} | {tema_num:>2} | norma_id={nid}")
+        print(f"{parte:<8} | {tema_num:>2} | norma_id={nid} | refs={len(refs)}")
         if mejor_global is None:
             sin_fuente += 1
-            print("  SIN INDICE OFICIAL CACHEADO PARA LAS REFERENCIAS CONSOLIDADAS")
+            print("  SIN INDICE OFICIAL CACHEADO ENTRE LAS FUENTES ENLAZADAS A LA NORMA")
             print()
             continue
 
-        f1, rec, pre, fid, refs, elegidos, union = mejor_global
+        f1, rec, pre, fid, elegidos, union = mejor_global
         n += 1
         f1_sum += f1
         rec_sum += rec
         pre_sum += pre
         if pre == 1.0 and rec == 1.0:
             exactos += 1
-        print(f"  fuente={fid} | refs={len(refs)} | union={len(union)} | P={pre:.1%} R={rec:.1%} F1={f1:.1%}")
+        print(f"  fuente evaluada={fid} | fuentes cacheadas={len(fuentes_cacheadas)} | union={len(union)} | P={pre:.1%} R={rec:.1%} F1={f1:.1%}")
         if elegidos:
             for b in elegidos:
-                print(f"    {b['nivel']}: {b['nombre']} | n={len(b['articulos'])}")
+                ruta_txt = " > ".join(b["ruta"])
+                print(f"    {b['nivel']}: {ruta_txt} | n={len(b['articulos'])}")
         else:
             print("    SIN BLOQUE ESTRUCTURAL ÚTIL")
         faltan = sorted(refs - union)

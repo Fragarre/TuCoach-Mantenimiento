@@ -15,6 +15,7 @@ DB = RAIZ / "db" / "oposiciones.sqlite3"
 SCRIPT = RAIZ / "scripts" / "gestionar_constructor_v2_convocatoria.py"
 PDF = RAIZ / "data_convocatorias" / "CONV_A1-01_01_26" / "temario_A1.pdf"
 CODIGO = "A1-V2-SMOKE"
+PROCESO = "Proceso selectivo 1"
 
 
 def sha(path: Path) -> str:
@@ -74,6 +75,25 @@ def preparar_identidad(copia: Path) -> tuple[int, int]:
         con.close()
 
 
+def ejecutar(copia: Path, salida: Path, con_proceso: bool) -> subprocess.CompletedProcess[str]:
+    args = [
+        sys.executable, str(SCRIPT),
+        "--codigo", CODIGO,
+        "--pdf", str(PDF),
+        "--db", str(copia),
+        "--salida-json", str(salida),
+    ]
+    if con_proceso:
+        args.extend(["--proceso-selectivo", PROCESO])
+    return subprocess.run(
+        args,
+        cwd=RAIZ,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+
 def main() -> int:
     if not DB.is_file():
         raise RuntimeError(f"No existe la BD real: {DB}")
@@ -88,19 +108,16 @@ def main() -> int:
         shutil.copy2(DB, copia)
         cid, tid = preparar_identidad(copia)
 
-        r = subprocess.run(
-            [
-                sys.executable, str(SCRIPT),
-                "--codigo", CODIGO,
-                "--pdf", str(PDF),
-                "--db", str(copia),
-                "--salida-json", str(salida),
-            ],
-            cwd=RAIZ,
-            check=False,
-            text=True,
-            capture_output=True,
-        )
+        # Debe bloquear si el PDF contiene varios procesos y no se selecciona uno.
+        r_bloqueo = ejecutar(copia, salida, False)
+        if r_bloqueo.returncode == 0:
+            raise RuntimeError("El gestor no bloqueó un PDF con varios procesos sin selección.")
+        combinado = (r_bloqueo.stdout or "") + "\n" + (r_bloqueo.stderr or "")
+        if "varios procesos selectivos" not in combinado.lower():
+            print(combinado)
+            raise RuntimeError("El bloqueo no explica la necesidad de seleccionar proceso.")
+
+        r = ejecutar(copia, salida, True)
         if r.returncode != 0:
             print(r.stdout)
             print(r.stderr)
@@ -118,12 +135,19 @@ def main() -> int:
             raise RuntimeError("El manifiesto no conserva temario_id.")
         if m.get("naturaleza") != "MANIFIESTO_CONVOCATORIA_CONSTRUCTOR_V2":
             raise RuntimeError("Naturaleza del manifiesto incorrecta.")
+        proc = m.get("proceso_selectivo") or {}
+        if not str(proc.get("seleccionado") or "").lower().startswith(PROCESO.lower()):
+            raise RuntimeError("El manifiesto no conserva el proceso seleccionado.")
+        if len(proc.get("detectados") or []) < 2:
+            raise RuntimeError("El smoke esperaba detectar varios procesos en el PDF patrón.")
         reglas = m.get("reglas") or {}
         for clave in ("modifica_bd", "modifica_corpus", "modifica_temario_csv", "modifica_bancos"):
             if reglas.get(clave) is not False:
                 raise RuntimeError(f"Contrato de solo lectura incumplido: {clave}")
         if reglas.get("convocatoria_identificada") is not True:
             raise RuntimeError("No consta identidad de convocatoria validada.")
+        if reglas.get("proceso_selectivo_explicitamente_seleccionado") is not True:
+            raise RuntimeError("No consta selección explícita de proceso.")
         resumen = m.get("resumen") or {}
         if int(resumen.get("temas_total") or 0) <= 0:
             raise RuntimeError("El manifiesto no contiene temas.")
@@ -136,7 +160,10 @@ def main() -> int:
     print("=" * 78)
     print("Convocatoria temporal identificada. OK")
     print("Temario temporal identificado....... OK")
-    print("PDF oficial patrón analizado........ OK")
+    print("Varios procesos detectados.......... OK")
+    print("Sin selección -> bloqueo............ OK")
+    print("Selección explícita proceso 1....... OK")
+    print("Temas no mezclados.................. OK")
     print("Manifiesto V2....................... OK")
     print("Contrato solo lectura............... OK")
     print("Dependencia de códigos reales....... NO")

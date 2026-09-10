@@ -2,7 +2,8 @@
 Constructor Temario V2 - migración aditiva de persistencia.
 
 Crea únicamente las tablas V2 aprobadas para pseudonormas, pseudoartículos,
-proposiciones, fuentes de conocimiento y respaldos. No modifica tablas existentes.
+proposiciones, fuentes de conocimiento, respaldos y contexto V2 de preguntas.
+No modifica tablas existentes.
 
 Por defecto funciona en modo SOLO REVISION. Para aplicar de verdad hay que usar
 --aplicar. Antes de aplicar crea copia de seguridad de la SQLite y ejecuta la
@@ -26,6 +27,7 @@ TABLAS_V2 = (
     "temario_pseudoarticulo_proposiciones",
     "fuentes_conocimiento",
     "temario_pseudoarticulo_respaldos",
+    "pregunta_contextos_v2",
 )
 
 DDL = """
@@ -123,6 +125,37 @@ CREATE INDEX IF NOT EXISTS idx_temario_pseudo_resp_articulo
     ON temario_pseudoarticulo_respaldos(articulo_fuente_id);
 CREATE INDEX IF NOT EXISTS idx_temario_pseudo_resp_fuente
     ON temario_pseudoarticulo_respaldos(fuente_conocimiento_id);
+
+CREATE TABLE IF NOT EXISTS pregunta_contextos_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pregunta_id INTEGER NOT NULL,
+    tema_id INTEGER NOT NULL,
+    tipo_contexto TEXT NOT NULL CHECK (tipo_contexto IN ('REAL','PSEUDO','MIXTA')),
+    pseudoarticulo_id INTEGER,
+    temario_referencia_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pregunta_id) REFERENCES lote_preguntas(id) ON DELETE CASCADE,
+    FOREIGN KEY (tema_id) REFERENCES temario_temas(id) ON DELETE CASCADE,
+    FOREIGN KEY (pseudoarticulo_id) REFERENCES temario_pseudoarticulos(id) ON DELETE NO ACTION,
+    FOREIGN KEY (temario_referencia_id) REFERENCES temario_referencias(id) ON DELETE NO ACTION,
+    CHECK (
+        (tipo_contexto = 'REAL' AND pseudoarticulo_id IS NULL AND temario_referencia_id IS NOT NULL)
+        OR
+        (tipo_contexto = 'PSEUDO' AND pseudoarticulo_id IS NOT NULL AND temario_referencia_id IS NULL)
+        OR
+        (tipo_contexto = 'MIXTA' AND pseudoarticulo_id IS NOT NULL AND temario_referencia_id IS NOT NULL)
+    ),
+    UNIQUE (pregunta_id, tema_id)
+);
+CREATE INDEX IF NOT EXISTS idx_pregunta_contextos_v2_pregunta
+    ON pregunta_contextos_v2(pregunta_id);
+CREATE INDEX IF NOT EXISTS idx_pregunta_contextos_v2_tema
+    ON pregunta_contextos_v2(tema_id);
+CREATE INDEX IF NOT EXISTS idx_pregunta_contextos_v2_pseudoarticulo
+    ON pregunta_contextos_v2(pseudoarticulo_id);
+CREATE INDEX IF NOT EXISTS idx_pregunta_contextos_v2_referencia
+    ON pregunta_contextos_v2(temario_referencia_id);
 """
 
 

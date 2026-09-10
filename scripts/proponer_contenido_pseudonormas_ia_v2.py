@@ -7,6 +7,7 @@ Objetivo limitado:
 - seleccionar UN tema JURIDICO_DOCTRINAL_TRANSVERSAL del PDF oficial;
 - conservar literalmente el texto oficial y sus unidades P01..Pn;
 - adjuntar candidatos locales recuperados por el mecanismo V2 existente;
+- aportar a la IA el texto literal de cada artículo candidato;
 - pedir a la IA propuestas estructuradas de proposiciones, fuentes oficiales a
   comprobar, prioridades entre candidatos locales, lagunas e incidencias;
 - producir un JSON de trabajo para revisión posterior.
@@ -90,14 +91,27 @@ def construir_entrada(pdf: Path, db: Path, parte: str, numero_tema: int, top: in
     with comun.conectar_sqlite_solo_lectura(db) as con:
         articulos = respaldos_mod.cargar_articulos(con)
     idf = respaldos_mod.construir_idf(articulos)
+    articulo_por_id = {art.articulo_fuente_id: art for art in articulos}
 
     unidades = []
     for unidad in borrador.unidades:
         candidatos = respaldos_mod.proponer(unidad.texto_temario, articulos, idf, top)
+        candidatos_enriquecidos = []
+        for candidato in candidatos:
+            datos = asdict(candidato)
+            articulo = articulo_por_id.get(candidato.articulo_fuente_id)
+            if articulo is None:
+                raise RuntimeError(
+                    "No se localizó en memoria el artículo candidato "
+                    f"{candidato.articulo_fuente_id}."
+                )
+            datos["texto_articulo"] = articulo.texto
+            candidatos_enriquecidos.append(datos)
+
         unidades.append({
             "codigo": unidad.codigo,
             "texto_temario": unidad.texto_temario,
-            "candidatos_locales": [asdict(x) for x in candidatos],
+            "candidatos_locales": candidatos_enriquecidos,
         })
 
     return {
@@ -131,21 +145,33 @@ REGLAS OBLIGATORIAS
 3. Formula las proposiciones mínimas que habría que respaldar para construir una
    explicación rigurosa y útil para estudio, RAG y futura generación de preguntas.
 4. Distingue NORMATIVO, JURISPRUDENCIAL, DOCTRINAL y MIXTO.
-5. Los candidatos locales son sólo coincidencias recuperadas. Puedes priorizarlos
-   o señalar que parecen no pertinentes, pero nunca declararlos PERTINENTE.
-6. Si recomiendas un candidato local, usa exclusivamente su articulo_fuente_id
-   presente en la entrada. No inventes IDs, normas ni artículos locales.
-7. Cuando el corpus local no baste, sugiere qué fuente externa oficial debe
+5. Los candidatos locales son sólo coincidencias recuperadas, pero ahora dispones
+   también de su texto_articulo literal. Evalúa materialmente ese texto frente a
+   la unidad y a las proposiciones. Un candidato sólo debe ir a
+   candidatos_locales_prioritarios si su texto aporta respaldo material plausible
+   y directo a alguna proposición. Si la coincidencia es léxica, incidental o trata
+   de otra materia, inclúyelo en candidatos_locales_probablemente_no_pertinentes.
+   No mantengas como prioritario un candidato que tú misma describes como débil,
+   incidental, ajeno o probablemente falso positivo.
+6. No declares nunca PERTINENTE un candidato. Ambas listas son propuestas para una
+   verificación posterior; la segunda permite retirar de la revisión principal los
+   falsos positivos claros.
+7. Si recomiendas o descartas un candidato local, usa exclusivamente su
+   articulo_fuente_id presente en la entrada. No inventes IDs, normas ni artículos
+   locales.
+8. Cuando el corpus local no baste, sugiere qué fuente externa oficial debe
    localizarse. Prioriza fuentes primarias oficiales y jurisprudencia oficial.
-8. Para fuentes externas NO inventes URL. Indica organismo, nombre/identificador
+9. Para fuentes externas NO inventes URL. Indica organismo, nombre/identificador
    oficial sólo si lo conoces con suficiente seguridad, consulta_busqueda y motivo.
-9. Si no puedes identificar una fuente con suficiente seguridad, deja el
-   identificador_oficial como null y formula una consulta de búsqueda verificable.
-10. Explicita lagunas e incidencias. No ocultes incertidumbre.
-11. No redactes aún una síntesis final. Primero deben verificarse identidad,
+10. Si no puedes identificar una fuente con suficiente seguridad, deja el
+    identificador_oficial como null y formula una consulta de búsqueda verificable.
+11. Explicita lagunas e incidencias reales después de haber leído el texto literal
+    de los candidatos. No declares como laguna la falta de literalidad de los
+    artículos locales, porque ahora sí está incluida en la entrada.
+12. No redactes aún una síntesis final. Primero deben verificarse identidad,
     recuperación y evidencia.
-12. No uses temario.csv ni conocimiento de mapeos previos; no están disponibles.
-13. Todo el resultado es PROPUESTA_IA_PARA_REVISION.
+13. No uses temario.csv ni conocimiento de mapeos previos; no están disponibles.
+14. Todo el resultado es PROPUESTA_IA_PARA_REVISION.
 
 Devuelve exclusivamente un objeto JSON con esta forma:
 {{
@@ -168,14 +194,14 @@ Devuelve exclusivamente un objeto JSON con esta forma:
       "candidatos_locales_prioritarios": [
         {{
           "articulo_fuente_id": 123,
-          "motivo": "por qué merece comprobación",
+          "motivo": "qué respaldo material aporta el texto literal y por qué merece comprobación",
           "estado": "SOLO_PROPUESTA"
         }}
       ],
       "candidatos_locales_probablemente_no_pertinentes": [
         {{
           "articulo_fuente_id": 456,
-          "motivo": "por qué parece incidental o ajeno",
+          "motivo": "por qué el texto literal es incidental, ajeno o insuficiente",
           "estado": "SOLO_PROPUESTA"
         }}
       ],
@@ -332,7 +358,7 @@ def main() -> int:
     validar_salida(entrada, propuesta)
 
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "PROPUESTA_CONTENIDO_PSEUDONORMA_IA_V2",
         "modo": "PILOTO_SOLO_LECTURA",
         "pdf": str(pdf),
@@ -343,6 +369,7 @@ def main() -> int:
         "reglas": {
             "consulta_temario_csv": False,
             "consulta_temario_referencias": False,
+            "texto_literal_candidatos_locales": True,
             "aceptacion_automatica": False,
             "urls_externas_generadas_por_ia": False,
             "requiere_verificacion_fuentes": True,
@@ -362,6 +389,7 @@ def main() -> int:
             f"  {u['codigo']} | {u['tipo_contenido_propuesto']:<16} | "
             f"proposiciones={len(u['proposiciones'])} | "
             f"locales_prioritarios={len(u['candidatos_locales_prioritarios'])} | "
+            f"locales_descartables={len(u['candidatos_locales_probablemente_no_pertinentes'])} | "
             f"externas={len(u['fuentes_externas_a_buscar'])} | "
             f"lagunas={len(u['lagunas'])} | incidencias={len(u['incidencias'])}"
         )

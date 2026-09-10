@@ -21,7 +21,7 @@ def cargar_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def extraer_seccion(md: str, titulo: str, siguiente_nivel: int = 2) -> str:
+def extraer_seccion(md: str, titulo: str) -> str:
     patron = re.compile(rf"^##\s+{re.escape(titulo)}\s*$", re.MULTILINE | re.IGNORECASE)
     m = patron.search(md)
     if not m:
@@ -54,19 +54,27 @@ def main() -> int:
     pertinencia = cargar_json(pertinencia_path)
     evidencia = cargar_json(evidencia_path)
 
+    if evidencia.get("naturaleza") != "EVIDENCIA_HUMANA_PERTINENCIA_V2":
+        raise SystemExit("ERROR: evidencia-json no es EVIDENCIA_HUMANA_PERTINENCIA_V2.")
+    if evidencia.get("estado") != "EVIDENCIA_HUMANA_MATERIALIZADA":
+        raise SystemExit("ERROR: la evidencia humana no está materializada sin incidencias.")
+
     caso_p = pertinencia.get("caso")
     caso_e = evidencia.get("caso")
     pseudo_p = pertinencia.get("pseudonorma")
     pseudo_e = evidencia.get("pseudonorma")
 
-    relaciones = evidencia.get("relaciones") or evidencia.get("evidencias") or []
+    relaciones = evidencia.get("relaciones") or []
     if not relaciones:
         raise SystemExit("ERROR: evidencia humana sin relaciones materializadas.")
 
-    decisiones = [r.get("decision") for r in relaciones]
+    # Contrato de EVIDENCIA_HUMANA_PERTINENCIA_V2:
+    # - decision_humana
+    # - evidencia_aceptada
+    decisiones = [str(r.get("decision_humana") or "").upper() for r in relaciones]
     ids_evidencia = {r.get("identificador_oficial") for r in relaciones if r.get("identificador_oficial")}
     ids_md = ids_respaldos(md)
-    fragmentos = sum(len(r.get("fragmentos_evidencia") or r.get("fragmentos") or []) for r in relaciones)
+    fragmentos = sum(len(r.get("evidencia_aceptada") or []) for r in relaciones)
 
     texto_temario = extraer_seccion(md, "TEXTO_TEMARIO")
     sintesis = extraer_seccion(md, "SINTESIS")
@@ -99,9 +107,10 @@ def main() -> int:
             identidad_ok and caso_p == caso_e and (not pseudo_e or pseudo_p == pseudo_e),
             f"Pertinencia={pertinencia.get('estado')}; caso coherente={caso_p == caso_e}; pseudonorma coherente={not pseudo_e or pseudo_p == pseudo_e}.")
 
+    relaciones_con_evidencia = sum(1 for r in relaciones if r.get("evidencia_aceptada"))
     control(4, "Evidencia seleccionada respalda materialmente las proposiciones",
-            claves_p == claves_e and fragmentos > 0 and todas_pertinentes,
-            f"Relaciones 1:1={claves_p == claves_e}; fragmentos materializados={fragmentos}; decisión humana pertinente={todas_pertinentes}.")
+            claves_p == claves_e and fragmentos > 0 and relaciones_con_evidencia == len(relaciones) and todas_pertinentes,
+            f"Relaciones 1:1={claves_p == claves_e}; relaciones con evidencia={relaciones_con_evidencia}/{len(relaciones)}; fragmentos materializados={fragmentos}; decisión humana pertinente={todas_pertinentes}.")
 
     secciones_ok = bool(sintesis and respaldos and notas)
     fuentes_cubiertas = ids_evidencia <= ids_md
@@ -113,16 +122,23 @@ def main() -> int:
             bool(limites and re.search(r"no autoriza|no se|no implica|no ", limites, re.IGNORECASE)),
             "Sección de límites negativos presente." if limites else "Falta sección de límites jurídicos.")
 
-    trazabilidad = bool(texto_temario and props_e and claves_p == claves_e and fragmentos > 0 and fuentes_cubiertas)
+    trazabilidad = bool(
+        texto_temario
+        and props_e
+        and claves_p == claves_e
+        and relaciones_con_evidencia == len(relaciones)
+        and fragmentos > 0
+        and fuentes_cubiertas
+    )
     control(7, "Trazabilidad completa tema → unidad → proposición → fuente → evidencia",
             trazabilidad,
-            f"Texto temario={bool(texto_temario)}; proposiciones={len(props_e)}; relaciones={len(claves_e)}; fragmentos={fragmentos}; respaldos cubiertos={fuentes_cubiertas}.")
+            f"Texto temario={bool(texto_temario)}; proposiciones={len(props_e)}; relaciones={len(claves_e)}; relaciones con evidencia={relaciones_con_evidencia}; fragmentos={fragmentos}; respaldos cubiertos={fuentes_cubiertas}.")
 
     incidencias = [c for c in controles if not c["ok"]]
     estado = "ACEPTABLE_FORMALMENTE" if not incidencias else "REVISION"
 
     payload = {
-        "version": 1,
+        "version": 2,
         "naturaleza": "AUDITORIA_FINAL_PSEUDONORMA_V2",
         "caso": caso_e or caso_p,
         "pseudonorma": pseudo_e or pseudo_p,
@@ -133,6 +149,7 @@ def main() -> int:
             "controles_ok": len(controles) - len(incidencias),
             "controles_fallidos": len(incidencias),
             "relaciones": len(relaciones),
+            "relaciones_con_evidencia": relaciones_con_evidencia,
             "fragmentos_evidencia": fragmentos,
             "fuentes_respaldadas": len(ids_evidencia),
         },
@@ -141,6 +158,7 @@ def main() -> int:
             "corpus_modificado": False,
             "aceptacion_juridica_automatica": False,
             "aceptacion_formal_solo_si_7_controles_ok": True,
+            "contrato_evidencia_humana_validado": True,
         },
     }
 
@@ -157,6 +175,7 @@ def main() -> int:
         print(f"      {c['detalle']}")
     print(f"\nControles OK....................... {payload['resultado']['controles_ok']}/7")
     print(f"Relaciones.......................... {len(relaciones)}")
+    print(f"Relaciones con evidencia............ {relaciones_con_evidencia}")
     print(f"Fragmentos evidencia................ {fragmentos}")
     print(f"Estado.............................. {estado}")
     print(f"JSON................................ {salida_path}")

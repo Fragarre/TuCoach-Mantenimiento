@@ -5,7 +5,8 @@ Recibe una convocatoria ya dada de alta y el PDF oficial del temario, ejecuta
 el analizador general V2 y genera un manifiesto identificado inequívocamente
 con convocatoria y temario.
 
-No modifica temario.csv, corpus, lote_preguntas ni bancos.
+Si el PDF contiene varios procesos selectivos, exige seleccionar uno de forma
+explícita. No modifica temario.csv, corpus, lote_preguntas ni bancos.
 """
 from __future__ import annotations
 
@@ -16,6 +17,8 @@ import sqlite3
 from pathlib import Path
 
 import analizar_convocatoria_v2 as analizador
+import extraer_estructura_temario_v2 as estructura
+import seleccionar_proceso_selectivo_v2 as procesos_v2
 
 RAIZ = Path(__file__).resolve().parent.parent
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
@@ -63,12 +66,36 @@ def cargar_identidad(db: Path, codigo: str) -> dict:
         con.close()
 
 
-def construir(codigo: str, pdf: Path, db: Path) -> dict:
+def construir(codigo: str, pdf: Path, db: Path, proceso_selectivo: str | None = None) -> dict:
     identidad = cargar_identidad(db, codigo)
-    manifiesto = analizador.construir_manifiesto(pdf, db)
+
+    texto_original = estructura.extraer_texto_pdf(pdf)
+    texto_filtrado, proceso_elegido, procesos_detectados = procesos_v2.seleccionar_texto(
+        texto_original,
+        proceso_selectivo,
+    )
+
+    # El analizador general mantiene su contrato histórico basado en ruta PDF.
+    # Para esta capa de integración sustituimos temporalmente SOLO su proveedor
+    # de texto por el texto ya filtrado. Se restaura siempre al terminar.
+    extractor_original = analizador.estructura.extraer_texto_pdf
+    analizador.estructura.extraer_texto_pdf = lambda _ruta: texto_filtrado
+    try:
+        manifiesto = analizador.construir_manifiesto(pdf, db)
+    finally:
+        analizador.estructura.extraer_texto_pdf = extractor_original
+
     manifiesto["convocatoria"] = identidad
     manifiesto["naturaleza"] = "MANIFIESTO_CONVOCATORIA_CONSTRUCTOR_V2"
+    manifiesto["proceso_selectivo"] = {
+        "seleccionado": proceso_elegido,
+        "detectados": procesos_detectados,
+    }
     manifiesto["reglas"]["convocatoria_identificada"] = True
+    manifiesto["reglas"]["proceso_selectivo_separado"] = bool(procesos_detectados)
+    manifiesto["reglas"]["proceso_selectivo_explicitamente_seleccionado"] = (
+        len(procesos_detectados) <= 1 or proceso_elegido is not None
+    )
     return manifiesto
 
 
@@ -80,6 +107,13 @@ def main() -> int:
     ap.add_argument("--pdf", required=True)
     ap.add_argument("--db", default=str(DB_DEFECTO))
     ap.add_argument("--salida-json", required=True)
+    ap.add_argument(
+        "--proceso-selectivo",
+        help=(
+            "Cabecera o fragmento inequívoco del proceso selectivo. Obligatorio "
+            "cuando el PDF contiene varios procesos."
+        ),
+    )
     args = ap.parse_args()
 
     db = Path(args.db).expanduser().resolve()
@@ -91,7 +125,12 @@ def main() -> int:
         raise RuntimeError(f"No existe el PDF oficial: {pdf}")
 
     antes = sha256(db)
-    manifiesto = construir(args.codigo.strip(), pdf, db)
+    manifiesto = construir(
+        args.codigo.strip(),
+        pdf,
+        db,
+        args.proceso_selectivo,
+    )
     despues = sha256(db)
     if antes != despues:
         raise RuntimeError("La BD cambió durante el análisis V2.")
@@ -109,6 +148,8 @@ def main() -> int:
     print(f"Convocatoria..................... {manifiesto['convocatoria']['codigo']}")
     print(f"Convocatoria ID.................. {manifiesto['convocatoria']['convocatoria_id']}")
     print(f"Temario ID....................... {manifiesto['convocatoria']['temario_id']}")
+    proceso = (manifiesto.get("proceso_selectivo") or {}).get("seleccionado")
+    print(f"Proceso selectivo................. {proceso or 'NO APLICA / ÚNICO'}")
     print(f"Temas analizados................. {resumen['temas_total']}")
     print(f"Revisión humana.................. {resumen['requieren_revision_humana']}")
     print(f"Bloqueantes...................... {resumen['bloqueantes']}")

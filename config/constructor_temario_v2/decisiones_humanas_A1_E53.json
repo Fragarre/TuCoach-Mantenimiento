@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "naturaleza": "DECISIONES_HUMANAS_PERTINENCIA_V2",
+  "caso": "A1_ESPECIAL_53",
+  "pseudonorma": "PSEUDO:ESPECIAL_53_GOBIERNO_ABIERTO",
+  "unidad": "TEMA_COMPLETO_P01_P07",
+  "estado": "REVISION_HUMANA_COMPLETADA",
+  "reglas": {
+    "decision_material": true,
+    "aceptacion_automatica": false,
+    "modifica_bd": false,
+    "modifica_corpus": false,
+    "pseudonorma_es_norma_juridica": false,
+    "fuente_institucional_onu_es_norma_espanola": false
+  },
+  "decisiones": [
+    {"codigo_proposicion":"A1E53-P01","identificador_oficial":"BOE-A-2022-8187","decision":"PERTINENTE","fundamento":"La Ley 1/2022 de la Comunitat Valenciana formula materialmente el gobierno abierto y sus principios en el ámbito exigido por el temario."},
+    {"codigo_proposicion":"A1E53-P02","identificador_oficial":"BOE-A-2019-967","decision":"PERTINENTE","fundamento":"La Ley 25/2018 regula los grupos de interés, la actividad de influencia y su ámbito en la Generalitat y su sector público instrumental."},
+    {"codigo_proposicion":"A1E53-P03","identificador_oficial":"BOE-A-2023-10640","decision":"PERTINENTE","fundamento":"La Ley 4/2023 establece el marco valenciano de participación ciudadana y su aplicación a la Generalitat y su sector público."},
+    {"codigo_proposicion":"A1E53-P04","identificador_oficial":"BOE-A-2022-8187","decision":"PERTINENTE","fundamento":"La Ley 1/2022 aporta el marco valenciano de gobernanza democrática, gobierno abierto, participación y rendición de cuentas."},
+    {"codigo_proposicion":"A1E53-P04","identificador_oficial":"BOE-A-2023-10640","decision":"PERTINENTE","fundamento":"La Ley 4/2023 formula expresamente un modelo de gobernanza participativa y una nueva cultura de gobernanza en la Generalitat."},
+    {"codigo_proposicion":"A1E53-P04","identificador_oficial":"CELEX:52001DC0428","decision":"PERTINENTE","fundamento":"El Libro Blanco define gobernanza y describe los procesos y comportamientos que inciden en el ejercicio de los poderes, como apoyo institucional europeo expresamente relacionado con el temario."},
+    {"codigo_proposicion":"A1E53-P05","identificador_oficial":"CELEX:52001DC0428","decision":"PERTINENTE","fundamento":"El Libro Blanco identifica expresamente los cinco principios de buena gobernanza: apertura, participación, responsabilidad, eficacia y coherencia."},
+    {"codigo_proposicion":"A1E53-P06","identificador_oficial":"CELEX:12012P/TXT","decision":"PERTINENTE","fundamento":"El artículo 41 de la Carta reconoce expresamente el derecho a una buena administración respecto de las instituciones, órganos y organismos de la Unión, sin extender silenciosamente su ámbito."},
+    {"codigo_proposicion":"A1E53-P06","identificador_oficial":"BOE-A-2015-10565","decision":"PERTINENTE","fundamento":"La Ley 39/2015 aporta garantías estatales materiales relacionadas con la buena administración, incluidos derechos de las personas e interesados y deberes de motivación, sin presentarla como proclamación autónoma literal de ese derecho."},
+    {"codigo_proposicion":"A1E53-P06","identificador_oficial":"BOE-A-2015-10566","decision":"PERTINENTE","fundamento":"El artículo 3 de la Ley 40/2015 establece principios generales estatales de actuación administrativa materialmente vinculados a la buena administración, sin afirmar que codifique literalmente un derecho autónomo con ese nombre."},
+    {"codigo_proposicion":"A1E53-P06","identificador_oficial":"BOE-A-1982-17235","decision":"PERTINENTE","fundamento":"El artículo 9 del Estatuto de Autonomía de la Comunitat Valenciana reconoce expresamente el derecho a una buena administración en el ámbito valenciano."},
+    {"codigo_proposicion":"A1E53-P06","identificador_oficial":"BOE-A-2022-8187","decision":"PERTINENTE","fundamento":"La Ley 1/2022 contextualiza y desarrolla el marco autonómico valenciano de buena administración y conecta expresamente el Estatuto con la normativa estatal relevante."},
+    {"codigo_proposicion":"A1E53-P07","identificador_oficial":"A/RES/70/1","decision":"PERTINENTE","fundamento":"La Resolución A/RES/70/1 es la fuente institucional oficial de la Agenda 2030 y de los 17 ODS y 169 metas expresamente exigidos por el temario; no se clasifica por ello como norma jurídica española."}
+  ],
+  "resultado": {
+    "proposiciones": 7,
+    "relaciones_revisadas": 13,
+    "pertinentes": 13,
+    "descartadas": 0,
+    "pendientes": 0,
+    "lista_para_sintesis_trazable": true
+  }
+}

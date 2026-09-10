@@ -16,12 +16,21 @@ inventar URLs.
 
 Es reanudable: escribe un checkpoint del JSON de salida después de completar
 cada tema. Nunca escribe en la BD ni en los datos consolidados.
+
+Control de recursos:
+- los textos normales de artículos se envían íntegros;
+- sólo los textos anormalmente largos se convierten en extractos literales;
+- los extractos se seleccionan determinísticamente alrededor de los términos que
+  justificaron la candidatura y conservan trazabilidad de longitud/estrategia;
+- nunca se altera el texto almacenado en la BD.
 """
 from __future__ import annotations
 
 import argparse
 import copy
 import json
+import re
+import unicodedata
 from pathlib import Path
 
 import proponer_contenido_pseudonormas_ia_v2 as base_ia
@@ -34,6 +43,13 @@ NATURALEZAS_ADMITIDAS = {
     "MANIFIESTO_ANALISIS_CONVOCATORIA_V2",
     "MANIFIESTO_CONSTRUCTOR_TEMARIO_V2",
 }
+
+# Un artículo jurídico ordinario queda muy por debajo de este tamaño. Por encima
+# se considera una fila anómala o un bloque documental demasiado grande para una
+# sola evaluación IA. El límite se aplica únicamente a la COPIA enviada a IA.
+UMBRAL_TEXTO_COMPLETO = 16_000
+MAX_TEXTO_IA = 12_000
+TAM_FRAGMENTO = 1_800
 
 
 def cargar_manifiesto(path: Path) -> dict:
@@ -77,6 +93,139 @@ def seleccionar_temas(manifiesto: dict, parte: str | None, tema: int | None) -> 
     return salida
 
 
+def _normalizar_busqueda(texto: str) -> str:
+    x = unicodedata.normalize("NFKD", texto or "")
+    x = "".join(c for c in x if not unicodedata.combining(c)).lower()
+    return re.sub(r"\s+", " ", x).strip()
+
+
+def _fragmentar_literal(texto: str) -> list[str]:
+    """Divide texto sin reescribirlo ni resumirlo."""
+    parrafos = [p.strip() for p in re.split(r"\n\s*\n+", texto) if p.strip()]
+    if len(parrafos) <= 1:
+        parrafos = [p.strip() for p in re.split(r"(?<=[.;:!?])\s+", texto) if p.strip()]
+
+    salida: list[str] = []
+    for p in parrafos:
+        if len(p) <= TAM_FRAGMENTO:
+            salida.append(p)
+            continue
+        inicio = 0
+        while inicio < len(p):
+            fin = min(len(p), inicio + TAM_FRAGMENTO)
+            if fin < len(p):
+                corte = p.rfind(" ", inicio + TAM_FRAGMENTO // 2, fin)
+                if corte > inicio:
+                    fin = corte
+            trozo = p[inicio:fin].strip()
+            if trozo:
+                salida.append(trozo)
+            inicio = max(fin, inicio + 1)
+    return salida
+
+
+def _extraer_relevante(texto: str, terminos: list[str]) -> tuple[str, dict]:
+    original = texto or ""
+    if len(original) <= UMBRAL_TEXTO_COMPLETO:
+        return original, {
+            "texto_articulo_original_caracteres": len(original),
+            "texto_articulo_enviado_caracteres": len(original),
+            "texto_articulo_es_extracto": False,
+            "texto_articulo_estrategia": "COMPLETO",
+        }
+
+    fragmentos = _fragmentar_literal(original)
+    terminos_norm = [
+        _normalizar_busqueda(t)
+        for t in terminos
+        if _normalizar_busqueda(t)
+    ]
+
+    puntuados: list[tuple[int, int]] = []
+    for i, frag in enumerate(fragmentos):
+        nf = _normalizar_busqueda(frag)
+        score = sum(1 for t in terminos_norm if t in nf)
+        if score:
+            puntuados.append((score, i))
+
+    # Candidatos fueron elegidos por coincidencia textual; no obstante, si la
+    # fragmentación impidiera localizar el término, conservamos inicio y final
+    # como contexto neutral en lugar de inventar una selección semántica.
+    indices: list[int] = []
+    vistos: set[int] = set()
+    orden_base = [i for _, i in sorted(puntuados, key=lambda x: (-x[0], x[1]))]
+    if not orden_base and fragmentos:
+        orden_base = [0, len(fragmentos) - 1]
+
+    for i in orden_base:
+        for j in (i - 1, i, i + 1):
+            if 0 <= j < len(fragmentos) and j not in vistos:
+                vistos.add(j)
+                indices.append(j)
+
+    seleccionados: list[tuple[int, str]] = []
+    usados = 0
+    for i in indices:
+        frag = fragmentos[i]
+        coste = len(frag) + (2 if seleccionados else 0)
+        if seleccionados and usados + coste > MAX_TEXTO_IA:
+            continue
+        if not seleccionados and len(frag) > MAX_TEXTO_IA:
+            frag = frag[:MAX_TEXTO_IA]
+            coste = len(frag)
+        seleccionados.append((i, frag))
+        usados += coste
+        if usados >= MAX_TEXTO_IA:
+            break
+
+    # Orden documental, no orden de score, para que la IA reciba los fragmentos
+    # en su secuencia original.
+    seleccionados.sort(key=lambda x: x[0])
+    extracto = "\n\n".join(frag for _, frag in seleccionados)
+    if len(extracto) > MAX_TEXTO_IA:
+        extracto = extracto[:MAX_TEXTO_IA]
+
+    return extracto, {
+        "texto_articulo_original_caracteres": len(original),
+        "texto_articulo_enviado_caracteres": len(extracto),
+        "texto_articulo_es_extracto": True,
+        "texto_articulo_estrategia": "FRAGMENTOS_TERMINOS_RANKING",
+        "texto_articulo_fragmentos": [i for i, _ in seleccionados],
+        "texto_articulo_limite_caracteres": MAX_TEXTO_IA,
+    }
+
+
+def limitar_entrada_ia(entrada: dict) -> dict:
+    """Limita sólo la copia de texto que se enviará a IA."""
+    recortados = 0
+    max_original = 0
+    max_enviado = 0
+
+    for unidad in entrada.get("unidades") or []:
+        for candidato in unidad.get("candidatos_locales") or []:
+            original = str(candidato.get("texto_articulo") or "")
+            extracto, meta = _extraer_relevante(
+                original,
+                list(candidato.get("terminos") or []),
+            )
+            candidato["texto_articulo"] = extracto
+            candidato.update(meta)
+            max_original = max(max_original, int(meta["texto_articulo_original_caracteres"]))
+            max_enviado = max(max_enviado, int(meta["texto_articulo_enviado_caracteres"]))
+            if meta["texto_articulo_es_extracto"]:
+                recortados += 1
+
+    entrada["control_recursos"] = {
+        "umbral_texto_completo_caracteres": UMBRAL_TEXTO_COMPLETO,
+        "max_texto_ia_caracteres": MAX_TEXTO_IA,
+        "candidatos_recortados": recortados,
+        "max_original_caracteres": max_original,
+        "max_enviado_caracteres": max_enviado,
+        "modifica_texto_bd": False,
+    }
+    return entrada
+
+
 def payload_v4(pdf: Path, db: Path, modelo: str, entrada: dict, propuesta: dict, evaluaciones: dict) -> dict:
     return {
         "version": 4,
@@ -92,6 +241,8 @@ def payload_v4(pdf: Path, db: Path, modelo: str, entrada: dict, propuesta: dict,
             "consulta_temario_csv": False,
             "consulta_temario_referencias": False,
             "texto_literal_candidatos_locales": True,
+            "extractos_largos_identificados_explicitamente": True,
+            "max_texto_candidato_ia_caracteres": MAX_TEXTO_IA,
             "evaluacion_ia_candidato_individual": True,
             "sintesis_ia_por_unidad": True,
             "aceptacion_automatica": False,
@@ -168,6 +319,7 @@ def fusionar_tema(item: dict, data_v5: dict) -> None:
         "aceptacion_automatica": False,
         "dudosos_promocionados": False,
         "totales_normalizacion": data_v5["normalizacion_local"]["totales"],
+        "control_recursos": data_v5.get("entrada", {}).get("control_recursos", {}),
     })
 
 
@@ -266,10 +418,9 @@ def main() -> int:
     print(f"Manifiesto........................ {entrada_path}")
     print(f"Temas a procesar.................. {len(seleccionados)}")
     print("Modo.............................. SOLO ARTEFACTOS / SIN PERSISTENCIA")
+    print(f"Máx. texto por candidato IA....... {MAX_TEXTO_IA} caracteres")
     print()
 
-    # Se guarda una copia inicial compatible para que la salida exista incluso
-    # si la primera llamada externa falla.
     guardar_checkpoint(salida_path, manifiesto)
 
     for indice, item in enumerate(seleccionados, 1):
@@ -278,6 +429,15 @@ def main() -> int:
         print(f"[{indice}/{len(seleccionados)}] {parte} {numero}")
 
         entrada = base_ia.construir_entrada(pdf, db, parte, numero, max(1, args.top))
+        limitar_entrada_ia(entrada)
+        control = entrada["control_recursos"]
+        print(
+            "  recursos........................ "
+            f"recortados={control['candidatos_recortados']} | "
+            f"máx.original={control['max_original_caracteres']} | "
+            f"máx.enviado={control['max_enviado_caracteres']}"
+        )
+
         propuesta, evaluaciones = ia_v4.construir_propuesta(entrada, args.modelo)
         data_v5 = normalizador_v5.normalizar(
             payload_v4(pdf, db, args.modelo, entrada, propuesta, evaluaciones)

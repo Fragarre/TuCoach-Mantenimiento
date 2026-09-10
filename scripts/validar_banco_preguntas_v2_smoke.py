@@ -16,6 +16,8 @@ CARPETA = RAIZ / "auditorias" / "constructor_v2" / "smoke_banco_v2"
 COPIA = CARPETA / "oposiciones_banco_v2_smoke.sqlite3"
 MIGRACION = RAIZ / "scripts" / "migrar_persistencia_constructor_v2.py"
 BANCO_V2 = RAIZ / "scripts" / "mantener_banco_preguntas_v2.py"
+VALIDADOR_V2 = RAIZ / "scripts" / "validacion_completa_v2.py"
+SINCRONIZADOR_V2 = RAIZ / "scripts" / "sincronizar_bancos_v2.py"
 
 
 def sha(path: Path) -> str:
@@ -84,8 +86,26 @@ def preparar_datos() -> tuple[int, int, int, int]:
         )
         pa = int(cur.lastrowid)
 
+        datos = (
+            (
+                "SMOKE V2 PSEUDO: principio general de prueba controlada",
+                "La opción A expresa el contenido correcto del supuesto PSEUDO",
+                "La opción B contradice de forma completa el supuesto PSEUDO",
+                "La opción C introduce una regla inexistente en el supuesto PSEUDO",
+                "La opción D atribuye el contenido a un órgano ajeno al supuesto PSEUDO",
+                "PSEUDOARTICULO_V2",
+            ),
+            (
+                "SMOKE V2 MIXTA: integración de fuente real y síntesis validada",
+                "La opción A combina correctamente ambos fundamentos del caso MIXTO",
+                "La opción B elimina por completo el fundamento normativo real",
+                "La opción C sustituye la síntesis validada por una conclusión distinta",
+                "La opción D afirma una consecuencia incompatible con ambos fundamentos",
+                "MIXTO_V2",
+            ),
+        )
         preguntas: list[int] = []
-        for n, criterio in enumerate(("PSEUDOARTICULO_V2", "MIXTO_V2"), 1):
+        for enunciado,a,b,c,d,criterio in datos:
             cur = con.execute(
                 """
                 INSERT INTO lote_preguntas(
@@ -93,10 +113,7 @@ def preparar_datos() -> tuple[int, int, int, int]:
                     tipo_clasificacion,tipo_fuente,teorica_practica,criterio_inclusion_banco
                 ) VALUES(?,?,?,?,?,?,?,?,?,?)
                 """,
-                (
-                    f"SMOKE V2 pregunta {n}", "A correcta", "B falsa", "C falsa", "D falsa", "A",
-                    "JURIDICA", "ia_generada_v2", "TEORICA", criterio,
-                ),
+                (enunciado,a,b,c,d,"A","JURIDICA","ia_generada_v2","TEORICA",criterio),
             )
             preguntas.append(int(cur.lastrowid))
 
@@ -123,11 +140,7 @@ def preparar_datos() -> tuple[int, int, int, int]:
 def comprobar_legacy_no_captura(cid: int, tid: int, ids: set[int]) -> None:
     with sqlite3.connect(COPIA) as con:
         con.row_factory = sqlite3.Row
-        refs, invalidas, duplicadas = legacy.cargar_referencias_juridicas(con, tid)
-        if invalidas or duplicadas:
-            # La comprobación no altera ni sustituye las validaciones históricas;
-            # solo interesa si las dos preguntas smoke aparecen como nuevas REAL.
-            pass
+        refs, _, _ = legacy.cargar_referencias_juridicas(con, tid)
         existentes = legacy.cargar_existentes(con, cid)
         resultado = legacy.seleccionar_juridicas(con, cid, refs, existentes)
         capturadas = {int(x["id"]) for x in resultado["nuevas"]} & ids
@@ -144,18 +157,9 @@ def main() -> int:
     cid, tid, pseudo_id, mixta_id = preparar_datos()
     comprobar_legacy_no_captura(cid, tid, {pseudo_id, mixta_id})
 
-    ejecutar([
-        sys.executable, str(BANCO_V2), "--db", str(COPIA),
-        "--convocatoria-id", str(cid),
-    ])
-    ejecutar([
-        sys.executable, str(BANCO_V2), "--db", str(COPIA),
-        "--convocatoria-id", str(cid), "--guardar",
-    ])
-    ejecutar([
-        sys.executable, str(BANCO_V2), "--db", str(COPIA),
-        "--convocatoria-id", str(cid),
-    ])
+    ejecutar([sys.executable, str(BANCO_V2), "--db", str(COPIA), "--convocatoria-id", str(cid)])
+    ejecutar([sys.executable, str(BANCO_V2), "--db", str(COPIA), "--convocatoria-id", str(cid), "--guardar"])
+    ejecutar([sys.executable, str(BANCO_V2), "--db", str(COPIA), "--convocatoria-id", str(cid)])
 
     with sqlite3.connect(COPIA) as con:
         filas = con.execute(
@@ -175,6 +179,12 @@ def main() -> int:
         if con.execute("PRAGMA foreign_key_check").fetchall():
             raise RuntimeError("foreign_key_check detectó incidencias.")
 
+    # Validación V2 con las dos preguntas ya incluidas.
+    ejecutar([sys.executable, str(VALIDADOR_V2), "--db", str(COPIA)])
+
+    # Orquestador conjunto, SOLO REVISION: debe aceptar coexistencia legacy+V2.
+    ejecutar([sys.executable, str(SINCRONIZADOR_V2), "--db", str(COPIA)])
+
     if sha(DB) != antes:
         raise RuntimeError("La BD real cambió durante el smoke.")
 
@@ -185,6 +195,8 @@ def main() -> int:
     print("MIXTA  -> MIXTO_V2................ OK")
     print("Selector legacy no las captura..... OK")
     print("Segunda revisión/idempotencia....... OK")
+    print("Validación completa V2............... OK")
+    print("Orquestador conjunto revisión........ OK")
     print("foreign_key_check................... OK")
     print("BD real............................. SIN CAMBIOS")
     print(f"Copia temporal...................... {COPIA}")

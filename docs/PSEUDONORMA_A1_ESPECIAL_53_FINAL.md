@@ -6,7 +6,7 @@
 - Parte/tema: `ESPECIAL 53`
 - Clasificación: `JURIDICO_DOCTRINAL_TRANSVERSAL`
 - Naturaleza: `MIXTA_NORMATIVA_INSTITUCIONAL_INTERNACIONAL`
-- Estado: `VALIDADA_COMO_PILOTO_CON_FUENTES_REVISADAS`
+- Estado: `ACEPTADA`
 - Persistencia en BD: `NO`
 - Incorporación al corpus: `NO`
 
@@ -110,12 +110,15 @@ Para estudio y generación de preguntas debe mantenerse la separación conceptua
 - Relaciones `PERTINENTE`: `13`.
 - Relaciones `DESCARTADO`: `0`.
 - Relaciones `PENDIENTE`: `0`.
+- Fragmentos de evidencia humana materializados: `35`.
 - Decisiones humanas: `config/constructor_temario_v2/decisiones_humanas_A1_E53.json`.
+- Evidencia humana: `auditorias/evidencia_humana_A1_E53_v2.json`.
+- Auditoría final: `auditorias/auditoria_final_A1_E53_v2.json` — `7/7`, `ACEPTABLE_FORMALMENTE`.
 - Identidad, recuperación y pertinencia fueron auditadas antes de la síntesis.
 
 ## Resultado del piloto
 
-A1 Especial 53 queda materializado como segundo caso generalizado de pseudonorma multifuente, con fuentes normativas valencianas y estatales, fuente normativa oficial de la Unión y fuentes institucionales UE/ONU, sin confundir su naturaleza ni ámbito.
+A1 Especial 53 queda `ACEPTADA` conforme al ciclo de vida del procedimiento V2 tras superar la revisión jurídica humana y los siete controles de auditoría final, como segundo caso generalizado de pseudonorma multifuente, con fuentes normativas valencianas y estatales, fuente normativa oficial de la Unión y fuentes institucionales UE/ONU, sin confundir su naturaleza ni ámbito.
 
 Este artefacto no implica todavía:
 

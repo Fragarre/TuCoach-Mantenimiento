@@ -9,6 +9,8 @@ Objetivo:
 - representar cada tema con el contrato común de salida V2;
 - resolver referencias jurídicas literales y, cuando exista delimitación estructural
   literal verificable, materializar sus artículos desde la jerarquía oficial;
+- preparar pseudoartículos de trabajo para el contenido que todavía deba ser
+  completado por la capa pseudonormativa;
 - no inferir ni aceptar automáticamente normas, artículos o pseudonormas;
 - no ejecutar persistencia.
 """
@@ -24,6 +26,7 @@ import extraer_estructura_temario_v2 as estructura
 import clasificar_alcance_juridico_v2 as alcance
 import resolver_normas_temario_v2 as resolver
 import resolver_estructura_literal_v2 as resolver_estructura
+import generar_borradores_pseudonormas_v2 as borradores_pseudo
 
 
 RAIZ = comun.raiz_proyecto()
@@ -33,7 +36,7 @@ DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
 ACCION_POR_CLASE = {
     "NO_JURIDICO": "SIN_TRATAMIENTO_NORMATIVO",
     "JURIDICO_EXPLICITO": "RESOLVER_REFERENCIAS_EXPLICITAS",
-    "JURIDICO_DELIMITABLE": "REVISION_HUMANA_NORMA_BLOQUES_ARTICULOS",
+    "JURIDICO_DELIMITABLE": "CONSTRUIR_COBERTURA_HIBRIDA_V2",
     "JURIDICO_DOCTRINAL_TRANSVERSAL": "CONSTRUIR_PSEUDONORMA_V2",
     "REVISION": "REVISION_HUMANA_DE_CLASIFICACION",
 }
@@ -53,13 +56,42 @@ def resultado_base(tema, clase: str, evidencia: str) -> dict:
         "estado_v2": None,
         "requiere_revision_humana": False,
         "normas": [],
+        # articulos se conserva como alias de compatibilidad del manifiesto V2
+        # mientras los consumidores se adaptan a articulos_reales.
         "articulos": [],
+        "articulos_reales": [],
+        "pseudoarticulos": [],
+        "dudosos": [],
         "fuentes": [],
         "evidencia": [],
         "incidencias": [],
         "trazabilidad": [],
         "accion_siguiente": ACCION_POR_CLASE.get(clase, "REVISION_MANUAL"),
     }
+
+
+def preparar_pseudoarticulos(tema) -> list[dict]:
+    """Segmenta conservadoramente el texto oficial sin redactar derecho.
+
+    Esta función sólo crea unidades de trabajo. No busca fuentes, no formula
+    proposiciones jurídicas y no acepta ningún respaldo.
+    """
+    fragmentos = borradores_pseudo.segmentar_tema(tema.texto)
+    if not fragmentos:
+        fragmentos = [tema.texto]
+
+    return [
+        {
+            "codigo": f"P{i:02d}",
+            "texto_temario": fragmento,
+            "titulo_provisional": borradores_pseudo.extraer_rotulo(fragmento),
+            "proposiciones": [],
+            "fuentes": [],
+            "evidencia": [],
+            "estado": "PENDIENTE_PROPUESTA_IA",
+        }
+        for i, fragmento in enumerate(fragmentos, 1)
+    ]
 
 
 def resolver_explicito(item: dict, catalogo, fuentes_por_norma: dict[int, list[str]], payload_cache: dict) -> None:
@@ -128,6 +160,7 @@ def resolver_explicito(item: dict, catalogo, fuentes_por_norma: dict[int, list[s
         payload_cache,
     )
     item["articulos"] = alcance_estructural["articulos"]
+    item["articulos_reales"] = list(alcance_estructural["articulos"])
 
     for r in alcance_estructural["bloques_efectivos"]:
         h = r["hallazgo"]
@@ -217,19 +250,21 @@ def construir_manifiesto(pdf: Path, db: Path) -> dict:
             resolver_explicito(item, catalogo, fuentes_por_norma, payload_cache)
 
         elif clase == "JURIDICO_DELIMITABLE":
-            item["estado_v2"] = "PENDIENTE_REVISION_HUMANA"
-            item["requiere_revision_humana"] = True
+            item["pseudoarticulos"] = preparar_pseudoarticulos(tema)
+            item["estado_v2"] = "PENDIENTE_SINTESIS"
+            item["accion_siguiente"] = "PROPONER_COBERTURA_HIBRIDA_IA"
             item["evidencia"].append({
-                "tipo": "LIMITE_AUTOMATIZACION",
-                "detalle": "La selección automática tema -> norma -> bloque/artículos no está validada; requiere decisión humana explícita.",
+                "tipo": "COBERTURA_HIBRIDA_PENDIENTE",
+                "detalle": "El sistema debe intentar primero identificar cobertura real suficientemente segura y completar únicamente el resto mediante pseudoartículos respaldados. La revisión humana no es el camino principal.",
             })
 
         elif clase == "JURIDICO_DOCTRINAL_TRANSVERSAL":
-            item["estado_v2"] = "PENDIENTE_REVISION_HUMANA"
-            item["requiere_revision_humana"] = True
+            item["pseudoarticulos"] = preparar_pseudoarticulos(tema)
+            item["estado_v2"] = "PENDIENTE_SINTESIS"
+            item["accion_siguiente"] = "PROPONER_CONTENIDO_PSEUDONORMATIVO_IA"
             item["evidencia"].append({
                 "tipo": "CAMINO_PSEUDONORMA_V2",
-                "detalle": "Debe seguir el procedimiento general de pseudonormas y no puede aceptarse sin las revisiones humanas y auditoría final aplicables.",
+                "detalle": "Las unidades se han segmentado desde el texto oficial. Deben completarse con proposiciones, fuentes y evidencia antes de decidir si existe alguna incidencia humana bloqueante.",
             })
 
         else:
@@ -246,17 +281,23 @@ def construir_manifiesto(pdf: Path, db: Path) -> dict:
     conteo_estado = Counter(x["estado_v2"] for x in items)
     pendientes_humanos = sum(1 for x in items if x["requiere_revision_humana"])
 
+    estados_bloqueantes = {"PENDIENTE_REVISION_HUMANA", "BLOQUEADO_INCIDENCIA"}
+    bloqueantes = sum(1 for x in items if x["estado_v2"] in estados_bloqueantes)
+
     return {
-        "version": 2,
+        "version": 3,
         "naturaleza": "MANIFIESTO_ANALISIS_CONVOCATORIA_V2",
         "modo": "SOLO_LECTURA",
         "pdf": str(pdf),
         "db": str(db),
-        "estado": "PENDIENTE_REVISION_HUMANA" if pendientes_humanos else "ANALISIS_COMPLETADO",
+        "estado": "PENDIENTE_REVISION_HUMANA" if bloqueantes else "ANALISIS_EN_CURSO",
         "reglas": {
             "texto_oficial_conservado": True,
             "aceptacion_juridica_automatica": False,
             "temario_referencias_consultado": False,
+            "revision_humana_solo_incidencias_bloqueantes": True,
+            "asignacion_real_separada_de_evidencia": True,
+            "dudoso_no_equivale_a_incidencia": True,
             "modifica_bd": False,
             "modifica_corpus": False,
             "modifica_temario_csv": False,
@@ -267,6 +308,7 @@ def construir_manifiesto(pdf: Path, db: Path) -> dict:
             "por_alcance": dict(sorted(conteo_alcance.items())),
             "por_estado_v2": dict(sorted(conteo_estado.items())),
             "requieren_revision_humana": pendientes_humanos,
+            "bloqueantes": bloqueantes,
             "normas_catalogo": len(catalogo),
         },
         "temas": items,
@@ -297,9 +339,13 @@ def imprimir(manifiesto: dict) -> None:
         print(f"  siguiente: {x['accion_siguiente']}")
         if x["normas"]:
             print("  normas: " + "; ".join(f"[{n['norma_id']}] {n['nombre_canonico']}" for n in x["normas"]))
-        if x["articulos"]:
-            por_norma = Counter(a["norma_id"] for a in x["articulos"])
-            print("  artículos: " + "; ".join(f"norma {nid}={n}" for nid, n in sorted(por_norma.items())))
+        if x["articulos_reales"]:
+            por_norma = Counter(a["norma_id"] for a in x["articulos_reales"])
+            print("  artículos reales: " + "; ".join(f"norma {nid}={n}" for nid, n in sorted(por_norma.items())))
+        if x["pseudoarticulos"]:
+            print(f"  pseudoartículos de trabajo: {len(x['pseudoarticulos'])}")
+        if x["dudosos"]:
+            print(f"  dudosos no bloqueantes: {len(x['dudosos'])}")
         if x["incidencias"]:
             for inc in x["incidencias"]:
                 print(f"  incidencia: {inc['tipo']}")

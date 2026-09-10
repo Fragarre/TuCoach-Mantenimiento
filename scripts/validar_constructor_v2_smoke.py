@@ -5,6 +5,7 @@ Objetivo:
 - ejecutar el manifiesto general sobre el PDF A1 administrativo ya separado;
 - completar UN tema doctrinal (ESPECIAL 53) con el flujo V4 + normalizador V5;
 - comprobar la reanudación/idempotencia del artefacto;
+- comprobar el límite de texto enviado a IA para candidatos anómalamente largos;
 - demostrar que la BD consolidada y los temario.csv activos de C1/C2 no cambian.
 
 NO escribe en la BD, corpus, bancos ni temarios consolidados. Solo crea JSON de
@@ -32,6 +33,7 @@ SALIDA = RAIZ / "auditorias" / "constructor_v2" / "smoke"
 MANIFIESTO_INICIAL = SALIDA / "A1_manifiesto_inicial.json"
 MANIFIESTO_53 = SALIDA / "A1_ESPECIAL_53_completado.json"
 MANIFIESTO_REANUDADO = SALIDA / "A1_ESPECIAL_53_reanudado.json"
+MAX_TEXTO_CANDIDATO_IA = 12_000
 
 
 def sha256(path: Path) -> str:
@@ -98,10 +100,6 @@ def validar_seguridad(data: dict, *, exigir_reglas_orquestador: bool) -> None:
         if reglas.get(clave) is not False:
             raise RuntimeError(f"Regla de seguridad incumplida: {clave}")
 
-    # Esta regla pertenece al manifiesto ya preparado por el orquestador.
-    # El manifiesto inicial declara la regla semánticamente equivalente
-    # dudoso_no_equivale_a_incidencia=True, pero aún no tiene por qué contener
-    # la clave específica añadida por completar_manifiesto_pseudonormas_v2.py.
     if exigir_reglas_orquestador and reglas.get("dudosos_promocion_automatica") is not False:
         raise RuntimeError("Regla de seguridad incumplida: dudosos_promocion_automatica")
 
@@ -135,11 +133,38 @@ def validar_tema_53(data: dict) -> dict:
     return tema
 
 
+def validar_recursos(tema: dict) -> dict:
+    controles = [
+        t.get("control_recursos")
+        for t in tema.get("trazabilidad") or []
+        if isinstance(t, dict) and isinstance(t.get("control_recursos"), dict)
+    ]
+    if not controles:
+        raise RuntimeError("ESPECIAL 53 no contiene trazabilidad de control de recursos.")
+
+    control = controles[-1]
+    max_enviado = int(control.get("max_enviado_caracteres") or 0)
+    max_original = int(control.get("max_original_caracteres") or 0)
+    recortados = int(control.get("candidatos_recortados") or 0)
+
+    if max_enviado > MAX_TEXTO_CANDIDATO_IA:
+        raise RuntimeError(
+            f"Límite de recursos incumplido: max_enviado={max_enviado} > "
+            f"{MAX_TEXTO_CANDIDATO_IA}."
+        )
+    if max_original > MAX_TEXTO_CANDIDATO_IA and recortados <= 0:
+        raise RuntimeError(
+            "Había candidatos anómalamente largos pero ninguno fue recortado."
+        )
+    if control.get("modifica_texto_bd") is not False:
+        raise RuntimeError("El control de recursos no garantiza modifica_texto_bd=False.")
+
+    return control
+
+
 def main() -> int:
     exigir_archivos()
 
-    # El piloto IA bloquea deliberadamente una sesión de mantenimiento para
-    # impedir que openai_api.py registre costes en la BD del proyecto.
     if os.getenv("OPOCOACH_MANTENIMIENTO_SESION_ID", "").strip():
         raise RuntimeError(
             "Existe OPOCOACH_MANTENIMIENTO_SESION_ID. Abra una consola sin esa "
@@ -178,8 +203,8 @@ def main() -> int:
     completado = cargar(MANIFIESTO_53)
     validar_seguridad(completado, exigir_reglas_orquestador=True)
     tema_53 = validar_tema_53(completado)
+    control_recursos = validar_recursos(tema_53)
 
-    # Segunda pasada: no debe volver a ejecutar IA sobre el tema ya completado.
     ejecutar([
         sys.executable,
         str(SCRIPTS / "completar_manifiesto_pseudonormas_v2.py"),
@@ -192,6 +217,7 @@ def main() -> int:
     reanudado = cargar(MANIFIESTO_REANUDADO)
     validar_seguridad(reanudado, exigir_reglas_orquestador=True)
     tema_53_reanudado = validar_tema_53(reanudado)
+    validar_recursos(tema_53_reanudado)
     if tema_53_reanudado != tema_53:
         raise RuntimeError(
             "La segunda pasada alteró ESPECIAL 53; la reanudación no es idempotente."
@@ -211,6 +237,10 @@ def main() -> int:
     print("Caso patrón....................... A1 ESPECIAL 53")
     print(f"Pseudoartículos................... {len(tema_53['pseudoarticulos'])}")
     print(f"Dudosos........................... {len(tema_53.get('dudosos') or [])}")
+    print(f"Candidatos largos recortados...... {control_recursos['candidatos_recortados']}")
+    print(f"Máx. original (caracteres)........ {control_recursos['max_original_caracteres']}")
+    print(f"Máx. enviado a IA (caracteres).... {control_recursos['max_enviado_caracteres']}")
+    print("Límite recursos................... OK")
     print("Reanudación/idempotencia.......... OK")
     print("BD consolidada sin cambios........ OK")
     print("temario.csv C1 sin cambios........ OK")

@@ -10,6 +10,8 @@ Objetivo:
   señalar qué normas carecen todavía de artículos;
 - para JURIDICO_DELIMITABLE adjuntar candidatas de norma como ayuda de revisión,
   sin aceptarlas ni convertir sus puntuaciones en decisión jurídica;
+- registrar las combinaciones norma-artículo ya asignadas por el manifiesto para
+  impedir que se asignen a un segundo tema durante la revisión humana;
 - producir un artefacto JSON estable que pueda alimentar posteriormente una UI.
 
 No modifica datos consolidados y no consulta temario_referencias.
@@ -29,6 +31,10 @@ def cargar_json(ruta: Path) -> dict:
     return json.loads(ruta.read_text(encoding="utf-8"))
 
 
+def normalizar_articulo(valor) -> str:
+    return " ".join(str(valor or "").strip().lower().split())
+
+
 def articulos_por_norma(item: dict) -> dict[int, list[dict]]:
     salida: dict[int, list[dict]] = {}
     for art in item.get("articulos", []):
@@ -38,6 +44,46 @@ def articulos_por_norma(item: dict) -> dict[int, list[dict]]:
             continue
         salida.setdefault(nid, []).append(art)
     return salida
+
+
+def construir_ocupacion_inicial(manifiesto: dict) -> list[dict]:
+    """Registra cada pareja norma-artículo ya asignada por el manifiesto.
+
+    Si el propio manifiesto contuviera la misma pareja en dos temas distintos,
+    no la resuelve: conserva todos los propietarios para que el revisor pueda
+    bloquear la situación en lugar de ocultarla.
+    """
+    por_clave: dict[tuple[int, str], dict] = {}
+
+    for item in manifiesto.get("temas", []):
+        propietario = {
+            "parte": item.get("parte"),
+            "numero_tema": item.get("numero_tema"),
+        }
+        for art in item.get("articulos", []):
+            try:
+                nid = int(art["norma_id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            etiqueta = normalizar_articulo(art.get("articulo"))
+            if not etiqueta:
+                continue
+            clave = (nid, etiqueta)
+            registro = por_clave.setdefault(
+                clave,
+                {
+                    "norma_id": nid,
+                    "articulo": etiqueta,
+                    "propietarios": [],
+                },
+            )
+            if propietario not in registro["propietarios"]:
+                registro["propietarios"].append(propietario)
+
+    return sorted(
+        por_clave.values(),
+        key=lambda x: (x["norma_id"], x["articulo"]),
+    )
 
 
 def construir(manifiesto: dict, top_candidatas: int) -> dict:
@@ -77,7 +123,7 @@ def construir(manifiesto: dict, top_candidatas: int) -> dict:
         }
 
         for inc in item.get("incidencias", []):
-            tipo = inc.get("tipo")
+            tipo = inc.get("tipo") if isinstance(inc, dict) else str(inc)
             if tipo and tipo not in revision["motivo_revision"]:
                 revision["motivo_revision"].append(tipo)
 
@@ -107,8 +153,11 @@ def construir(manifiesto: dict, top_candidatas: int) -> dict:
 
         revisiones.append(revision)
 
+    ocupacion = construir_ocupacion_inicial(manifiesto)
+    conflictos_iniciales = [x for x in ocupacion if len(x["propietarios"]) > 1]
+
     return {
-        "version": 1,
+        "version": 2,
         "naturaleza": "COLA_REVISION_HUMANA_V2",
         "modo": "SOLO_LECTURA",
         "origen_manifiesto": manifiesto.get("naturaleza"),
@@ -117,15 +166,20 @@ def construir(manifiesto: dict, top_candidatas: int) -> dict:
         "reglas": {
             "consulta_temario_referencias": False,
             "aceptacion_automatica": False,
+            "unicidad_norma_articulo_por_convocatoria": True,
             "modifica_bd": False,
             "modifica_corpus": False,
             "modifica_temario_csv": False,
             "modifica_bancos": False,
         },
+        "ocupacion_inicial": ocupacion,
+        "conflictos_ocupacion_inicial": conflictos_iniciales,
         "resumen": {
             "temas_revision": len(revisiones),
             "explicitos": sum(1 for x in revisiones if x["clasificacion_v2"] == "JURIDICO_EXPLICITO"),
             "delimitables": sum(1 for x in revisiones if x["clasificacion_v2"] == "JURIDICO_DELIMITABLE"),
+            "pares_norma_articulo_ocupados": len(ocupacion),
+            "conflictos_ocupacion_inicial": len(conflictos_iniciales),
         },
         "temas": revisiones,
     }
@@ -139,6 +193,8 @@ def imprimir(payload: dict) -> None:
     print(f"Temas pendientes................ {r['temas_revision']}")
     print(f"  JURIDICO_EXPLICITO............ {r['explicitos']}")
     print(f"  JURIDICO_DELIMITABLE.......... {r['delimitables']}")
+    print(f"Pares norma-artículo ocupados... {r['pares_norma_articulo_ocupados']}")
+    print(f"Conflictos iniciales............. {r['conflictos_ocupacion_inicial']}")
     print()
 
     for x in payload["temas"]:
@@ -155,6 +211,11 @@ def imprimir(payload: dict) -> None:
             print("  motivo: " + ", ".join(x["motivo_revision"]))
         print()
 
+    if payload["conflictos_ocupacion_inicial"]:
+        print("ATENCIÓN: el manifiesto ya contiene combinaciones norma-artículo asignadas a más de un tema.")
+        print("La revisión debe considerarse bloqueada hasta resolver esos conflictos.")
+    else:
+        print("Regla de unicidad norma-artículo: sin conflictos en la ocupación inicial.")
     print("No se ha consultado temario_referencias.")
     print("No se ha aceptado automáticamente ninguna norma ni artículo.")
     print("La base de datos NO ha sido modificada.")

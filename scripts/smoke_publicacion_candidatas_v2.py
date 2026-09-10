@@ -1,4 +1,4 @@
-"""Smoke aislado de candidata PSEUDO V2 -> lote_preguntas + pregunta_contextos_v2."""
+"""Smoke aislado de candidata PSEUDO V2 auditada -> lote_preguntas + pregunta_contextos_v2."""
 from __future__ import annotations
 
 import hashlib
@@ -129,12 +129,40 @@ def comprobar_legacy_no_captura(copia: Path, cid: int, tid: int, pregunta_id: in
         con.close()
 
 
-def consultar_una(copia: Path, sql: str, params: tuple = ()): 
+def consultar_una(copia: Path, sql: str, params: tuple = ()):
     con = sqlite3.connect(copia)
     try:
         return con.execute(sql, params).fetchone()
     finally:
         con.close()
+
+
+def validacion_ok() -> dict:
+    revision = {
+        "aprobable": True,
+        "correccion": "OK",
+        "distractores": "OK",
+        "usa_informacion_externa": False,
+        "dificultad": "ALTA",
+        "respaldos_suficientes": True,
+        "observaciones": [],
+    }
+    auditoria = {
+        "respuesta_elegida": "A",
+        "opcion_a": "CORRECTA",
+        "opcion_b": "FALSA",
+        "opcion_c": "FALSA",
+        "opcion_d": "FALSA",
+        "respuesta_unica": True,
+        "usa_informacion_externa": False,
+        "dificultad": "ALTA",
+        "observaciones": [],
+    }
+    return {
+        "revision_1": dict(revision),
+        "revision_2": dict(revision),
+        "auditoria_ciega": auditoria,
+    }
 
 
 def main() -> int:
@@ -144,6 +172,7 @@ def main() -> int:
         copia = carpeta / "oposiciones.sqlite3"
         candidatas = carpeta / "candidatas.jsonl"
         malas = carpeta / "candidatas_malas.jsonl"
+        no_auditada = carpeta / "candidata_no_auditada.jsonl"
         shutil.copy2(DB, copia)
 
         ejecutar([sys.executable, str(MIGRACION), "--db", str(copia), "--aplicar"])
@@ -151,7 +180,7 @@ def main() -> int:
 
         candidata = {
             "tipo_registro": "CANDIDATA_PREGUNTA_V2",
-            "estado": "CANDIDATA_VALIDADA",
+            "estado": "VALIDADA_AUDITADA_V2",
             "tema_id": tema_id,
             "pseudoarticulo_id": pa,
             "pseudonorma": "PSEUDO:SMOKE_PUBLICACION",
@@ -165,9 +194,23 @@ def main() -> int:
             "respuesta_correcta": "A",
             "explicacion": "Se justifica por el respaldo verificado del smoke.",
             "respaldo_ids": [respaldo],
+            "validacion_v2": validacion_ok(),
         }
         candidatas.write_text(json.dumps(candidata, ensure_ascii=False) + "\n", encoding="utf-8")
 
+        # Una candidata anterior a la auditoría debe quedar bloqueada.
+        antigua = dict(candidata)
+        antigua["estado"] = "CANDIDATA_VALIDADA"
+        antigua.pop("validacion_v2")
+        no_auditada.write_text(json.dumps(antigua, ensure_ascii=False) + "\n", encoding="utf-8")
+        r = ejecutar([
+            sys.executable, str(PUBLICADOR), "--db", str(copia),
+            "--codigo", codigo, "--candidatas", str(no_auditada), "--aplicar",
+        ], esperar_ok=False)
+        if r.returncode == 0:
+            raise RuntimeError("Una candidata no auditada fue publicada.")
+
+        # SOLO REVISION no debe escribir.
         ejecutar([
             sys.executable, str(PUBLICADOR), "--db", str(copia),
             "--codigo", codigo, "--candidatas", str(candidatas),
@@ -276,6 +319,7 @@ def main() -> int:
     print("=" * 78)
     print("SMOKE PUBLICACION CANDIDATAS V2: OK")
     print("=" * 78)
+    print("Candidata no auditada bloqueada... OK")
     print("SOLO REVISION..................... OK")
     print("Candidata -> lote_preguntas....... OK")
     print("pregunta_contextos_v2............. OK")

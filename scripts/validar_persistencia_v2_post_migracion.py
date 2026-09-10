@@ -1,12 +1,13 @@
 """
-Valida la migración de persistencia V2 comparando la BD actual con el backup
-inmediatamente anterior. SOLO LECTURA.
+Valida una migración incremental de persistencia V2 comparando la BD actual
+con el backup inmediatamente anterior. SOLO LECTURA.
 
 Comprueba:
-- existen exactamente las tablas V2 previstas;
-- todas las tablas consolidadas previas conservan exactamente sus filas;
-- C1/C2 no tienen filas V2;
-- las tablas V2 siguen vacías tras la migración;
+- la BD actual contiene exactamente todas las tablas V2 previstas;
+- las tablas nuevas respecto al backup son exactamente las V2 que faltaban;
+- todas las tablas previas conservan exactamente estructura y filas;
+- C1/C2 no contienen datos V2;
+- las tablas V2 siguen vacías tras una migración exclusivamente de esquema;
 - PRAGMA foreign_key_check = OK.
 """
 from __future__ import annotations
@@ -25,6 +26,7 @@ TABLAS_V2 = {
     "temario_pseudoarticulo_proposiciones",
     "fuentes_conocimiento",
     "temario_pseudoarticulo_respaldos",
+    "pregunta_contextos_v2",
 }
 
 
@@ -45,7 +47,13 @@ def tablas(con: sqlite3.Connection) -> set[str]:
     }
 
 
-def hash_tabla(con: sqlite3.Connection, tabla: str) -> tuple[int, str]:
+def firma_tabla(con: sqlite3.Connection, tabla: str) -> tuple[str, int, str]:
+    ddl = con.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+        (tabla,),
+    ).fetchone()
+    ddl_txt = "" if ddl is None or ddl[0] is None else str(ddl[0])
+
     columnas = [str(r[1]) for r in con.execute(f'PRAGMA table_info("{tabla}")')]
     if not columnas:
         raise RuntimeError(f"No se pudo leer la estructura de {tabla}.")
@@ -63,7 +71,7 @@ def hash_tabla(con: sqlite3.Connection, tabla: str) -> tuple[int, str]:
             h.update(len(dato).to_bytes(8, "big"))
             h.update(dato)
         h.update(b"\n")
-    return len(filas), h.hexdigest()
+    return ddl_txt, len(filas), h.hexdigest()
 
 
 def resolver_backup(explicito: str | None) -> Path:
@@ -88,7 +96,7 @@ def convocatoria_ids(con: sqlite3.Connection, codigos: tuple[str, ...]) -> dict[
 
 
 def filas_v2_convocatoria(con: sqlite3.Connection, convocatoria_id: int) -> int:
-    return int(con.execute(
+    pseudo = int(con.execute(
         """
         SELECT COUNT(*)
         FROM temario_pseudonormas p
@@ -98,6 +106,18 @@ def filas_v2_convocatoria(con: sqlite3.Connection, convocatoria_id: int) -> int:
         """,
         (convocatoria_id,),
     ).fetchone()[0])
+
+    contextos = int(con.execute(
+        """
+        SELECT COUNT(*)
+        FROM pregunta_contextos_v2 pc
+        JOIN temario_temas tt ON tt.id=pc.tema_id
+        JOIN temarios t ON t.id=tt.temario_id
+        WHERE t.convocatoria_id=?
+        """,
+        (convocatoria_id,),
+    ).fetchone()[0])
+    return pseudo + contextos
 
 
 def main() -> int:
@@ -120,29 +140,38 @@ def main() -> int:
     with conectar_ro(db) as actual, conectar_ro(backup) as anterior:
         ta = tablas(actual)
         tb = tablas(anterior)
-        nuevas = ta - tb
+
+        faltan_v2 = TABLAS_V2 - ta
+        if faltan_v2:
+            raise RuntimeError("Faltan tablas V2 actuales: " + ", ".join(sorted(faltan_v2)))
+
         desaparecidas = tb - ta
         if desaparecidas:
             raise RuntimeError("Tablas previas desaparecidas: " + ", ".join(sorted(desaparecidas)))
-        if nuevas != TABLAS_V2:
+
+        nuevas = ta - tb
+        esperadas_nuevas = TABLAS_V2 - tb
+        if nuevas != esperadas_nuevas:
             raise RuntimeError(
-                "Tablas nuevas inesperadas. Esperadas=" + str(sorted(TABLAS_V2)) +
+                "Tablas nuevas inesperadas. Esperadas=" + str(sorted(esperadas_nuevas)) +
                 " encontradas=" + str(sorted(nuevas))
             )
 
-        print("Tablas V2 nuevas.................. OK (5)")
+        print(f"Tablas V2 presentes............... OK ({len(TABLAS_V2)})")
+        print(f"Tablas nuevas desde backup........ OK ({len(nuevas)})")
+        for tabla in sorted(nuevas):
+            print(f"  + {tabla}")
 
-        previas = sorted(tb)
         cambios = []
-        for tabla in previas:
-            n0, h0 = hash_tabla(anterior, tabla)
-            n1, h1 = hash_tabla(actual, tabla)
-            if (n0, h0) != (n1, h1):
+        for tabla in sorted(tb):
+            ddl0, n0, h0 = firma_tabla(anterior, tabla)
+            ddl1, n1, h1 = firma_tabla(actual, tabla)
+            if (ddl0, n0, h0) != (ddl1, n1, h1):
                 cambios.append((tabla, n0, n1))
         if cambios:
             detalle = "; ".join(f"{t}: {a}->{b}" for t, a, b in cambios)
-            raise RuntimeError("Contenido consolidado alterado: " + detalle)
-        print(f"Tablas consolidadas comparadas.... OK ({len(previas)})")
+            raise RuntimeError("Tabla previa alterada: " + detalle)
+        print(f"Tablas previas comparadas.......... OK ({len(tb)})")
 
         for tabla in sorted(TABLAS_V2):
             n = int(actual.execute(f'SELECT COUNT(*) FROM "{tabla}"').fetchone()[0])
@@ -154,7 +183,7 @@ def main() -> int:
         for codigo, cid in ids.items():
             n = filas_v2_convocatoria(actual, cid)
             if n != 0:
-                raise RuntimeError(f"{codigo} tiene {n} pseudonormas V2.")
+                raise RuntimeError(f"{codigo} tiene {n} filas V2.")
             print(f"{codigo} filas V2................. 0")
 
         fk = actual.execute("PRAGMA foreign_key_check").fetchall()

@@ -58,9 +58,12 @@ def crear_db(path: Path) -> None:
         'decisión humana','evidencia','localizador'
     );
     """
-    with sqlite3.connect(path) as con:
+    con = sqlite3.connect(path)
+    try:
         con.executescript(ddl)
         con.commit()
+    finally:
+        con.close()
 
 
 def main() -> int:

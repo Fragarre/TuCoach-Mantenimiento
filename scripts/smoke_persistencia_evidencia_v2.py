@@ -5,6 +5,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from contextlib import closing
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -30,8 +31,9 @@ def crear_db(path: Path) -> None:
     INSERT INTO temario_pseudoarticulos VALUES(1,1,'P01');
     INSERT INTO temario_pseudoarticulo_proposiciones VALUES(1,1,'A1E53-P01','Gobierno abierto',1,'MIXTO','ACEPTADA');
     """
-    with sqlite3.connect(path) as con:
+    with closing(sqlite3.connect(path)) as con:
         con.executescript(ddl)
+        con.commit()
 
 
 def escribir(path: Path, payload: dict) -> None:
@@ -54,7 +56,7 @@ def main() -> int:
         escribir(evip, {**comunes,"naturaleza":"EVIDENCIA_HUMANA_PERTINENCIA_V2","estado":"EVIDENCIA_HUMANA_MATERIALIZADA","relaciones":[{"codigo_proposicion":"A1E53-P01","identificador_oficial":"BOE-A-2022-8187","tipo_fuente":"FUENTE_PRIMARIA_OFICIAL","decision_humana":"PERTINENTE","evidencia_aceptada":[{"fragmento":"Fragmento verificado","ancla":"gobierno abierto","tipo_localizador":"LEXICO","inicio":0,"fin":20,"anclas_presentes":["gobierno abierto"]}]}]})
         ejecutar(db, recp, decp, evip)
         ejecutar(db, recp, decp, evip)
-        with sqlite3.connect(db) as con:
+        with closing(sqlite3.connect(db)) as con:
             fuentes = con.execute("SELECT COUNT(*) FROM fuentes_conocimiento").fetchone()[0]
             respaldos = con.execute("SELECT COUNT(*) FROM temario_pseudoarticulo_respaldos").fetchone()[0]
             fk = con.execute("PRAGMA foreign_key_check").fetchall()

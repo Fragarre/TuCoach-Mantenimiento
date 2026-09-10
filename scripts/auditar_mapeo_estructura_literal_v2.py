@@ -8,6 +8,7 @@ Objetivo acotado:
 - resolver sus normas con el resolvedor existente;
 - asociar cada referencia estructural a la norma literal que la precede;
 - conservar el contexto padre Título -> Capítulo -> Sección;
+- normalizar equivalencias ordinales literales/romanas (p. ej. Capítulo I = Capítulo Primero);
 - comprobar si la estructura literal puede localizarse de forma unívoca en la
   jerarquía oficial disponible;
 - expandir mecánicamente el bloque localizado a sus artículos;
@@ -33,9 +34,38 @@ import auditar_representabilidad_estructural_online_v2 as online
 RAIZ = comun.raiz_proyecto()
 DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
 
+ORDINALES = {
+    "primero": "1", "primer": "1",
+    "segundo": "2",
+    "tercero": "3", "tercer": "3",
+    "cuarto": "4",
+    "quinto": "5",
+    "sexto": "6",
+    "septimo": "7",
+    "octavo": "8",
+    "noveno": "9",
+    "decimo": "10",
+}
+ROMANOS = {
+    "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+    "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10",
+    "xi": "11", "xii": "12", "xiii": "13", "xiv": "14", "xv": "15",
+}
+
 
 def norm(s: str) -> str:
     return resolver.normalizar(s or "")
+
+
+def normalizar_ordinal(valor: str) -> str:
+    v = norm(valor)
+    if v.isdigit():
+        return str(int(v))
+    if v in ROMANOS:
+        return ROMANOS[v]
+    if v in ORDINALES:
+        return ORDINALES[v]
+    return v
 
 
 def clave_estructura(tipo: str, texto: str) -> tuple[str, str]:
@@ -50,13 +80,18 @@ def clave_estructura(tipo: str, texto: str) -> tuple[str, str]:
     resto = n[len(pref):].strip() if n.startswith(pref) else n
 
     if tipo == "TITULO":
-        m = re.match(r"^(preliminar|[ivxlcdm]+|\d+)\b", resto, re.I)
+        m = re.match(r"^(preliminar|[ivxlcdm]+|\d+|primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo)\b", resto, re.I)
     elif tipo == "CAPITULO":
-        m = re.match(r"^([ivxlcdm]+|\d+)\b", resto, re.I)
+        m = re.match(r"^([ivxlcdm]+|\d+|primero|primer|segundo|tercero|tercer|cuarto|quinto|sexto|septimo|octavo|noveno|decimo)\b", resto, re.I)
     else:
-        m = re.match(r"^(\d+|[ivxlcdm]+)\b", resto, re.I)
+        m = re.match(r"^(\d+|[ivxlcdm]+|primera|primero|segunda|segundo|tercera|tercero)\b", resto, re.I)
 
-    return tipo, (m.group(1).lower() if m else resto)
+    if not m:
+        return tipo, resto
+    valor = m.group(1).lower()
+    if valor == "preliminar":
+        return tipo, valor
+    return tipo, normalizar_ordinal(valor)
 
 
 def localizar_citas(texto: str, citas, catalogo) -> list[dict]:

@@ -6,6 +6,8 @@ SOLO LECTURA.
 Extiende auditar_representabilidad_estructural_v2.py sin modificarlo:
 - usa índice cacheado si existe;
 - si falta y la fuente es BOE-A-*, descarga temporalmente el HTML oficial del BOE;
+- normaliza artículos históricos rotulados en letras (primero, nueve, dieciocho...)
+  para compararlos con las etiquetas numéricas del corpus;
 - no persiste la descarga;
 - no modifica BD, corpus, temario.csv, bancos ni caché.
 
@@ -14,6 +16,7 @@ La verdad consolidada se usa exclusivamente como referencia de evaluación.
 from __future__ import annotations
 
 import argparse
+import copy
 import tempfile
 import urllib.error
 import urllib.request
@@ -27,11 +30,58 @@ RAIZ = comun.raiz_proyecto()
 DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
 CACHE = RAIZ / "cache_localizador_normativa"
 
+NUMEROS_ARTICULO = {
+    "primero": "1", "primer": "1", "uno": "1",
+    "segundo": "2", "dos": "2",
+    "tercero": "3", "tercer": "3", "tres": "3",
+    "cuarto": "4", "cuatro": "4",
+    "quinto": "5", "cinco": "5",
+    "sexto": "6", "seis": "6",
+    "septimo": "7", "siete": "7",
+    "octavo": "8", "ocho": "8",
+    "noveno": "9", "nueve": "9",
+    "decimo": "10", "diez": "10",
+    "undecimo": "11", "once": "11",
+    "duodecimo": "12", "doce": "12",
+    "decimotercero": "13", "trece": "13",
+    "decimocuarto": "14", "catorce": "14",
+    "decimoquinto": "15", "quince": "15",
+    "decimosexto": "16", "dieciseis": "16",
+    "decimoseptimo": "17", "diecisiete": "17",
+    "decimoctavo": "18", "dieciocho": "18",
+    "decimonoveno": "19", "diecinueve": "19",
+    "vigesimo": "20", "veinte": "20",
+    "veintiuno": "21", "veintidos": "22", "veintitres": "23",
+    "veinticuatro": "24", "veinticinco": "25", "veintiseis": "26",
+    "veintisiete": "27", "veintiocho": "28", "veintinueve": "29",
+    "treinta": "30", "treinta y uno": "31", "treinta y dos": "32",
+    "treinta y tres": "33", "treinta y cuatro": "34", "treinta y cinco": "35",
+    "treinta y seis": "36", "treinta y siete": "37", "treinta y ocho": "38",
+    "treinta y nueve": "39", "cuarenta": "40", "cuarenta y uno": "41",
+    "cuarenta y dos": "42", "cuarenta y tres": "43", "cuarenta y cuatro": "44",
+    "cuarenta y cinco": "45", "cuarenta y seis": "46", "cuarenta y siete": "47",
+    "cuarenta y ocho": "48", "cuarenta y nueve": "49",
+}
+
+
+def normalizar_etiqueta_historica(valor: str) -> str:
+    clave = base.norm_articulo(valor)
+    return NUMEROS_ARTICULO.get(clave, valor)
+
+
+def normalizar_payload_historico(payload: dict) -> dict:
+    """Normaliza solo la etiqueta del artículo para la comparación de esta auditoría."""
+    salida = copy.deepcopy(payload)
+    for articulo in salida.get("articulos", []):
+        articulo["articulo"] = normalizar_etiqueta_historica(str(articulo.get("articulo") or ""))
+    return salida
+
 
 def cargar_payload(fid: str):
     ruta = CACHE / fid / "indice.html"
     if ruta.exists():
-        return jerarquia_v2.reconstruir(fid, ruta), "CACHE"
+        payload = jerarquia_v2.reconstruir(fid, ruta)
+        return normalizar_payload_historico(payload), "CACHE"
 
     if not fid.startswith("BOE-A-"):
         return None, "NO_DISPONIBLE"
@@ -59,7 +109,7 @@ def cargar_payload(fid: str):
 
     if not payload.get("articulos"):
         return None, "SIN_INDICE_ESTRUCTURAL"
-    return payload, "BOE_TEMPORAL"
+    return normalizar_payload_historico(payload), "BOE_TEMPORAL"
 
 
 def main() -> int:
@@ -93,7 +143,6 @@ def main() -> int:
     exactos = 0
     sin_fuente = 0
     cache_n = boe_temp_n = 0
-
     payload_cache = {}
 
     for clave in pares:

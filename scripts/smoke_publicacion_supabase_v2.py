@@ -1,4 +1,8 @@
-"""Smoke SOLO LECTURA del soporte de publicación Supabase V2."""
+"""Smoke SOLO LECTURA del soporte de publicación Supabase V2.
+
+No importa el cargador PostgreSQL consolidado: este smoke valida el contrato y
+el código fuente del envoltorio sin exigir psycopg en el entorno local.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -7,13 +11,13 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-import actualizar_contenidos_supabase as legacy
-import actualizar_contenidos_supabase_v2 as carga_v2
 import publicacion_v2_contrato as contrato
 
 RAIZ = Path(__file__).resolve().parent.parent
 DB = RAIZ / "db" / "oposiciones.sqlite3"
 SQL = RAIZ / "scripts" / "sql" / "contenidos_constructor_v2.sql"
+LEGACY = RAIZ / "scripts" / "actualizar_contenidos_supabase.py"
+CARGADOR_V2 = RAIZ / "scripts" / "actualizar_contenidos_supabase_v2.py"
 
 
 def sha256(path: Path) -> str:
@@ -30,6 +34,16 @@ def crear_sqlite_tablas(path: Path, tablas: tuple[str, ...]) -> None:
         for tabla in tablas:
             con.execute(f'CREATE TABLE "{tabla}" (id INTEGER PRIMARY KEY)')
         con.commit()
+    finally:
+        con.close()
+
+
+def resolver_tablas(path: Path) -> tuple[list[str], bool]:
+    uri = path.resolve().as_uri() + "?mode=ro"
+    con = sqlite3.connect(uri, uri=True)
+    try:
+        con.execute("PRAGMA query_only=ON")
+        return contrato.resolver_tablas_publicables(con)
     finally:
         con.close()
 
@@ -54,13 +68,25 @@ def validar_ddl() -> None:
         raise RuntimeError("El DDL V2 no sigue el patrón timestamptz de contenidos.")
 
 
-def main() -> int:
-    if not DB.is_file() or not SQL.is_file():
-        raise RuntimeError("Falta la BD real o el DDL V2.")
-    antes = sha256(DB)
-    validar_ddl()
+def validar_cargador_v2_sin_importar() -> None:
+    fuente = CARGADOR_V2.read_text(encoding="utf-8")
+    if "import actualizar_contenidos_supabase as legacy" not in fuente:
+        raise RuntimeError("El envoltorio V2 no reutiliza el cargador consolidado.")
+    if "legacy.TABLAS_ORDEN = list(tablas)" not in fuente:
+        raise RuntimeError("El envoltorio V2 no aplica el contrato resuelto.")
+    if "legacy.TABLAS_ORDEN = original" not in fuente:
+        raise RuntimeError("El envoltorio V2 no restaura el contrato consolidado.")
 
-    global_antes = tuple(legacy.TABLAS_ORDEN)
+
+def main() -> int:
+    for ruta in (DB, SQL, LEGACY, CARGADOR_V2):
+        if not ruta.is_file():
+            raise RuntimeError(f"Falta archivo requerido: {ruta}")
+    antes_db = sha256(DB)
+    antes_legacy = sha256(LEGACY)
+    validar_ddl()
+    validar_cargador_v2_sin_importar()
+
     with tempfile.TemporaryDirectory(prefix="smoke_publicacion_v2_") as td:
         td = Path(td)
         legado = td / "legado.sqlite3"
@@ -70,23 +96,22 @@ def main() -> int:
         crear_sqlite_tablas(v2, tuple(set(contrato.TABLAS_BASE) | set(contrato.TABLAS_V2)))
         crear_sqlite_tablas(parcial, tuple(set(contrato.TABLAS_BASE) | set(contrato.TABLAS_V2[:-1])))
 
-        tablas_legado, es_v2_legado = carga_v2.resolver_tablas(legado)
-        tablas_v2, es_v2 = carga_v2.resolver_tablas(v2)
+        tablas_legado, es_v2_legado = resolver_tablas(legado)
+        tablas_v2, es_v2 = resolver_tablas(v2)
         if es_v2_legado or tuple(tablas_legado) != contrato.TABLAS_BASE:
-            raise RuntimeError("El cargador V2 alteró el contrato legado.")
+            raise RuntimeError("El contrato legado fue alterado.")
         if not es_v2 or tuple(tablas_v2) != contrato.TABLAS_ORDEN_V2:
-            raise RuntimeError("El cargador V2 no resolvió las 22 tablas.")
-        bloqueado = False
+            raise RuntimeError("No se resolvieron las 22 tablas V2.")
         try:
-            carga_v2.resolver_tablas(parcial)
+            resolver_tablas(parcial)
         except RuntimeError:
-            bloqueado = True
-        if not bloqueado:
-            raise RuntimeError("El cargador no bloqueó un esquema V2 parcial.")
+            pass
+        else:
+            raise RuntimeError("No se bloqueó un esquema V2 parcial.")
 
-    if tuple(legacy.TABLAS_ORDEN) != global_antes:
-        raise RuntimeError("El smoke dejó modificado el cargador consolidado.")
-    if sha256(DB) != antes:
+    if sha256(LEGACY) != antes_legacy:
+        raise RuntimeError("El cargador consolidado cambió durante el smoke.")
+    if sha256(DB) != antes_db:
         raise RuntimeError("La BD real cambió durante el smoke.")
 
     print("=" * 78)
@@ -97,6 +122,8 @@ def main() -> int:
     print("Contrato legacy.................. 16 TABLAS · OK")
     print("Contrato V2...................... 22 TABLAS · OK")
     print("Esquema V2 parcial............... BLOQUEADO · OK")
+    print("Cargador V2...................... CONTRATO VALIDADO SIN CONEXION")
+    print("Dependencia psycopg en smoke..... NO")
     print("Cargador consolidado............. SIN CAMBIOS")
     print("BD real.......................... SIN CAMBIOS")
     print("Supabase......................... SIN CAMBIOS")

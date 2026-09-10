@@ -14,7 +14,8 @@ una propuesta que debe verificarse; DUDOSO permanece separado y nunca se
 promociona a prioritario. Las fuentes externas se proponen para búsqueda sin
 inventar URLs.
 
-Este script escribe únicamente el JSON de salida solicitado.
+Es reanudable: escribe un checkpoint del JSON de salida después de completar
+cada tema. Nunca escribe en la BD ni en los datos consolidados.
 """
 from __future__ import annotations
 
@@ -29,14 +30,18 @@ import normalizar_propuesta_pseudonormas_ia_v4 as normalizador_v5
 
 
 CLASE_DOCTRINAL = "JURIDICO_DOCTRINAL_TRANSVERSAL"
+NATURALEZAS_ADMITIDAS = {
+    "MANIFIESTO_ANALISIS_CONVOCATORIA_V2",
+    "MANIFIESTO_CONSTRUCTOR_TEMARIO_V2",
+}
 
 
 def cargar_manifiesto(path: Path) -> dict:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("El manifiesto raíz debe ser un objeto JSON.")
-    if data.get("naturaleza") != "MANIFIESTO_ANALISIS_CONVOCATORIA_V2":
-        raise ValueError("El JSON no es un manifiesto de análisis V2.")
+    if data.get("naturaleza") not in NATURALEZAS_ADMITIDAS:
+        raise ValueError("El JSON no es un manifiesto V2 admitido.")
     if data.get("modo") != "SOLO_LECTURA":
         raise ValueError("El manifiesto no declara modo SOLO_LECTURA.")
     if not isinstance(data.get("temas"), list):
@@ -48,6 +53,16 @@ def cargar_manifiesto(path: Path) -> dict:
     return data
 
 
+def necesita_propuesta_ia(item: dict) -> bool:
+    pseudo = item.get("pseudoarticulos") or []
+    if not pseudo:
+        return True
+    return any(
+        str(p.get("estado") or "") == "PENDIENTE_PROPUESTA_IA"
+        for p in pseudo
+    )
+
+
 def seleccionar_temas(manifiesto: dict, parte: str | None, tema: int | None) -> list[dict]:
     salida = []
     for item in manifiesto["temas"]:
@@ -57,7 +72,8 @@ def seleccionar_temas(manifiesto: dict, parte: str | None, tema: int | None) -> 
             continue
         if tema is not None and int(item.get("numero_tema")) != int(tema):
             continue
-        salida.append(item)
+        if necesita_propuesta_ia(item):
+            salida.append(item)
     return salida
 
 
@@ -182,6 +198,31 @@ def recalcular_resumen(manifiesto: dict) -> None:
         manifiesto["estado"] = "ANALISIS_COMPLETADO"
 
 
+def preparar_salida(manifiesto: dict) -> None:
+    manifiesto["version"] = max(int(manifiesto.get("version", 2)), 3)
+    manifiesto["naturaleza"] = "MANIFIESTO_CONSTRUCTOR_TEMARIO_V2"
+    manifiesto["modo"] = "SOLO_LECTURA"
+    manifiesto.setdefault("reglas", {}).update({
+        "aceptacion_juridica_automatica": False,
+        "dudosos_promocion_automatica": False,
+        "temario_referencias_consultado": False,
+        "modifica_bd": False,
+        "modifica_corpus": False,
+        "modifica_temario_csv": False,
+        "modifica_bancos": False,
+    })
+    recalcular_resumen(manifiesto)
+
+
+def guardar_checkpoint(path: Path, manifiesto: dict) -> None:
+    preparar_salida(manifiesto)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(manifiesto, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Completa temas doctrinales del manifiesto V2 con propuesta IA normalizada, sin persistencia."
@@ -214,7 +255,10 @@ def main() -> int:
 
     seleccionados = seleccionar_temas(manifiesto, args.parte, args.tema)
     if not seleccionados:
-        raise SystemExit("ERROR: no hay temas doctrinales que coincidan con el filtro solicitado.")
+        guardar_checkpoint(salida_path, manifiesto)
+        print("No hay temas doctrinales pendientes de propuesta IA.")
+        print(f"Salida............................ {salida_path}")
+        return 0
 
     print("=" * 78)
     print("CONSTRUCTOR TEMARIO V2 - COMPLETAR MANIFIESTO PSEUDONORMATIVO")
@@ -223,6 +267,10 @@ def main() -> int:
     print(f"Temas a procesar.................. {len(seleccionados)}")
     print("Modo.............................. SOLO ARTEFACTOS / SIN PERSISTENCIA")
     print()
+
+    # Se guarda una copia inicial compatible para que la salida exista incluso
+    # si la primera llamada externa falla.
+    guardar_checkpoint(salida_path, manifiesto)
 
     for indice, item in enumerate(seleccionados, 1):
         parte = str(item["parte"])
@@ -235,27 +283,10 @@ def main() -> int:
             payload_v4(pdf, db, args.modelo, entrada, propuesta, evaluaciones)
         )
         fusionar_tema(item, data_v5)
+        guardar_checkpoint(salida_path, manifiesto)
+        print(f"  checkpoint...................... {salida_path}")
 
-    manifiesto["version"] = max(int(manifiesto.get("version", 2)), 3)
-    manifiesto["naturaleza"] = "MANIFIESTO_CONSTRUCTOR_TEMARIO_V2"
-    manifiesto["modo"] = "SOLO_LECTURA"
-    manifiesto.setdefault("reglas", {}).update({
-        "aceptacion_juridica_automatica": False,
-        "dudosos_promocion_automatica": False,
-        "temario_referencias_consultado": False,
-        "modifica_bd": False,
-        "modifica_corpus": False,
-        "modifica_temario_csv": False,
-        "modifica_bancos": False,
-    })
-    recalcular_resumen(manifiesto)
-
-    salida_path.parent.mkdir(parents=True, exist_ok=True)
-    salida_path.write_text(
-        json.dumps(manifiesto, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-
+    preparar_salida(manifiesto)
     print()
     print(f"Salida............................ {salida_path}")
     print(f"Pseudoartículos................... {manifiesto['resumen']['pseudoarticulos']}")

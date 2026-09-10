@@ -37,14 +37,30 @@ def norm(s: str) -> str:
 
 
 def clave_estructura(tipo: str, texto: str) -> tuple[str, str]:
+    """
+    Reduce una referencia estructural a su identidad estable de nivel+ordinal.
+
+    Ejemplos equivalentes:
+      "Título I" == "TÍTULO I. De los derechos y deberes fundamentales"
+      "Capítulo II" == "CAPÍTULO II. De la elaboración de las leyes"
+    """
     n = norm(texto)
     if tipo == "PREAMBULO":
         return tipo, "preambulo"
     if tipo == "DISPOSICIONES_COMUNES":
         return tipo, "disposiciones comunes"
+
     pref = {"TITULO": "titulo", "CAPITULO": "capitulo", "SECCION": "seccion"}[tipo]
     resto = n[len(pref):].strip() if n.startswith(pref) else n
-    return tipo, resto
+
+    if tipo == "TITULO":
+        m = re.match(r"^(preliminar|[ivxlcdm]+|\d+)\b", resto, re.I)
+    elif tipo == "CAPITULO":
+        m = re.match(r"^([ivxlcdm]+|\d+)\b", resto, re.I)
+    else:
+        m = re.match(r"^(\d+|[ivxlcdm]+)\b", resto, re.I)
+
+    return tipo, (m.group(1).lower() if m else resto)
 
 
 def indice_bloques(payload: dict) -> dict[tuple[str, str], list[dict]]:

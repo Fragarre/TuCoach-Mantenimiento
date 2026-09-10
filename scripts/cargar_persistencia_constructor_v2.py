@@ -115,6 +115,51 @@ def upsert_pseudoarticulo(con, pid: int, p: dict, orden: int) -> int:
     ).fetchone()[0])
 
 
+def upsert_respaldo_local(con, pseudoarticulo_id: int, articulo_fuente_id: int, motivo: str) -> None:
+    """Idempotencia sin alterar el esquema: una propuesta local por pseudoartículo+artículo."""
+    fila = con.execute(
+        """
+        SELECT id
+        FROM temario_pseudoarticulo_respaldos
+        WHERE pseudoarticulo_id=?
+          AND proposicion_id IS NULL
+          AND articulo_fuente_id=?
+          AND fuente_conocimiento_id IS NULL
+        """,
+        (pseudoarticulo_id, articulo_fuente_id),
+    ).fetchone()
+    if fila is None:
+        con.execute(
+            """
+            INSERT INTO temario_pseudoarticulo_respaldos
+            (pseudoarticulo_id,proposicion_id,articulo_fuente_id,fuente_conocimiento_id,
+             pertinencia,estado,motivo,evidencia_texto,evidencia_localizador)
+            VALUES(?,NULL,?,NULL,?,?,?,?,?)
+            """,
+            (
+                pseudoarticulo_id,
+                articulo_fuente_id,
+                "PROPUESTA",
+                "PENDIENTE_VERIFICACION",
+                motivo,
+                None,
+                None,
+            ),
+        )
+    else:
+        con.execute(
+            """
+            UPDATE temario_pseudoarticulo_respaldos
+            SET pertinencia='PROPUESTA',
+                estado='PENDIENTE_VERIFICACION',
+                motivo=?,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (motivo, int(fila[0])),
+        )
+
+
 def cargar_operacion(con, op: dict) -> None:
     item = op["item"]
     tema_id = op["tema_id"]
@@ -123,7 +168,6 @@ def cargar_operacion(con, op: dict) -> None:
 
     for orden, p in enumerate(item.get("pseudoarticulos") or [], 1):
         paid = upsert_pseudoarticulo(con, pid, p, orden)
-        prop_ids = {}
         for prop in p.get("proposiciones") or []:
             codigo = str(prop.get("codigo") or "")
             con.execute(
@@ -137,48 +181,73 @@ def cargar_operacion(con, op: dict) -> None:
                 (paid,codigo,str(prop.get("texto") or ""),1 if prop.get("esencial") else 0,
                  str(prop.get("tipo") or "MIXTO"),str(prop.get("estado") or "PROPUESTA"))
             )
-            prop_ids[codigo] = int(con.execute(
-                "SELECT id FROM temario_pseudoarticulo_proposiciones WHERE pseudoarticulo_id=? AND codigo=?",
-                (paid,codigo)
-            ).fetchone()[0])
 
-        # En este punto sólo se persisten respaldos locales ya presentes como candidatos.
-        # Siguen siendo propuestas; no se convierten en referencias reales del temario.
+        # Sólo candidatos locales como respaldos PROPUESTA. No se convierten en
+        # referencias reales del temario y una recarga no duplica filas.
         for c in p.get("candidatos_locales_prioritarios") or []:
             aid = int(c["articulo_fuente_id"])
             existe = con.execute("SELECT 1 FROM articulos_fuente WHERE id=?", (aid,)).fetchone()
             if not existe:
                 raise RuntimeError(f"articulo_fuente_id inexistente: {aid}")
-            con.execute(
-                """
-                INSERT INTO temario_pseudoarticulo_respaldos
-                (pseudoarticulo_id,proposicion_id,articulo_fuente_id,fuente_conocimiento_id,
-                 pertinencia,estado,motivo,evidencia_texto,evidencia_localizador)
-                VALUES(?,?,?,NULL,?,?,?,?,?)
-                """,
-                (paid,None,aid,"PROPUESTA","PENDIENTE_VERIFICACION",str(c.get("motivo") or ""),None,None)
-            )
+            upsert_respaldo_local(con, paid, aid, str(c.get("motivo") or ""))
 
+        # Las fuentes ya verificadas/materializadas se registran en su catálogo.
+        # El enlace fuente->pseudoartículo se incorporará cuando la etapa de
+        # verificación produzca respaldos externos con evidencia trazable.
         for f in p.get("fuentes") or []:
-            # Sólo fuentes ya verificadas/materializadas por etapas posteriores.
             if not isinstance(f, dict):
                 continue
             if not str(f.get("nombre") or "").strip():
                 continue
-            con.execute(
-                """
-                INSERT INTO fuentes_conocimiento
-                (tipo_fuente,organismo,nombre,identificador_oficial,localizador_oficial,estado_verificacion)
-                VALUES(?,?,?,?,?,?)
-                ON CONFLICT(tipo_fuente,organismo,nombre,identificador_oficial) DO UPDATE SET
-                  localizador_oficial=excluded.localizador_oficial,
-                  estado_verificacion=excluded.estado_verificacion,
-                  updated_at=CURRENT_TIMESTAMP
-                """,
-                (str(f.get("tipo_fuente") or "FUENTE_INSTITUCIONAL"),str(f.get("organismo") or ""),
-                 str(f.get("nombre")),f.get("identificador_oficial"),f.get("localizador_oficial"),
-                 str(f.get("estado_verificacion") or "PENDIENTE"))
-            )
+            identificador = f.get("identificador_oficial")
+            organismo = str(f.get("organismo") or "")
+            nombre = str(f.get("nombre"))
+            tipo = str(f.get("tipo_fuente") or "FUENTE_INSTITUCIONAL")
+
+            # SQLite considera distintos varios NULL dentro de UNIQUE. Para no
+            # duplicar fuentes sin identificador, se hace búsqueda explícita.
+            if identificador is None:
+                existente = con.execute(
+                    """
+                    SELECT id FROM fuentes_conocimiento
+                    WHERE tipo_fuente=? AND organismo=? AND nombre=?
+                      AND identificador_oficial IS NULL
+                    """,
+                    (tipo, organismo, nombre),
+                ).fetchone()
+                if existente is None:
+                    con.execute(
+                        """
+                        INSERT INTO fuentes_conocimiento
+                        (tipo_fuente,organismo,nombre,identificador_oficial,localizador_oficial,estado_verificacion)
+                        VALUES(?,?,?,NULL,?,?)
+                        """,
+                        (tipo, organismo, nombre, f.get("localizador_oficial"),
+                         str(f.get("estado_verificacion") or "PENDIENTE")),
+                    )
+                else:
+                    con.execute(
+                        """
+                        UPDATE fuentes_conocimiento
+                        SET localizador_oficial=?, estado_verificacion=?, updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                        """,
+                        (f.get("localizador_oficial"), str(f.get("estado_verificacion") or "PENDIENTE"), int(existente[0])),
+                    )
+            else:
+                con.execute(
+                    """
+                    INSERT INTO fuentes_conocimiento
+                    (tipo_fuente,organismo,nombre,identificador_oficial,localizador_oficial,estado_verificacion)
+                    VALUES(?,?,?,?,?,?)
+                    ON CONFLICT(tipo_fuente,organismo,nombre,identificador_oficial) DO UPDATE SET
+                      localizador_oficial=excluded.localizador_oficial,
+                      estado_verificacion=excluded.estado_verificacion,
+                      updated_at=CURRENT_TIMESTAMP
+                    """,
+                    (tipo, organismo, nombre, identificador, f.get("localizador_oficial"),
+                     str(f.get("estado_verificacion") or "PENDIENTE")),
+                )
 
 
 def main() -> int:

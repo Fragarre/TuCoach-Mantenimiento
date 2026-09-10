@@ -33,9 +33,7 @@ DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
 
 
 def norm(s: str) -> str:
-    s = comun.normalizar_texto(s or "").lower()
-    s = re.sub(r"[^a-z0-9]+", " ", s)
-    return re.sub(r"\s+", " ", s).strip()
+    return resolver.normalizar(s or "")
 
 
 def clave_estructura(tipo: str, texto: str) -> tuple[str, str]:
@@ -62,13 +60,15 @@ def indice_bloques(payload: dict) -> dict[tuple[str, str], list[dict]]:
             if identidad in vistos:
                 continue
             vistos.add(identidad)
+            padres = {
+                "titulo": (),
+                "capitulo": ("titulo",),
+                "seccion": ("titulo", "capitulo"),
+            }[campo]
             arts = [
                 x for x in payload.get("articulos", [])
                 if x.get(campo) == valor
-                and all(
-                    x.get(parent) == a.get(parent)
-                    for parent in ({"titulo": (), "capitulo": ("titulo",), "seccion": ("titulo", "capitulo")}[campo])
-                )
+                and all(x.get(parent) == a.get(parent) for parent in padres)
             ]
             salida.setdefault(k, []).append({"texto": valor, "articulos": arts})
     return salida
@@ -94,7 +94,7 @@ def main() -> int:
             casos.append((t, est))
 
     with comun.conectar_sqlite_solo_lectura(db) as con:
-        catalogo = resolver.cargar_catalogo_normas(con)
+        catalogo = resolver.cargar_catalogo(con)
         fuentes = {}
         for row in con.execute("SELECT norma_id, id_fuente FROM norma_fuentes ORDER BY norma_id, id_fuente"):
             fuentes.setdefault(int(row[0]), []).append(str(row[1]))
@@ -114,9 +114,9 @@ def main() -> int:
         citas = resolver.detectar_citas(tema.texto)
         normas = []
         for cita in citas:
-            r = resolver.resolver_cita(cita, catalogo)
-            if r.get("estado") == "RESUELTA" and r.get("norma_id"):
-                nid = int(r["norma_id"])
+            candidatos = resolver.candidatos_para_cita(cita, catalogo)
+            if len(candidatos) == 1:
+                nid = candidatos[0].norma_id
                 if nid not in normas:
                     normas.append(nid)
 
@@ -167,7 +167,7 @@ def main() -> int:
 
         print(f"  estado: {estado}")
         for h, nid, fid, origen, b in encontrados:
-            arts = [str(a.get('articulo')) for a in b['articulos']]
+            arts = [str(a.get("articulo")) for a in b["articulos"]]
             muestra = ", ".join(arts[:12]) + (" ..." if len(arts) > 12 else "")
             print(f"  OK {h['tipo']} {h['texto']} -> norma {nid} | {fid} | {origen} | n={len(arts)} | {muestra}")
         for h, matches in ambiguos:

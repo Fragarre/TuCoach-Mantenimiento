@@ -35,8 +35,9 @@ def ejecutar(args: list[str], esperar_ok: bool = True) -> subprocess.CompletedPr
     return r
 
 
-def preparar_datos(copia: Path) -> tuple[str, int, int, int, int]:
-    with sqlite3.connect(copia) as con:
+def preparar_datos(copia: Path) -> tuple[str, int, int, int, int, int]:
+    con = sqlite3.connect(copia)
+    try:
         con.row_factory = sqlite3.Row
         con.execute("PRAGMA foreign_keys=ON")
         conv = con.execute(
@@ -109,11 +110,14 @@ def preparar_datos(copia: Path) -> tuple[str, int, int, int, int]:
         )
         respaldo = int(cur.lastrowid)
         con.commit()
-    return codigo, cid, tid, tema_id, pa, respaldo
+        return codigo, cid, tid, tema_id, pa, respaldo
+    finally:
+        con.close()
 
 
 def comprobar_legacy_no_captura(copia: Path, cid: int, tid: int, pregunta_id: int) -> None:
-    with sqlite3.connect(copia) as con:
+    con = sqlite3.connect(copia)
+    try:
         con.row_factory = sqlite3.Row
         refs, _, _ = legacy.cargar_referencias_juridicas(con, tid)
         existentes = legacy.cargar_existentes(con, cid)
@@ -121,6 +125,16 @@ def comprobar_legacy_no_captura(copia: Path, cid: int, tid: int, pregunta_id: in
         capturadas = {int(x["id"]) for x in resultado["nuevas"]}
         if pregunta_id in capturadas:
             raise RuntimeError("El selector legacy capturó la pregunta PSEUDO V2.")
+    finally:
+        con.close()
+
+
+def consultar_una(copia: Path, sql: str, params: tuple = ()): 
+    con = sqlite3.connect(copia)
+    try:
+        return con.execute(sql, params).fetchone()
+    finally:
+        con.close()
 
 
 def main() -> int:
@@ -154,25 +168,24 @@ def main() -> int:
         }
         candidatas.write_text(json.dumps(candidata, ensure_ascii=False) + "\n", encoding="utf-8")
 
-        # SOLO REVISION no debe escribir.
         ejecutar([
             sys.executable, str(PUBLICADOR), "--db", str(copia),
             "--codigo", codigo, "--candidatas", str(candidatas),
         ])
-        with sqlite3.connect(copia) as con:
-            n0 = con.execute(
-                "SELECT COUNT(*) FROM lote_preguntas WHERE enunciado=?",
-                (candidata["enunciado"],),
-            ).fetchone()[0]
+        n0 = consultar_una(
+            copia,
+            "SELECT COUNT(*) FROM lote_preguntas WHERE enunciado=?",
+            (candidata["enunciado"],),
+        )[0]
         if n0 != 0:
             raise RuntimeError("SOLO REVISION modificó lote_preguntas.")
 
-        # Primera publicación.
         ejecutar([
             sys.executable, str(PUBLICADOR), "--db", str(copia),
             "--codigo", codigo, "--candidatas", str(candidatas), "--aplicar",
         ])
-        with sqlite3.connect(copia) as con:
+        con = sqlite3.connect(copia)
+        try:
             con.row_factory = sqlite3.Row
             preguntas = con.execute(
                 """
@@ -222,15 +235,17 @@ def main() -> int:
                 raise RuntimeError("El contexto V2 publicado no coincide con la candidata.")
             if con.execute("PRAGMA foreign_key_check").fetchall():
                 raise RuntimeError("foreign_key_check detectó incidencias.")
+        finally:
+            con.close()
 
         comprobar_legacy_no_captura(copia, cid, tid, pregunta_id)
 
-        # Segunda publicación: debe reconocer la existente y no duplicar.
         ejecutar([
             sys.executable, str(PUBLICADOR), "--db", str(copia),
             "--codigo", codigo, "--candidatas", str(candidatas), "--aplicar",
         ])
-        with sqlite3.connect(copia) as con:
+        con = sqlite3.connect(copia)
+        try:
             n_preg = con.execute(
                 "SELECT COUNT(*) FROM lote_preguntas WHERE enunciado=?",
                 (candidata["enunciado"],),
@@ -239,10 +254,11 @@ def main() -> int:
                 "SELECT COUNT(*) FROM pregunta_contextos_v2 WHERE pregunta_id=?",
                 (pregunta_id,),
             ).fetchone()[0]
+        finally:
+            con.close()
         if n_preg != 1 or n_ctx != 1:
             raise RuntimeError("La segunda publicación no fue idempotente.")
 
-        # Un respaldo inexistente/ajeno debe bloquear la publicación.
         mala = dict(candidata)
         mala["enunciado"] = candidata["enunciado"] + " CASO MALO"
         mala["respaldo_ids"] = [respaldo + 999999]

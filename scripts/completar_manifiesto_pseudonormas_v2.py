@@ -18,8 +18,8 @@ Es reanudable: escribe un checkpoint del JSON de salida después de completar
 cada tema. Nunca escribe en la BD ni en los datos consolidados.
 
 Control de recursos:
-- los textos normales de artículos se envían íntegros;
-- sólo los textos anormalmente largos se convierten en extractos literales;
+- hasta MAX_TEXTO_IA caracteres, el texto se envía íntegro;
+- por encima del límite duro, se convierte en extractos literales;
 - los extractos se seleccionan determinísticamente alrededor de los términos que
   justificaron la candidatura y conservan trazabilidad de longitud/estrategia;
 - nunca se altera el texto almacenado en la BD.
@@ -44,11 +44,11 @@ NATURALEZAS_ADMITIDAS = {
     "MANIFIESTO_CONSTRUCTOR_TEMARIO_V2",
 }
 
-# Un artículo jurídico ordinario queda muy por debajo de este tamaño. Por encima
-# se considera una fila anómala o un bloque documental demasiado grande para una
-# sola evaluación IA. El límite se aplica únicamente a la COPIA enviada a IA.
-UMBRAL_TEXTO_COMPLETO = 16_000
+# Límite duro aplicado únicamente a la COPIA enviada a IA. Nunca se altera el
+# texto almacenado en la BD. Mantener un único umbral evita una franja en la que
+# el texto pudiera superar MAX_TEXTO_IA sin ser convertido en extracto.
 MAX_TEXTO_IA = 12_000
+UMBRAL_TEXTO_COMPLETO = MAX_TEXTO_IA
 TAM_FRAGMENTO = 1_800
 
 
@@ -126,7 +126,7 @@ def _fragmentar_literal(texto: str) -> list[str]:
 
 def _extraer_relevante(texto: str, terminos: list[str]) -> tuple[str, dict]:
     original = texto or ""
-    if len(original) <= UMBRAL_TEXTO_COMPLETO:
+    if len(original) <= MAX_TEXTO_IA:
         return original, {
             "texto_articulo_original_caracteres": len(original),
             "texto_articulo_enviado_caracteres": len(original),
@@ -148,9 +148,6 @@ def _extraer_relevante(texto: str, terminos: list[str]) -> tuple[str, dict]:
         if score:
             puntuados.append((score, i))
 
-    # Candidatos fueron elegidos por coincidencia textual; no obstante, si la
-    # fragmentación impidiera localizar el término, conservamos inicio y final
-    # como contexto neutral en lugar de inventar una selección semántica.
     indices: list[int] = []
     vistos: set[int] = set()
     orden_base = [i for _, i in sorted(puntuados, key=lambda x: (-x[0], x[1]))]
@@ -178,8 +175,6 @@ def _extraer_relevante(texto: str, terminos: list[str]) -> tuple[str, dict]:
         if usados >= MAX_TEXTO_IA:
             break
 
-    # Orden documental, no orden de score, para que la IA reciba los fragmentos
-    # en su secuencia original.
     seleccionados.sort(key=lambda x: x[0])
     extracto = "\n\n".join(frag for _, frag in seleccionados)
     if len(extracto) > MAX_TEXTO_IA:
@@ -214,6 +209,11 @@ def limitar_entrada_ia(entrada: dict) -> dict:
             max_enviado = max(max_enviado, int(meta["texto_articulo_enviado_caracteres"]))
             if meta["texto_articulo_es_extracto"]:
                 recortados += 1
+
+    if max_enviado > MAX_TEXTO_IA:
+        raise RuntimeError(
+            f"Control de recursos incumplido: max_enviado={max_enviado} > {MAX_TEXTO_IA}."
+        )
 
     entrada["control_recursos"] = {
         "umbral_texto_completo_caracteres": UMBRAL_TEXTO_COMPLETO,

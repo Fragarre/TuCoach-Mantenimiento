@@ -7,8 +7,8 @@ Objetivo:
 - extraer literalmente los temas del PDF oficial;
 - clasificar cada tema con el clasificador de alcance V2 ya existente;
 - representar cada tema con el contrato común de salida V2;
-- resolver únicamente referencias jurídicas literales y unívocas del camino
-  JURIDICO_EXPLICITO;
+- resolver referencias jurídicas literales y, cuando exista delimitación estructural
+  literal verificable, materializar sus artículos desde la jerarquía oficial;
 - no inferir ni aceptar automáticamente normas, artículos o pseudonormas;
 - no ejecutar persistencia.
 """
@@ -23,6 +23,7 @@ import comun
 import extraer_estructura_temario_v2 as estructura
 import clasificar_alcance_juridico_v2 as alcance
 import resolver_normas_temario_v2 as resolver
+import resolver_estructura_literal_v2 as resolver_estructura
 
 
 RAIZ = comun.raiz_proyecto()
@@ -61,8 +62,9 @@ def resultado_base(tema, clase: str, evidencia: str) -> dict:
     }
 
 
-def resolver_explicito(item: dict, catalogo) -> None:
-    citas = resolver.detectar_citas(item["texto_oficial"])
+def resolver_explicito(item: dict, catalogo, fuentes_por_norma: dict[int, list[str]], payload_cache: dict) -> None:
+    texto = item["texto_oficial"]
+    citas = resolver.detectar_citas(texto)
     if not citas:
         item["estado_v2"] = "BLOQUEADO_INCIDENCIA"
         item["requiere_revision_humana"] = True
@@ -72,9 +74,8 @@ def resolver_explicito(item: dict, catalogo) -> None:
         })
         return
 
-    pendiente_fuente = False
-    pendiente_revision = False
-
+    referencias_no_resueltas = False
+    normas_resueltas = []
     for cita in citas:
         candidatos = resolver.candidatos_para_cita(cita, catalogo)
         traza = {
@@ -83,9 +84,8 @@ def resolver_explicito(item: dict, catalogo) -> None:
             "tipo": cita.tipo,
             "candidatos": [n.norma_id for n in candidatos],
         }
-
         if len(candidatos) != 1:
-            pendiente_revision = True
+            referencias_no_resueltas = True
             motivo = "SIN_COINCIDENCIA" if not candidatos else f"AMBIGUA_{len(candidatos)}"
             item["incidencias"].append({
                 "tipo": "REFERENCIA_EXPLICITA_NO_RESUELTA",
@@ -96,16 +96,17 @@ def resolver_explicito(item: dict, catalogo) -> None:
             continue
 
         norma = candidatos[0]
-        item["normas"].append({
-            "norma_id": norma.norma_id,
-            "nombre_canonico": norma.nombre_canonico,
-            "origen_decision": "CITA_LITERAL_UNIVOCA",
-        })
+        if norma.norma_id not in normas_resueltas:
+            normas_resueltas.append(norma.norma_id)
+            item["normas"].append({
+                "norma_id": norma.norma_id,
+                "nombre_canonico": norma.nombre_canonico,
+                "origen_decision": "CITA_LITERAL_UNIVOCA",
+            })
         for fid in norma.ids_fuente:
             if fid not in item["fuentes"]:
                 item["fuentes"].append(fid)
         if not norma.ids_fuente:
-            pendiente_fuente = True
             item["incidencias"].append({
                 "tipo": "NORMA_SIN_FUENTE_ENLAZADA",
                 "norma_id": norma.norma_id,
@@ -115,16 +116,80 @@ def resolver_explicito(item: dict, catalogo) -> None:
         traza["fuentes"] = list(norma.ids_fuente)
         item["trazabilidad"].append(traza)
 
-    # El resolver explícito actual no resuelve artículos. Por ello un tema con
-    # norma identificada no se declara ACEPTABLE_FORMALMENTE: sólo se refleja
-    # qué parte del alcance ha quedado resuelta mecánicamente.
-    if pendiente_revision:
+    if referencias_no_resueltas:
         item["estado_v2"] = "PENDIENTE_REVISION_HUMANA"
         item["requiere_revision_humana"] = True
-    elif pendiente_fuente:
-        item["estado_v2"] = "PENDIENTE_FUENTE"
-    else:
+        return
+
+    alcance_estructural = resolver_estructura.resolver_tema(
+        texto,
+        catalogo,
+        fuentes_por_norma,
+        payload_cache,
+    )
+    item["articulos"] = alcance_estructural["articulos"]
+
+    for r in alcance_estructural["bloques_efectivos"]:
+        h = r["hallazgo"]
+        b = r["bloque"]
+        item["evidencia"].append({
+            "tipo": "ESTRUCTURA_LITERAL_UNIVOCA",
+            "norma_id": h["norma_id"],
+            "referencia_literal": h["texto"],
+            "bloque_oficial": b["texto"],
+            "fuente": r["fuente"],
+            "articulos": [str(a.get("articulo")) for a in b["articulos"]],
+        })
+
+    for h in alcance_estructural["no_articulo"]:
+        item["evidencia"].append({
+            "tipo": "ESTRUCTURA_LITERAL_NO_ARTICULADA",
+            "norma_id": h.get("norma_id"),
+            "referencia_literal": h["texto"],
+        })
+
+    for nid in alcance_estructural["normas_sin_estructura_literal"]:
+        item["incidencias"].append({
+            "tipo": "NORMA_EXPLICITA_SIN_ALCANCE_ESTRUCTURAL_LITERAL",
+            "norma_id": nid,
+            "detalle": "La norma está citada literalmente, pero el tema delimita su contenido por materias y no por Título/Capítulo/Sección resoluble mecánicamente.",
+        })
+
+    for nid in alcance_estructural["normas_fuente_no_materializable"]:
+        item["incidencias"].append({
+            "tipo": "FUENTE_SIN_ARTICULOS_ESTRUCTURADOS",
+            "norma_id": nid,
+            "detalle": "La fuente oficial enlazada contiene estructura, pero el mecanismo actual no dispone de artículos materializables para ella.",
+        })
+
+    for x in alcance_estructural["ambiguos"]:
+        h = x["hallazgo"]
+        item["incidencias"].append({
+            "tipo": "ESTRUCTURA_LITERAL_AMBIGUA",
+            "norma_id": h.get("norma_id"),
+            "referencia_literal": h["texto"],
+            "coincidencias": x["coincidencias"],
+        })
+
+    for h in alcance_estructural["sin_match"]:
+        item["incidencias"].append({
+            "tipo": "ESTRUCTURA_LITERAL_NO_LOCALIZADA",
+            "norma_id": h.get("norma_id"),
+            "referencia_literal": h["texto"],
+        })
+
+    if alcance_estructural["completo"]:
         item["estado_v2"] = "RESUELTO_MECANICAMENTE"
+        item["accion_siguiente"] = "AUDITAR_RESULTADO"
+        return
+
+    if alcance_estructural["normas_fuente_no_materializable"]:
+        item["estado_v2"] = "PENDIENTE_FUENTE"
+        item["accion_siguiente"] = "RESOLVER_FUENTE_ESTRUCTURADA"
+    else:
+        item["estado_v2"] = "PENDIENTE_REVISION_HUMANA"
+        item["requiere_revision_humana"] = True
+        item["accion_siguiente"] = "REVISION_HUMANA_ALCANCE"
 
 
 def construir_manifiesto(pdf: Path, db: Path) -> dict:
@@ -134,8 +199,12 @@ def construir_manifiesto(pdf: Path, db: Path) -> dict:
 
     with comun.conectar_sqlite_solo_lectura(db) as con:
         catalogo = resolver.cargar_catalogo(con)
+        fuentes_por_norma: dict[int, list[str]] = {}
+        for row in con.execute("SELECT norma_id, id_fuente FROM norma_fuentes ORDER BY norma_id, id_fuente"):
+            fuentes_por_norma.setdefault(int(row[0]), []).append(str(row[1]))
 
     items = []
+    payload_cache = {}
     for tema in temas:
         clase, evidencia = alcance.clasificar(tema)
         item = resultado_base(tema, clase, evidencia)
@@ -145,7 +214,7 @@ def construir_manifiesto(pdf: Path, db: Path) -> dict:
             item["accion_siguiente"] = "SIN_TRATAMIENTO_NORMATIVO"
 
         elif clase == "JURIDICO_EXPLICITO":
-            resolver_explicito(item, catalogo)
+            resolver_explicito(item, catalogo, fuentes_por_norma, payload_cache)
 
         elif clase == "JURIDICO_DELIMITABLE":
             item["estado_v2"] = "PENDIENTE_REVISION_HUMANA"
@@ -224,15 +293,13 @@ def imprimir(manifiesto: dict) -> None:
 
     print()
     for x in manifiesto["temas"]:
-        print(
-            f"{x['parte']:<8} | {x['numero_tema']:>2} | "
-            f"{x['clasificacion_v2']:<32} | {x['estado_v2']}"
-        )
+        print(f"{x['parte']:<8} | {x['numero_tema']:>2} | {x['clasificacion_v2']:<32} | {x['estado_v2']}")
         print(f"  siguiente: {x['accion_siguiente']}")
         if x["normas"]:
-            print("  normas: " + "; ".join(
-                f"[{n['norma_id']}] {n['nombre_canonico']}" for n in x["normas"]
-            ))
+            print("  normas: " + "; ".join(f"[{n['norma_id']}] {n['nombre_canonico']}" for n in x["normas"]))
+        if x["articulos"]:
+            por_norma = Counter(a["norma_id"] for a in x["articulos"])
+            print("  artículos: " + "; ".join(f"norma {nid}={n}" for nid, n in sorted(por_norma.items())))
         if x["incidencias"]:
             for inc in x["incidencias"]:
                 print(f"  incidencia: {inc['tipo']}")
@@ -245,9 +312,7 @@ def imprimir(manifiesto: dict) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Analiza una convocatoria y crea el manifiesto común V2 sin modificar datos."
-    )
+    ap = argparse.ArgumentParser(description="Analiza una convocatoria y crea el manifiesto común V2 sin modificar datos.")
     ap.add_argument("--pdf", required=True, help="Ruta al PDF oficial del temario")
     ap.add_argument("--db", default=str(DB_PREDETERMINADA), help="SQLite de mantenimiento")
     ap.add_argument("--salida-json", required=True, help="Ruta del manifiesto JSON")
@@ -265,7 +330,6 @@ def main() -> int:
     manifiesto = construir_manifiesto(pdf, db)
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(manifiesto, ensure_ascii=False, indent=2), encoding="utf-8")
-
     imprimir(manifiesto)
     print(f"Manifiesto JSON.................. {salida}")
     return 0

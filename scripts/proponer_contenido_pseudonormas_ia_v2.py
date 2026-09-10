@@ -3,20 +3,13 @@ Constructor Temario V2 - propuesta IA general de contenido pseudonormativo.
 
 PILOTO / SOLO LECTURA respecto de BD y corpus.
 
-Objetivo limitado:
-- seleccionar UN tema JURIDICO_DOCTRINAL_TRANSVERSAL del PDF oficial;
-- conservar literalmente el texto oficial y sus unidades P01..Pn;
-- adjuntar candidatos locales recuperados por el mecanismo V2 existente;
-- aportar a la IA el texto literal de cada artículo candidato;
-- pedir a la IA propuestas estructuradas de proposiciones, fuentes oficiales a
-  comprobar, prioridades entre candidatos locales, lagunas e incidencias;
-- producir un JSON de trabajo para revisión posterior.
+Procesa UN tema JURIDICO_DOCTRINAL_TRANSVERSAL, pero llama a la IA unidad por
+unidad (P01..Pn). Así cada llamada recibe el texto literal de los artículos
+candidatos sin superar la ventana de contexto por acumular todo el tema.
 
 Reglas críticas:
 - la IA NO acepta ninguna fuente, norma, artículo, relación ni pseudonorma;
 - una coincidencia léxica nunca se convierte en pertinencia jurídica;
-- las fuentes externas sugeridas NO incluyen URL inventadas: sólo identidad o
-  consulta de búsqueda que deberá resolver y verificar otro paso;
 - no consulta temario.csv ni temario_referencias;
 - no modifica BD, corpus ni bancos;
 - si existe OPOCOACH_MANTENIMIENTO_SESION_ID, se bloquea la ejecución para que
@@ -36,7 +29,6 @@ import extraer_estructura_temario_v2 as estructura
 import generar_borradores_pseudonormas_v2 as borradores_mod
 import openai_api
 import proponer_respaldos_pseudonormas_v2 as respaldos_mod
-
 
 RAIZ = comun.raiz_proyecto()
 DB_PREDETERMINADA = RAIZ / "db" / "oposiciones.sqlite3"
@@ -107,7 +99,6 @@ def construir_entrada(pdf: Path, db: Path, parte: str, numero_tema: int, top: in
                 )
             datos["texto_articulo"] = articulo.texto
             candidatos_enriquecidos.append(datos)
-
         unidades.append({
             "codigo": unidad.codigo,
             "texto_temario": unidad.texto_temario,
@@ -125,51 +116,54 @@ def construir_entrada(pdf: Path, db: Path, parte: str, numero_tema: int, top: in
     }
 
 
+def entrada_para_unidad(entrada: dict, unidad: dict) -> dict:
+    return {
+        "identidad": entrada["identidad"],
+        "parte": entrada["parte"],
+        "numero_tema": entrada["numero_tema"],
+        "texto_tema_oficial": entrada["texto_tema_oficial"],
+        "clasificacion": entrada["clasificacion"],
+        "evidencia_clasificacion": entrada["evidencia_clasificacion"],
+        "unidades": [unidad],
+    }
+
+
 def construir_prompt(entrada: dict) -> str:
     datos = json.dumps(entrada, ensure_ascii=False, indent=2)
     return f"""
 Actúa como analista jurídico para preparar, NO aceptar, una pseudonorma de un
 programa oficial de oposición de la Generalitat Valenciana.
 
-Tu tarea es producir una propuesta avanzada que reduzca la revisión humana. No
-estás autorizada a decidir que una fuente o relación es jurídicamente aceptada.
+Analiza únicamente la unidad incluida en ENTRADA. Tu tarea es producir una
+propuesta avanzada que reduzca la revisión humana. No estás autorizada a decidir
+que una fuente o relación es jurídicamente aceptada.
 
 ENTRADA
 {datos}
 
 REGLAS OBLIGATORIAS
-1. Conserva exactamente los códigos P01..Pn y analiza sólo el alcance literal de
-   cada unidad del temario.
-2. No amplíes el temario con materias conexas que no sean necesarias para explicar
-   la unidad.
-3. Formula las proposiciones mínimas que habría que respaldar para construir una
+1. Conserva exactamente el código y el texto literal de la unidad.
+2. Analiza sólo el alcance literal de esa unidad dentro del tema oficial completo.
+3. No amplíes el temario con materias conexas no necesarias.
+4. Formula las proposiciones mínimas que habría que respaldar para construir una
    explicación rigurosa y útil para estudio, RAG y futura generación de preguntas.
-4. Distingue NORMATIVO, JURISPRUDENCIAL, DOCTRINAL y MIXTO.
-5. Los candidatos locales son sólo coincidencias recuperadas, pero ahora dispones
-   también de su texto_articulo literal. Evalúa materialmente ese texto frente a
-   la unidad y a las proposiciones. Un candidato sólo debe ir a
-   candidatos_locales_prioritarios si su texto aporta respaldo material plausible
-   y directo a alguna proposición. Si la coincidencia es léxica, incidental o trata
+5. Distingue NORMATIVO, JURISPRUDENCIAL, DOCTRINAL y MIXTO.
+6. Los candidatos locales son coincidencias recuperadas y dispones de su
+   texto_articulo literal. Evalúa materialmente ese texto. Un candidato sólo debe
+   ir a candidatos_locales_prioritarios si aporta respaldo material plausible y
+   directo a alguna proposición. Si la coincidencia es léxica, incidental o trata
    de otra materia, inclúyelo en candidatos_locales_probablemente_no_pertinentes.
-   No mantengas como prioritario un candidato que tú misma describes como débil,
-   incidental, ajeno o probablemente falso positivo.
-6. No declares nunca PERTINENTE un candidato. Ambas listas son propuestas para una
-   verificación posterior; la segunda permite retirar de la revisión principal los
-   falsos positivos claros.
-7. Si recomiendas o descartas un candidato local, usa exclusivamente su
-   articulo_fuente_id presente en la entrada. No inventes IDs, normas ni artículos
-   locales.
-8. Cuando el corpus local no baste, sugiere qué fuente externa oficial debe
+7. No mantengas como prioritario un candidato que describas como débil, incidental,
+   ajeno o probable falso positivo. No declares nunca PERTINENTE un candidato.
+8. Si recomiendas o descartas un candidato, usa exclusivamente un
+   articulo_fuente_id presente en la entrada. No inventes IDs, normas ni artículos.
+9. Cuando el corpus local no baste, sugiere qué fuente externa oficial debe
    localizarse. Prioriza fuentes primarias oficiales y jurisprudencia oficial.
-9. Para fuentes externas NO inventes URL. Indica organismo, nombre/identificador
-   oficial sólo si lo conoces con suficiente seguridad, consulta_busqueda y motivo.
-10. Si no puedes identificar una fuente con suficiente seguridad, deja el
-    identificador_oficial como null y formula una consulta de búsqueda verificable.
-11. Explicita lagunas e incidencias reales después de haber leído el texto literal
-    de los candidatos. No declares como laguna la falta de literalidad de los
-    artículos locales, porque ahora sí está incluida en la entrada.
-12. No redactes aún una síntesis final. Primero deben verificarse identidad,
-    recuperación y evidencia.
+10. Para fuentes externas NO inventes URL. Si no conoces con suficiente seguridad
+    el identificador oficial, déjalo en null y formula una consulta verificable.
+11. Explicita sólo lagunas e incidencias reales después de leer los textos locales.
+    No declares como laguna la falta de literalidad de los artículos locales.
+12. No redactes aún una síntesis final.
 13. No uses temario.csv ni conocimiento de mapeos previos; no están disponibles.
 14. Todo el resultado es PROPUESTA_IA_PARA_REVISION.
 
@@ -192,18 +186,10 @@ Devuelve exclusivamente un objeto JSON con esta forma:
         }}
       ],
       "candidatos_locales_prioritarios": [
-        {{
-          "articulo_fuente_id": 123,
-          "motivo": "qué respaldo material aporta el texto literal y por qué merece comprobación",
-          "estado": "SOLO_PROPUESTA"
-        }}
+        {{"articulo_fuente_id": 123, "motivo": "...", "estado": "SOLO_PROPUESTA"}}
       ],
       "candidatos_locales_probablemente_no_pertinentes": [
-        {{
-          "articulo_fuente_id": 456,
-          "motivo": "por qué el texto literal es incidental, ajeno o insuficiente",
-          "estado": "SOLO_PROPUESTA"
-        }}
+        {{"articulo_fuente_id": 456, "motivo": "...", "estado": "SOLO_PROPUESTA"}}
       ],
       "fuentes_externas_a_buscar": [
         {{
@@ -212,7 +198,7 @@ Devuelve exclusivamente un objeto JSON con esta forma:
           "nombre_fuente": "...",
           "identificador_oficial": null,
           "consulta_busqueda": "...",
-          "motivo": "qué proposición o parte debe respaldar",
+          "motivo": "...",
           "confianza_identidad": "ALTA|MEDIA|BAJA",
           "estado": "SOLO_PROPUESTA"
         }}
@@ -287,14 +273,19 @@ def validar_salida(entrada: dict, salida: dict) -> None:
                 if aid not in ids_disponibles:
                     raise ValueError(f"{codigo}: la IA inventó articulo_fuente_id={aid}.")
                 if aid in ids_usados:
-                    raise ValueError(f"{codigo}: articulo_fuente_id={aid} aparece en dos decisiones propuestas.")
+                    raise ValueError(
+                        f"{codigo}: articulo_fuente_id={aid} aparece en dos decisiones propuestas."
+                    )
                 ids_usados.add(aid)
                 if c.get("estado") != "SOLO_PROPUESTA":
                     raise ValueError(f"{codigo}: estado local no permitido.")
                 if not str(c.get("motivo") or "").strip():
                     raise ValueError(f"{codigo}: candidato local sin motivo.")
 
-        for f in _lista(unidad.get("fuentes_externas_a_buscar"), f"{codigo}.fuentes_externas_a_buscar"):
+        for f in _lista(
+            unidad.get("fuentes_externas_a_buscar"),
+            f"{codigo}.fuentes_externas_a_buscar",
+        ):
             if f.get("tipo_fuente") not in TIPOS_FUENTE:
                 raise ValueError(f"{codigo}: tipo de fuente externa inválido.")
             if f.get("confianza_identidad") not in ESTADOS_CONFIANZA:
@@ -312,6 +303,33 @@ def validar_salida(entrada: dict, salida: dict) -> None:
 
         _lista(unidad.get("lagunas"), f"{codigo}.lagunas")
         _lista(unidad.get("incidencias"), f"{codigo}.incidencias")
+
+
+def proponer_por_unidades(entrada: dict, modelo: str) -> dict:
+    unidades_salida = []
+    total = len(entrada["unidades"])
+    for indice, unidad in enumerate(entrada["unidades"], 1):
+        entrada_unidad = entrada_para_unidad(entrada, unidad)
+        print(
+            f"Procesando {unidad['codigo']} ({indice}/{total}) "
+            f"con {len(unidad['candidatos_locales'])} candidatos locales..."
+        )
+        propuesta_unidad = openai_api.seleccionar_fragmento_json(
+            prompt=construir_prompt(entrada_unidad),
+            modelo=modelo,
+            operacion="constructor_pseudonorma_v2_propuesta_unidad",
+            max_output_tokens=5000,
+        )
+        validar_salida(entrada_unidad, propuesta_unidad)
+        unidades_salida.append(propuesta_unidad["unidades"][0])
+
+    propuesta = {
+        "identidad": entrada["identidad"],
+        "estado": "PROPUESTA_IA_PARA_REVISION",
+        "unidades": unidades_salida,
+    }
+    validar_salida(entrada, propuesta)
+    return propuesta
 
 
 def main() -> int:
@@ -345,20 +363,14 @@ def main() -> int:
     print(f"Tema.............................. {entrada['parte']} {entrada['numero_tema']}")
     print(f"Pseudonorma....................... {entrada['identidad']}")
     print(f"Unidades.......................... {len(entrada['unidades'])}")
+    print("Modo IA........................... UNA LLAMADA POR UNIDAD")
     print("Estado esperado................... PROPUESTA_IA_PARA_REVISION")
     print()
 
-    prompt = construir_prompt(entrada)
-    propuesta = openai_api.seleccionar_fragmento_json(
-        prompt=prompt,
-        modelo=args.modelo,
-        operacion="constructor_pseudonorma_v2_propuesta",
-        max_output_tokens=12000,
-    )
-    validar_salida(entrada, propuesta)
+    propuesta = proponer_por_unidades(entrada, args.modelo)
 
     payload = {
-        "version": 2,
+        "version": 3,
         "naturaleza": "PROPUESTA_CONTENIDO_PSEUDONORMA_IA_V2",
         "modo": "PILOTO_SOLO_LECTURA",
         "pdf": str(pdf),
@@ -370,6 +382,7 @@ def main() -> int:
             "consulta_temario_csv": False,
             "consulta_temario_referencias": False,
             "texto_literal_candidatos_locales": True,
+            "procesamiento_ia_por_unidad": True,
             "aceptacion_automatica": False,
             "urls_externas_generadas_por_ia": False,
             "requiere_verificacion_fuentes": True,
@@ -383,6 +396,7 @@ def main() -> int:
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    print()
     print("Resultado validado estructuralmente.")
     for u in propuesta["unidades"]:
         print(

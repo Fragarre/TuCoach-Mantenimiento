@@ -9,6 +9,7 @@ Flujo:
 - en JURIDICO_EXPLICITO usa las normas literales que todavía requieren delimitar;
 - en JURIDICO_DELIMITABLE el revisor elige explícitamente las normas (las candidatas
   son sólo ayuda; se admite introducir otro norma_id existente en catálogo);
+- mantiene visible el texto oficial del tema durante la selección;
 - muestra la estructura oficial disponible de cada norma como bloques B1..Bn;
 - el revisor selecciona bloques y puede añadir/excluir artículos;
 - materializa la decisión en un JSON trazable, sin persistencia consolidada.
@@ -150,7 +151,21 @@ def descripcion_bloque(b: dict) -> str:
     return f"{pref}{b['tipo']} {b['texto']} | n={len(arts)} | {rango}"
 
 
-def seleccionar_alcance_norma(nid: int, nombre: str, fuentes: dict[int, list[str]]) -> dict:
+def mostrar_contexto_tema(texto_oficial: str) -> None:
+    print("\n" + "=" * 78)
+    print("TEXTO OFICIAL DEL TEMA")
+    print("=" * 78)
+    print(texto_oficial)
+    print("=" * 78)
+
+
+def seleccionar_alcance_norma(
+    nid: int,
+    nombre: str,
+    fuentes: dict[int, list[str]],
+    texto_oficial: str,
+) -> dict:
+    mostrar_contexto_tema(texto_oficial)
     print("\n" + "-" * 78)
     print(f"NORMA [{nid}] {nombre}")
     fid, origen, bloques = cargar_bloques_norma(nid, fuentes)
@@ -172,7 +187,8 @@ def seleccionar_alcance_norma(nid: int, nombre: str, fuentes: dict[int, list[str
     for i, b in enumerate(bloques, 1):
         print(f"    B{i:<3} {descripcion_bloque(b)}")
 
-    print("\n  Selecciona bloques por número: p.ej. 2,5,8. Enter = ninguno.")
+    mostrar_contexto_tema(texto_oficial)
+    print("  Selecciona bloques por número: p.ej. 2,5,8. Enter = ninguno.")
     while True:
         bruto = input("  Bloques: ").strip()
         try:
@@ -191,6 +207,7 @@ def seleccionar_alcance_norma(nid: int, nombre: str, fuentes: dict[int, list[str
             if art not in articulos:
                 articulos.append(art)
 
+    mostrar_contexto_tema(texto_oficial)
     incluidos = parse_articulos(input("  Artículos adicionales (opcional): ").strip())
     excluidos = parse_articulos(input("  Artículos a excluir (opcional): ").strip())
 
@@ -244,7 +261,7 @@ def main() -> int:
     print("=" * 78)
     print(f"Tema............................. {tema['parte']} {tema['numero_tema']}")
     print(f"Clasificación.................... {tema['clasificacion_v2']}")
-    print(f"Texto oficial.................... {tema['texto_oficial']}")
+    mostrar_contexto_tema(tema["texto_oficial"])
 
     ya_resueltos = []
     if tema["clasificacion_v2"] == "JURIDICO_EXPLICITO":
@@ -265,8 +282,9 @@ def main() -> int:
         print("\nCandidatas orientativas (NO son decisión):")
         for c in tema.get("normas_candidatas", []):
             print(f"  [{c['norma_id']}] {c['nombre_canonico']} | score={c.get('score_contenido')}")
+        mostrar_contexto_tema(tema["texto_oficial"])
         while True:
-            bruto = input("\nNorma_id aceptadas para este tema (separadas por coma): ").strip()
+            bruto = input("Norma_id aceptadas para este tema (separadas por coma): ").strip()
             try:
                 normas_elegidas = parse_ids(bruto)
                 validar_normas(catalogo, normas_elegidas)
@@ -280,7 +298,14 @@ def main() -> int:
 
     decisiones = []
     for nid in normas_elegidas:
-        decisiones.append(seleccionar_alcance_norma(nid, nombre_norma(catalogo, nid), fuentes))
+        decisiones.append(
+            seleccionar_alcance_norma(
+                nid,
+                nombre_norma(catalogo, nid),
+                fuentes,
+                tema["texto_oficial"],
+            )
+        )
 
     completo = bool(decisiones) and all(x["estado"] == "REVISADO" for x in decisiones)
     salida_payload = {

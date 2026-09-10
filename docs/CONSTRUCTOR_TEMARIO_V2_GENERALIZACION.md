@@ -44,7 +44,17 @@ Se resuelven las referencias jurídicas que aparecen literalmente en el temario 
 
 ### 2.3. `JURIDICO_DELIMITABLE`
 
-El Constructor puede proponer normas y artículos adicionales cuando exista evidencia suficiente, pero una inferencia no demostrada permanece en revisión.
+La automatización completa `texto del tema -> norma -> bloque/artículos` no se considera validada.
+
+El Constructor puede:
+
+- clasificar el tema como delimitable;
+- proponer normas candidatas para revisión;
+- mostrar la estructura jurídica oficial disponible de una norma seleccionada;
+- materializar automáticamente los artículos contenidos en los bloques que el revisor seleccione;
+- permitir ajustes artículo a artículo cuando el alcance oficial no coincida exactamente con un bloque estructural completo.
+
+La selección de norma, bloque o artículos inferidos requiere decisión humana explícita. Un delimitable no revisado debe permanecer en estado `PENDIENTE_REVISION_HUMANA`.
 
 ### 2.4. `JURIDICO_DOCTRINAL_TRANSVERSAL`
 
@@ -165,10 +175,10 @@ clasificar alcance de cada tema
 ┌───────────────────────────────┬──────────────────────────────┐
 │ jurídico explícito/delimitable│ doctrinal transversal       │
 │                               │                              │
-│ resolver norma/artículo       │ construir pseudonorma       │
-│ verificar fuente oficial      │ proponer fuentes             │
-│ revisar incidencias           │ recuperar evidencia          │
-│                               │ revisión humana pertinencia  │
+│ explícito: resolver citas     │ construir pseudonorma       │
+│ delimitable: revisión humana  │ proponer fuentes             │
+│ de norma/bloques/artículos    │ recuperar evidencia          │
+│ verificar fuente oficial      │ revisión humana pertinencia  │
 └───────────────────────────────┴──────────────────────────────┘
         ↓
 auditoría de cada resultado
@@ -193,19 +203,79 @@ No se debe conectar automáticamente la salida V2 con las tablas consolidadas ha
 
 Las pseudonormas no se almacenarán en `normas` como si fueran legislación real.
 
-## 11. Siguiente incremento
+## 11. Contrato común de salida V2
 
-El siguiente incremento de desarrollo es crear un **orquestador general de análisis** que reciba una convocatoria/PDF y produzca un manifiesto de trabajo V2 con el estado de cada tema y las acciones siguientes, reutilizando los scripts existentes.
+Cada tema debe producir un resultado estructurado común, independientemente del camino seguido.
 
-Ese orquestador será inicialmente de solo lectura y no tomará decisiones humanas ni ejecutará persistencia.
+Campos mínimos conceptuales:
+
+- `parte`;
+- `numero_tema`;
+- `texto_oficial`;
+- `clasificacion_v2`;
+- `estado_v2`;
+- `requiere_revision_humana`;
+- `normas`;
+- `articulos`;
+- `fuentes`;
+- `evidencia`;
+- `incidencias`;
+- `trazabilidad`.
+
+Estados generales previstos:
+
+- `RESUELTO_MECANICAMENTE`: el alcance procede de referencias explícitas verificadas y no existe una inferencia jurídica pendiente;
+- `PENDIENTE_REVISION_HUMANA`: existe una decisión jurídica que el sistema no puede tomar con fiabilidad suficiente;
+- `PENDIENTE_FUENTE`: falta recuperar o verificar una fuente necesaria;
+- `PENDIENTE_SINTESIS`: la evidencia está disponible pero el camino doctrinal todavía no ha completado su síntesis;
+- `ACEPTABLE_FORMALMENTE`: ha superado los controles aplicables de su camino y puede pasar a una futura fase separada de persistencia;
+- `BLOQUEADO_INCIDENCIA`: existe una inconsistencia o carencia que impide continuar de forma segura.
+
+Reglas por clasificación:
+
+### `NO_JURIDICO`
+
+- no inventa `normas` ni `articulos`;
+- puede cerrar mecánicamente su clasificación si no existen incidencias estructurales;
+- no se fuerza artificialmente a producir referencias jurídicas.
+
+### `JURIDICO_EXPLICITO`
+
+- las normas y artículos deben proceder de referencias literales del temario y de fuentes verificadas;
+- si una referencia no puede resolverse inequívocamente, el tema no se declara resuelto y queda pendiente de revisión o fuente según la causa;
+- una coincidencia léxica nunca sustituye una referencia jurídica comprobada.
+
+### `JURIDICO_DELIMITABLE`
+
+- no se acepta automáticamente una norma, bloque estructural o artículo inferido;
+- las propuestas automáticas son auxiliares y no constituyen decisión jurídica;
+- la salida inicial normal es `PENDIENTE_REVISION_HUMANA`;
+- tras la decisión humana, el sistema puede materializar mecánicamente los artículos incluidos en los bloques seleccionados y permitir inclusiones/exclusiones individuales;
+- la decisión humana debe quedar registrada de forma estructurada y trazable.
+
+### `JURIDICO_DOCTRINAL_TRANSVERSAL`
+
+- mantiene el contrato ya validado de pseudonormas;
+- la pertinencia de relaciones y fuentes requiere revisión humana donde corresponda;
+- sólo alcanza `ACEPTABLE_FORMALMENTE` después de superar su auditoría final.
+
+La existencia de un contrato común NO implica que todos los tipos de tema tengan el mismo grado de automatización. El estado debe reflejar expresamente dónde termina la automatización fiable y dónde comienza la revisión humana.
+
+Este contrato es conceptual mientras no se valide su representación concreta en el manifiesto general. No autoriza cambios de esquema ni escritura en las tablas consolidadas.
+
+## 12. Siguiente incremento
+
+El siguiente incremento de desarrollo es adaptar el **orquestador general de análisis** para que reciba una convocatoria/PDF y produzca un manifiesto de trabajo V2 conforme al contrato común anterior, reutilizando los scripts existentes.
+
+Ese orquestador seguirá siendo de solo lectura y no tomará decisiones humanas ni ejecutará persistencia.
 
 El manifiesto deberá permitir saber, para cada tema, si está:
 
 - resuelto mecánicamente;
 - pendiente de recuperación de fuente;
-- pendiente de revisión jurídica;
+- pendiente de revisión humana;
 - pendiente de síntesis;
 - formalmente aceptable;
 - bloqueado por incidencia.
 
-Sólo después de validar este orquestador se abordará la integración en `menu_mantenimiento.py` y la fase de escritura.
+Antes de integrar nada en `menu_mantenimiento.py` o diseñar la fase de escritura, deberá comprobarse con una convocatoria patrón que el manifiesto representa correctamente los cuatro caminos sin ocultar decisiones humanas pendientes.

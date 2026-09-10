@@ -1,8 +1,10 @@
-"""Smoke de integración segura del Constructor V2 con una convocatoria existente."""
+"""Smoke aislado de integración segura del Constructor V2 con una convocatoria."""
 from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -12,7 +14,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 DB = RAIZ / "db" / "oposiciones.sqlite3"
 SCRIPT = RAIZ / "scripts" / "gestionar_constructor_v2_convocatoria.py"
 PDF = RAIZ / "data_convocatorias" / "CONV_A1-01_01_26" / "temario_A1.pdf"
-CODIGO = "A1-01_01_26"
+CODIGO = "A1-V2-SMOKE"
 
 
 def sha(path: Path) -> str:
@@ -23,6 +25,55 @@ def sha(path: Path) -> str:
     return h.hexdigest()
 
 
+def preparar_identidad(copia: Path) -> tuple[int, int]:
+    con = sqlite3.connect(copia)
+    try:
+        con.execute("PRAGMA foreign_keys=ON")
+        cols = {str(r[1]) for r in con.execute("PRAGMA table_info(convocatorias)")}
+        ahora = "2026-09-10 00:00:00"
+        campos = [
+            "puesto", "numero", "anio", "codigo", "numero_preguntas", "tiene_partes",
+            "valoracion_test_acierto", "valoracion_test_fallo", "valoracion_test_no_contesta",
+            "formula_nota", "factor_escala_nota", "temario_csv", "examen_modelo",
+            "created_at", "updated_at",
+        ]
+        valores = [
+            "Smoke V2", "SMOKE", 2026, CODIGO, 1, 0,
+            1.0, 0.3333, 0.0, "smoke", 10.0, "temario.csv", "", ahora, ahora,
+        ]
+        if "activa" in cols:
+            campos.append("activa")
+            valores.append(1)
+        marcas = ",".join("?" for _ in campos)
+        cur = con.execute(
+            f"INSERT INTO convocatorias({','.join(campos)}) VALUES({marcas})",
+            tuple(valores),
+        )
+        cid = int(cur.lastrowid)
+
+        tcols = {str(r[1]) for r in con.execute("PRAGMA table_info(temarios)")}
+        if not {"convocatoria_id", "nombre"}.issubset(tcols):
+            raise RuntimeError("Esquema de temarios no compatible con el smoke.")
+        tcampos = ["convocatoria_id", "nombre"]
+        tvalores: list[object] = [cid, "Temario smoke V2"]
+        if "created_at" in tcols:
+            tcampos.append("created_at")
+            tvalores.append(ahora)
+        if "updated_at" in tcols:
+            tcampos.append("updated_at")
+            tvalores.append(ahora)
+        tmarcas = ",".join("?" for _ in tcampos)
+        cur = con.execute(
+            f"INSERT INTO temarios({','.join(tcampos)}) VALUES({tmarcas})",
+            tuple(tvalores),
+        )
+        tid = int(cur.lastrowid)
+        con.commit()
+        return cid, tid
+    finally:
+        con.close()
+
+
 def main() -> int:
     if not DB.is_file():
         raise RuntimeError(f"No existe la BD real: {DB}")
@@ -31,13 +82,18 @@ def main() -> int:
 
     antes = sha(DB)
     with tempfile.TemporaryDirectory(prefix="v2_conv_") as td:
-        salida = Path(td) / "manifiesto.json"
+        carpeta = Path(td)
+        copia = carpeta / "oposiciones.sqlite3"
+        salida = carpeta / "manifiesto.json"
+        shutil.copy2(DB, copia)
+        cid, tid = preparar_identidad(copia)
+
         r = subprocess.run(
             [
                 sys.executable, str(SCRIPT),
                 "--codigo", CODIGO,
                 "--pdf", str(PDF),
-                "--db", str(DB),
+                "--db", str(copia),
                 "--salida-json", str(salida),
             ],
             cwd=RAIZ,
@@ -56,10 +112,10 @@ def main() -> int:
         ident = m.get("convocatoria") or {}
         if ident.get("codigo") != CODIGO:
             raise RuntimeError("El manifiesto no conserva el código de convocatoria.")
-        if not isinstance(ident.get("convocatoria_id"), int):
-            raise RuntimeError("El manifiesto no identifica convocatoria_id.")
-        if not isinstance(ident.get("temario_id"), int):
-            raise RuntimeError("El manifiesto no identifica temario_id.")
+        if int(ident.get("convocatoria_id") or 0) != cid:
+            raise RuntimeError("El manifiesto no conserva convocatoria_id.")
+        if int(ident.get("temario_id") or 0) != tid:
+            raise RuntimeError("El manifiesto no conserva temario_id.")
         if m.get("naturaleza") != "MANIFIESTO_CONVOCATORIA_CONSTRUCTOR_V2":
             raise RuntimeError("Naturaleza del manifiesto incorrecta.")
         reglas = m.get("reglas") or {}
@@ -78,12 +134,13 @@ def main() -> int:
     print("=" * 78)
     print("SMOKE INTEGRACION CONVOCATORIA V2: OK")
     print("=" * 78)
-    print("Convocatoria identificada......... OK")
-    print("Temario identificado............... OK")
-    print("PDF oficial analizado.............. OK")
-    print("Manifiesto V2...................... OK")
-    print("Contrato solo lectura.............. OK")
-    print("BD real............................ SIN CAMBIOS")
+    print("Convocatoria temporal identificada. OK")
+    print("Temario temporal identificado....... OK")
+    print("PDF oficial patrón analizado........ OK")
+    print("Manifiesto V2....................... OK")
+    print("Contrato solo lectura............... OK")
+    print("Dependencia de códigos reales....... NO")
+    print("BD real............................. SIN CAMBIOS")
     return 0
 
 

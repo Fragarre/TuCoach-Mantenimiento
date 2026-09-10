@@ -2,8 +2,12 @@
 Constructor Temario V2 - cargar un manifiesto V2 aprobado en persistencia.
 
 Por defecto SOLO REVISION: valida y muestra qué escribiría. Con --aplicar escribe
-únicamente en las cinco tablas V2 aditivas. No modifica temarios, temario_temas,
+únicamente en las tablas V2 aditivas. No modifica temarios, temario_temas,
 temario_referencias, normas, articulos_fuente, bancos ni corpus existente.
+
+Si el tema aporta `pseudonorma_codigo`, esa identidad estable se conserva. Para
+manifiestos anteriores que no tengan ese campo se mantiene el identificador legado
+`PSEUDO:{PARTE}_{TEMA}`.
 """
 from __future__ import annotations
 
@@ -79,6 +83,15 @@ def planificar(data: dict, con: sqlite3.Connection, convocatoria: str) -> list[d
             raise RuntimeError(f"No existe temario_temas para {clave[0]} {clave[1]} en {convocatoria}.")
         operaciones.append({"tema_id": tema_id, "item": item})
     return operaciones
+
+
+def codigo_pseudonorma(item: dict) -> str:
+    explicito = str(item.get("pseudonorma_codigo") or "").strip()
+    if explicito:
+        if not explicito.startswith("PSEUDO:"):
+            raise RuntimeError(f"pseudonorma_codigo inválido: {explicito}")
+        return explicito
+    return f"PSEUDO:{str(item.get('parte')).upper()}_{int(item.get('numero_tema')):02d}"
 
 
 def upsert_pseudonorma(con, tema_id: int, codigo: str, estado: str) -> int:
@@ -163,7 +176,7 @@ def upsert_respaldo_local(con, pseudoarticulo_id: int, articulo_fuente_id: int, 
 def cargar_operacion(con, op: dict) -> None:
     item = op["item"]
     tema_id = op["tema_id"]
-    codigo_pn = f"PSEUDO:{str(item.get('parte')).upper()}_{int(item.get('numero_tema')):02d}"
+    codigo_pn = codigo_pseudonorma(item)
     pid = upsert_pseudonorma(con, tema_id, codigo_pn, str(item.get("estado_v2") or "PENDIENTE"))
 
     for orden, p in enumerate(item.get("pseudoarticulos") or [], 1):
@@ -182,8 +195,6 @@ def cargar_operacion(con, op: dict) -> None:
                  str(prop.get("tipo") or "MIXTO"),str(prop.get("estado") or "PROPUESTA"))
             )
 
-        # Sólo candidatos locales como respaldos PROPUESTA. No se convierten en
-        # referencias reales del temario y una recarga no duplica filas.
         for c in p.get("candidatos_locales_prioritarios") or []:
             aid = int(c["articulo_fuente_id"])
             existe = con.execute("SELECT 1 FROM articulos_fuente WHERE id=?", (aid,)).fetchone()
@@ -191,9 +202,6 @@ def cargar_operacion(con, op: dict) -> None:
                 raise RuntimeError(f"articulo_fuente_id inexistente: {aid}")
             upsert_respaldo_local(con, paid, aid, str(c.get("motivo") or ""))
 
-        # Las fuentes ya verificadas/materializadas se registran en su catálogo.
-        # El enlace fuente->pseudoartículo se incorporará cuando la etapa de
-        # verificación produzca respaldos externos con evidencia trazable.
         for f in p.get("fuentes") or []:
             if not isinstance(f, dict):
                 continue
@@ -204,8 +212,6 @@ def cargar_operacion(con, op: dict) -> None:
             nombre = str(f.get("nombre"))
             tipo = str(f.get("tipo_fuente") or "FUENTE_INSTITUCIONAL")
 
-            # SQLite considera distintos varios NULL dentro de UNIQUE. Para no
-            # duplicar fuentes sin identificador, se hace búsqueda explícita.
             if identificador is None:
                 existente = con.execute(
                     """
@@ -275,6 +281,8 @@ def main() -> int:
     print(f"Modo............................. {'APLICAR' if args.aplicar else 'SOLO REVISION'}")
     print(f"Temas con pseudonorma............ {len(ops)}")
     print(f"Pseudoartículos.................. {sum(len(x['item'].get('pseudoarticulos') or []) for x in ops)}")
+    for op in ops:
+        print(f"  {op['item'].get('parte')} {op['item'].get('numero_tema')}: {codigo_pseudonorma(op['item'])}")
 
     if not args.aplicar:
         print("No se ha modificado la base de datos.")

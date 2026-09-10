@@ -85,18 +85,25 @@ def localizar_tema(data: dict, parte: str, numero: int) -> dict:
     return temas[0]
 
 
-def validar_seguridad(data: dict) -> None:
+def validar_seguridad(data: dict, *, exigir_reglas_orquestador: bool) -> None:
     reglas = data.get("reglas") or {}
-    for clave in (
+    claves_base = (
         "modifica_bd",
         "modifica_corpus",
         "modifica_temario_csv",
         "modifica_bancos",
         "aceptacion_juridica_automatica",
-        "dudosos_promocion_automatica",
-    ):
+    )
+    for clave in claves_base:
         if reglas.get(clave) is not False:
             raise RuntimeError(f"Regla de seguridad incumplida: {clave}")
+
+    # Esta regla pertenece al manifiesto ya preparado por el orquestador.
+    # El manifiesto inicial declara la regla semánticamente equivalente
+    # dudoso_no_equivale_a_incidencia=True, pero aún no tiene por qué contener
+    # la clave específica añadida por completar_manifiesto_pseudonormas_v2.py.
+    if exigir_reglas_orquestador and reglas.get("dudosos_promocion_automatica") is not False:
+        raise RuntimeError("Regla de seguridad incumplida: dudosos_promocion_automatica")
 
 
 def validar_tema_53(data: dict) -> dict:
@@ -151,7 +158,7 @@ def main() -> int:
     ])
 
     inicial = cargar(MANIFIESTO_INICIAL)
-    validar_seguridad(inicial)
+    validar_seguridad(inicial, exigir_reglas_orquestador=False)
     inicial_53 = localizar_tema(inicial, "ESPECIAL", 53)
     if inicial_53.get("clasificacion_v2") != "JURIDICO_DOCTRINAL_TRANSVERSAL":
         raise RuntimeError(
@@ -169,7 +176,7 @@ def main() -> int:
     ])
 
     completado = cargar(MANIFIESTO_53)
-    validar_seguridad(completado)
+    validar_seguridad(completado, exigir_reglas_orquestador=True)
     tema_53 = validar_tema_53(completado)
 
     # Segunda pasada: no debe volver a ejecutar IA sobre el tema ya completado.
@@ -183,7 +190,7 @@ def main() -> int:
     ])
 
     reanudado = cargar(MANIFIESTO_REANUDADO)
-    validar_seguridad(reanudado)
+    validar_seguridad(reanudado, exigir_reglas_orquestador=True)
     tema_53_reanudado = validar_tema_53(reanudado)
     if tema_53_reanudado != tema_53:
         raise RuntimeError(

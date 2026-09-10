@@ -91,7 +91,7 @@ def normalizar(data: dict) -> dict:
         unidad["candidatos_locales_probablemente_no_pertinentes"] = descartables
 
         print(
-            f"  {codigo} | prioritarios={len(prioritar ios)} | "
+            f"  {codigo} | prioritarios={len(prioritarios)} | "
             f"descartables={len(descartables)} | dudosos={dudosos}"
         )
 

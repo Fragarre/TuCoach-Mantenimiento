@@ -43,8 +43,8 @@ SCRIPTS = ROOT / "scripts"
 REGISTROS = ROOT / "registros"
 INFORME = REGISTROS / "materiales_estudio_ultima_ejecucion.json"
 
-MODELO_TRABAJO_DEFECTO = "gpt-5.4-mini"
-MODELO_VALIDACION_DEFECTO = "gpt-5.4-mini"
+MODELO_TRABAJO_DEFECTO = "gpt-5.4-nano"
+MODELO_VALIDACION_DEFECTO = "gpt-5.4-nano"
 MAX_CHARS_BLOQUE = 7500
 VERSION_FORMATO = "resumen-estudio-v1"
 

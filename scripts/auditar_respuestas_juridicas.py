@@ -221,7 +221,7 @@ def main():
     ap.add_argument('--auditar', action='store_true', help='Ejecuta auditoría semántica por API. Sin este parámetro solo mide cobertura.')
     ap.add_argument('--limite', type=int, default=None)
     ap.add_argument('--fuente', default=None)
-    ap.add_argument('--modelo', default='gpt-5.4-mini')
+    ap.add_argument('--modelo', default='gpt-5.4-nano')
     args=ap.parse_args()
     if not args.db.is_file():
         raise SystemExit(f'No existe la base: {args.db}')

@@ -929,7 +929,7 @@ def preparar_publicacion_web_menu() -> None:
     print("NetReto-Web NO se modificará.")
 
     if pedir_si_no("¿Preparar una nueva publicación para NetReto-Web?"):
-        ejecutar_script("publicar_contenidos_web.py")
+        ejecutar_script("publicar_contenidos_web_v2.py")
 
     pausa()
 
@@ -1107,7 +1107,7 @@ def actualizar_publicacion_supabase_menu() -> None:
     print()
     print("Este proceso:")
     print("- valida el snapshot y su SHA256.")
-    print("- sustituye las 16 tablas publicables en UNA transacción.")
+    print("- sustituye las 16/22 tablas publicables segun contrato en UNA transacción.")
     print("- hace rollback completo si la carga o validación falla.")
     print("- NO modifica auth.*, profiles, subscriptions ni datos de usuario.")
     print("- NO modifica simulacros ni tests guardados.")
@@ -1125,7 +1125,7 @@ def actualizar_publicacion_supabase_menu() -> None:
         return
 
     ejecutar_script_supabase(
-        "actualizar_contenidos_supabase.py",
+        "actualizar_contenidos_supabase_v2.py",
         str(snapshot),
         "--env",
         str(ruta_env),

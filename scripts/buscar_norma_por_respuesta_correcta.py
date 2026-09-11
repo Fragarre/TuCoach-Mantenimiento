@@ -16,7 +16,7 @@ Uso:
     python scripts\\buscar_norma_por_respuesta_correcta.py
     python scripts\\buscar_norma_por_respuesta_correcta.py --limite 20
     python scripts\\buscar_norma_por_respuesta_correcta.py --id 5119
-    python scripts\\buscar_norma_por_respuesta_correcta.py --modelo gpt-5.4-mini
+    python scripts\\buscar_norma_por_respuesta_correcta.py --modelo gpt-5.4-nano
     python scripts\\buscar_norma_por_respuesta_correcta.py --db db\\oposiciones.sqlite3
 """
 
@@ -35,7 +35,7 @@ from openai_api import seleccionar_fragmento
 
 RAIZ = Path(__file__).resolve().parent.parent
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
-MODELO_DEFECTO = "gpt-5.4-mini"
+MODELO_DEFECTO = "gpt-5.4-nano"
 
 
 def limpiar(valor: object) -> str:

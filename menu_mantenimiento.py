@@ -1930,13 +1930,12 @@ def submenu_convocatorias() -> None:
         print("4. Importar/sincronizar temario.csv existente         [AVANZADO]")
         print("5. Construir/validar corpus IA + RAG de convocatoria   [BOE + DOGV + DOUE]")
         print("6. Resolver/reparar referencias BOE                   [AVANZADO]")
-        print("7. Auditar corpus jurídico                            [SOLO LECTURA]")
-        print("8. Configurar / modificar modelo de examen            [ESCRIBE · BACKUP]")
-        print("9. Editar partes de convocatoria                      [ESCRIBE · BACKUP]")
-        print("10. Localizar norma / índice / alcance BOE            [CONSULTA WEB]")
-        print("11. Consultar artículo consolidado BOE                [CONSULTA WEB]")
-        print("12. Mantener corpus normativo del Chat                [BOE + DOGV + DOUE]")
-        print("13. Configurar reglas de partes                       [ESCRIBE · BACKUP]")
+        print("7. Configurar / modificar modelo de examen            [ESCRIBE · BACKUP]")
+        print("8. Editar partes de convocatoria                      [ESCRIBE · BACKUP]")
+        print("9. Localizar norma / índice / alcance BOE             [CONSULTA WEB]")
+        print("10. Consultar artículo consolidado BOE                [CONSULTA WEB]")
+        print("11. Mantener corpus normativo del Chat                [BOE + DOGV + DOUE]")
+        print("12. Configurar reglas de partes                       [ESCRIBE · BACKUP]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -1944,12 +1943,12 @@ def submenu_convocatorias() -> None:
             "1":extraer_temario_convocatoria, "2":alta_convocatoria,
             "3":gestionar_estado_convocatoria_menu,
             "4":importar_temario_manual, "5":construir_corpus,
-            "6":resolver_referencias_boe_menu, "7":auditar_corpus_temario_menu,
-            "8":configurar_modelo_examen_menu, "9":editar_partes_convocatoria_menu,
-            "10":localizador_normativa_menu,
-            "11":consultar_articulo_boe_menu,
-            "12":mantener_corpus_chat_menu,
-            "13":configurar_reglas_partes_menu,
+            "6":resolver_referencias_boe_menu,
+            "7":configurar_modelo_examen_menu, "8":editar_partes_convocatoria_menu,
+            "9":localizador_normativa_menu,
+            "10":consultar_articulo_boe_menu,
+            "11":mantener_corpus_chat_menu,
+            "12":configurar_reglas_partes_menu,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -2002,21 +2001,18 @@ def submenu_bancos() -> None:
         cabecera_submenu(
             "4. BANCOS DE PREGUNTAS · AVANZADO",
             "El flujo normal sincroniza todos los bancos automáticamente. "
-            "Estas opciones son para diagnóstico o intervención concreta.",
+            "Estas opciones son para intervención concreta sobre los bancos.",
         )
         print("1. Actualizar UN banco                                [VISTA PREVIA → GUARDAR]")
-        print("2. Auditar UN banco                                   [SOLO LECTURA]")
-        print("3. Auditar selección de TODOS los bancos              [SOLO LECTURA]")
-        print("4. Auditoría global lote ↔ banco                      [SOLO LECTURA]")
-        print("5. Reparar asignación de partes                       [REVISIÓN → BACKUP/APLICAR]")
-        print("6. Depurar obsoletas/incompletas de TODOS los bancos [REVISIÓN → BACKUP/APLICAR]")
+        print("2. Reparar asignación de partes                       [REVISIÓN → BACKUP/APLICAR]")
+        print("3. Depurar obsoletas/incompletas de TODOS los bancos [REVISIÓN → BACKUP/APLICAR]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
         acciones={
-            "1":actualizar_banco, "2":auditar_banco,
-            "3":auditar_bancos_seleccion_menu, "4":auditar_consistencia_global_menu,
-            "5":reparar_partes_banco_menu, "6":depurar_bancos_vigencia_normalizacion_menu,
+            "1":actualizar_banco,
+            "2":reparar_partes_banco_menu,
+            "3":depurar_bancos_vigencia_normalizacion_menu,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -2039,6 +2035,7 @@ def submenu_auditorias() -> None:
         print("8. Auditar posibles objetos obsoletos                 [SOLO LECTURA]")
         print("9. Inventariar denominaciones de normas               [SOLO LECTURA]")
         print("10. Buscar norma por respuesta correcta               [IA · DIAGNÓSTICO]")
+        print("11. Auditar materiales de estudio                     [SOLO LECTURA]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -2048,6 +2045,7 @@ def submenu_auditorias() -> None:
             "5":auditar_consistencia_global_menu, "6":auditar_estructura_banco_menu,
             "7":auditar_corpus_temario_menu, "8":auditar_esquema_menu,
             "9":inventariar_normas_menu, "10":buscar_norma_respuesta_correcta_menu,
+            "11":auditar_materiales_estudio_menu,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -2133,8 +2131,7 @@ def submenu_administracion() -> None:
         print("4. Actualizar contenidos Web en Supabase              [VALIDAR → TRANSACCIÓN → VERIFICAR]")
         print("5. Limpiar logs/auditorías temporales                 [VISTA PREVIA → APLICAR]")
         print("6. Mostrar componentes internos                       [INFORMATIVO]")
-        print("7. Auditar materiales de estudio                      [SOLO LECTURA]")
-        print("8. Actualizar materiales de estudio                   [PLAN → VALIDAR RAG → IA → BACKUP → PDF]")
+        print("7. Actualizar materiales de estudio                   [PLAN → VALIDAR RAG → IA → BACKUP → PDF]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -2145,8 +2142,7 @@ def submenu_administracion() -> None:
             "4":actualizar_publicacion_supabase_menu,
             "5":limpiar_temporales_menu,
             "6":mostrar_componentes_internos,
-            "7":auditar_materiales_estudio_menu,
-            "8":actualizar_materiales_estudio_menu,
+            "7":actualizar_materiales_estudio_menu,
         }
         fn=acciones.get(op)
         if fn: fn()
@@ -2164,7 +2160,7 @@ def mostrar_menu() -> None:
     print("1. Flujo habitual                    Operaciones completas")
     print("2. Convocatorias, temarios y corpus  Estructura oficial y normativa")
     print("3. Preguntas e importaciones          Herramientas parciales/avanzadas")
-    print("4. Bancos de preguntas                Diagnóstico/intervención avanzada")
+    print("4. Bancos de preguntas                Intervención avanzada")
     print("5. Auditorías y diagnóstico           Verificación y regresión")
     print("6. Administración                     Streamlit / Web local / limpieza")
     print("0. Salir")

@@ -5,3 +5,4 @@ requests
 pypdf
 beautifulsoup4
 reportlab
+psycopg[binary]

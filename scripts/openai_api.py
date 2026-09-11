@@ -64,10 +64,6 @@ PRECIOS = {
         "input": 2.50,
         "output": 15.00,
     },
-    "gpt-5.4-mini": {
-        "input": 0.75,
-        "output": 4.50,
-    },
     "gpt-5.4-nano": {
         "input": 0.20,
         "cached_input": 0.02,

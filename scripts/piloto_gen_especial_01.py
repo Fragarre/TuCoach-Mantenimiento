@@ -9,6 +9,7 @@ La fuente de identidad del piloto es la carpeta real de la convocatoria:
 El script:
 - lee convocatoria.json para obtener el codigo real;
 - localiza ESPECIAL 1 en el CSV disponible de esa carpeta;
+- tolera variantes triviales de puntuacion final en el titulo del mismo tema;
 - si la convocatoria ya esta importada en la BD, cruza tambien su estado;
 - si aun no esta importada, NO falla: trabaja en modo pre-importacion;
 - define de forma reproducible la fuente GEN del piloto;
@@ -22,6 +23,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sqlite3
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -91,6 +93,13 @@ def limpiar(v: object | None) -> str:
     return " ".join(str(v or "").split()).strip()
 
 
+def normalizar_titulo_tema(titulo: str) -> str:
+    """Normaliza solo diferencias triviales de presentacion del mismo titulo."""
+    t = limpiar(titulo)
+    t = re.sub(r"[\s\.:;]+$", "", t)
+    return t.casefold()
+
+
 def cargar_convocatoria(carpeta: Path) -> dict:
     ruta = carpeta / "convocatoria.json"
     if not ruta.is_file():
@@ -114,14 +123,11 @@ def cargar_convocatoria(carpeta: Path) -> dict:
 def localizar_csv_temario(carpeta: Path, datos: dict) -> Path:
     candidatos: list[Path] = []
 
-    # 1. Ruta declarada por la propia convocatoria, si existe fisicamente.
     temario = datos.get("temario") or {}
     declarada = limpiar(temario.get("csv"))
     if declarada:
-        ruta_declarada = RAIZ / Path(declarada)
-        candidatos.append(ruta_declarada)
+        candidatos.append(RAIZ / Path(declarada))
 
-    # 2. Nombres reales actualmente presentes en la carpeta del piloto.
     candidatos.extend(
         [
             carpeta / "temario.csv",
@@ -145,7 +151,7 @@ def localizar_csv_temario(carpeta: Path, datos: dict) -> Path:
     )
 
 
-def leer_especial_1(ruta_csv: Path) -> tuple[str, list[dict[str, str]]]:
+def leer_especial_1(ruta_csv: Path) -> tuple[str, list[dict[str, str]], list[str]]:
     ultimo_error: Exception | None = None
     for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin-1"):
         try:
@@ -161,13 +167,32 @@ def leer_especial_1(ruta_csv: Path) -> tuple[str, list[dict[str, str]]]:
                 raise RuntimeError(
                     f"No existe {PARTE} {TEMA} en {ruta_csv}."
                 )
-            titulos = {limpiar(f.get("titulo")) for f in filas if limpiar(f.get("titulo"))}
-            if len(titulos) != 1:
+
+            titulos_originales = sorted({
+                limpiar(f.get("titulo"))
+                for f in filas
+                if limpiar(f.get("titulo"))
+            })
+            if not titulos_originales:
                 raise RuntimeError(
-                    f"{PARTE} {TEMA} no tiene un titulo inequivoco en {ruta_csv}: "
-                    f"{sorted(titulos)}"
+                    f"{PARTE} {TEMA} no tiene titulo en {ruta_csv}."
                 )
-            return next(iter(titulos)), filas
+
+            grupos: dict[str, list[str]] = {}
+            for titulo in titulos_originales:
+                grupos.setdefault(normalizar_titulo_tema(titulo), []).append(titulo)
+
+            if len(grupos) != 1:
+                raise RuntimeError(
+                    f"{PARTE} {TEMA} contiene titulos materialmente distintos en {ruta_csv}: "
+                    f"{titulos_originales}"
+                )
+
+            titulo_canonico = max(
+                titulos_originales,
+                key=lambda x: (x.endswith(":"), len(x)),
+            )
+            return titulo_canonico, filas, titulos_originales
         except UnicodeDecodeError as exc:
             ultimo_error = exc
 
@@ -187,10 +212,7 @@ def tabla_existe(con: sqlite3.Connection, tabla: str) -> bool:
     ).fetchone() is not None
 
 
-def localizar_en_bd(
-    db: Path,
-    codigo: str,
-) -> dict:
+def localizar_en_bd(db: Path, codigo: str) -> dict:
     resultado = {
         "convocatoria_importada": False,
         "convocatoria_id": None,
@@ -223,10 +245,7 @@ def localizar_en_bd(
         resultado["convocatoria_importada"] = True
         resultado["convocatoria_id"] = int(conv[0])
 
-        if not all(
-            tabla_existe(con, t)
-            for t in ("temarios", "temario_temas")
-        ):
+        if not all(tabla_existe(con, t) for t in ("temarios", "temario_temas")):
             resultado["aviso"] = "La convocatoria existe, pero faltan tablas de temario."
             return resultado
 
@@ -327,7 +346,7 @@ def main() -> int:
     datos = cargar_convocatoria(carpeta)
     codigo = limpiar((datos.get("convocatoria") or {}).get("codigo"))
     ruta_csv = localizar_csv_temario(carpeta, datos)
-    titulo_csv, filas_es1 = leer_especial_1(ruta_csv)
+    titulo_csv, filas_es1, titulos_variantes = leer_especial_1(ruta_csv)
     estado_bd = localizar_en_bd(db, codigo)
     plan = plan_escritura(codigo, estado_bd.get("tema_id"))
 
@@ -339,6 +358,9 @@ def main() -> int:
     print(f"CSV usado:             {ruta_csv.name}")
     print(f"Tema:                  {PARTE} {TEMA}")
     print(f"Titulo CSV:            {titulo_csv}")
+    if len(titulos_variantes) > 1:
+        print(f"Variantes titulo:      {titulos_variantes}")
+        print("Nota:                   solo difieren en puntuacion final; se consideran el mismo titulo.")
     print(f"Filas actuales ES1:    {len(filas_es1)}")
     print(f"Fuente GEN:            {NOMBRE_GEN}")
     print(f"Identificador fuente:  {ID_FUENTE_GEN}")
@@ -377,22 +399,21 @@ def main() -> int:
 
     print()
     print("MODO SOLO REVISION: 0 escrituras en la base de datos.")
-    print("La generacion del texto y la aplicacion quedan fuera de esta fase.")
+    print("La generacion del texto y la aplicacion quedan deliberadamente fuera de esta fase.")
 
     if args.json:
         print()
-        print(
-            json.dumps(
-                {
-                    "carpeta": str(carpeta),
-                    "csv": str(ruta_csv),
-                    "estado_bd": estado_bd,
-                    "plan": plan,
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        print(json.dumps(
+            {
+                "plan": plan,
+                "estado_bd": estado_bd,
+                "titulo_csv": titulo_csv,
+                "variantes_titulo": titulos_variantes,
+                "filas_especial_1": filas_es1,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ))
 
     return 0
 

@@ -53,7 +53,7 @@ DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 DB_CONTROL_DEFECTO = RAIZ / "db" / "recuperacion_pendientes.sqlite3"
 
 BUSCADOR = SCRIPTS / "buscar_norma_por_respuesta_correcta.py"
-MODELO_DEFECTO = "gpt-5.4-mini"
+MODELO_DEFECTO = "gpt-5.4-nano"
 
 TABLA_CONTROL = "auditoria_busqueda_norma"
 CLAVE_PROCESO = "busqueda_respuesta_correcta_auditoria_v1"

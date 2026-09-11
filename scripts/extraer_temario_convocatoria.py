@@ -164,6 +164,12 @@ def expandir(expr:str)->list[str]:
 def canonical_ley(ley:str)->str:
     return normalizar(ley)
 
+def articulo_raiz(articulo:str)->str:
+    articulo=articulo.strip()
+    if re.fullmatch(r'\d+(?:\.\d+)+',articulo):
+        return articulo.split('.',1)[0]
+    return articulo
+
 def es_a1_2026(temas:list[Tema])->bool:
     claves={(t.parte,t.numero):normalizar(t.texto) for t in temas}
     return (len([k for k in claves if k[0]=='GENERAL'])==15 and
@@ -173,7 +179,7 @@ def es_a1_2026(temas:list[Tema])->bool:
 
 def generar_desde_perfil(temas:list[Tema]):
     tit=titulos_unicos(temas)
-    filas=[]; no_det=[]
+    filas=[]; no_det=[]; vistos={}
     for t in sorted(temas,key=lambda x:(0 if x.parte=='GENERAL' else 1,x.numero)):
         reglas=PERFIL_A1.get((t.parte,t.numero),[])
         titulo=tit[(t.parte,t.numero)]
@@ -182,6 +188,11 @@ def generar_desde_perfil(temas:list[Tema]):
             no_det.append((t.parte,t.numero)); continue
         for ley,expr in reglas:
             for art in expandir(expr):
+                k=(canonical_ley(ley),articulo_raiz(art))
+                tema=(t.parte,t.numero)
+                if k in vistos and vistos[k]!=tema:
+                    continue
+                vistos.setdefault(k,tema)
                 filas.append({'parte':t.parte,'tema':str(t.numero),'titulo':titulo,'LEY':ley,'articulo':art,'tipo':'JURIDICO'})
     return filas,no_det
 
@@ -189,7 +200,7 @@ def validar(filas:list[dict]):
     vistos={}; col=[]
     for f in filas:
         if f['LEY']=='No determinada': continue
-        k=(canonical_ley(f['LEY']),f['articulo'])
+        k=(canonical_ley(f['LEY']),articulo_raiz(f['articulo']))
         tema=(f['parte'],f['tema'])
         if k in vistos and vistos[k]!=tema: col.append((k,vistos[k],tema))
         else: vistos[k]=tema

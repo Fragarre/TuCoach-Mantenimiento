@@ -175,7 +175,7 @@ RUTA_COSTES = RAIZ / "registros" / "coste_ia.csv"
 
 TIPO_FUENTE = "informatica"
 TIPO_CLASIFICACION = "INFORMATICA"
-MODELO = "gpt-5.4-mini"
+MODELO = "gpt-5.4-nano"
 OPERACION_IA = "resolver_preguntas_informatica"
 
 TAMANO_LOTE_IA = 8

@@ -361,9 +361,7 @@ def obtener_pdfs(pdf_indicado: str | None) -> list[Path]:
     )
 
     if not pdfs:
-        raise FileNotFoundError(
-            f"No hay archivos PDF en: {CARPETA_PDF}"
-        )
+        logging.info("SIN PDF PENDIENTES | carpeta=%s", CARPETA_PDF)
 
     return pdfs
 

@@ -4,7 +4,7 @@ Piloto Version 2 - GEN para A1 / ESPECIAL 1.
 FASE ACTUAL: SOLO REVISION.
 
 Objetivo:
-- validar que la convocatoria A1 y ESPECIAL 1 existen en la BD;
+- localizar de forma segura una convocatoria A1 con ESPECIAL 1 en la BD;
 - definir de forma reproducible la fuente GEN del piloto;
 - mostrar exactamente qué artículos GEN se pretenden crear y enlazar;
 - NO modificar la base de datos;
@@ -25,7 +25,6 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[1]
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 
-CODIGO_CONVOCATORIA = "A1-01_01_26"
 PARTE = "ESPECIAL"
 TEMA = 1
 NOMBRE_GEN = "GEN - Las fuentes del derecho administrativo (I)"
@@ -66,6 +65,13 @@ def parser() -> argparse.ArgumentParser:
         description="Piloto GEN A1 ESPECIAL 1 en modo SOLO REVISION."
     )
     p.add_argument("--db", default=str(DB_DEFECTO))
+    p.add_argument(
+        "--codigo",
+        help=(
+            "Código exacto de la convocatoria A1. Si se omite, el script "
+            "localiza automáticamente la única A1 que tenga ESPECIAL 1."
+        ),
+    )
     p.add_argument(
         "--json",
         action="store_true",
@@ -116,40 +122,85 @@ def validar_estructura(con: sqlite3.Connection) -> None:
         raise RuntimeError("Estructura incompatible: " + "; ".join(faltas))
 
 
-def localizar_objetivo(con: sqlite3.Connection) -> tuple[int, int, int, str]:
-    conv = con.execute(
-        "SELECT id FROM convocatorias WHERE codigo=?",
-        (CODIGO_CONVOCATORIA,),
-    ).fetchone()
-    if conv is None:
+def localizar_objetivo(
+    con: sqlite3.Connection,
+    codigo: str | None,
+) -> tuple[int, str, int, int, str]:
+    if codigo:
+        candidatos = con.execute(
+            """
+            SELECT c.id AS convocatoria_id, c.codigo, t.id AS temario_id,
+                   tt.id AS tema_id, tt.titulo AS titulo_tema
+            FROM convocatorias c
+            JOIN temarios t ON t.convocatoria_id = c.id
+            JOIN temario_temas tt ON tt.temario_id = t.id
+            WHERE c.codigo = ?
+              AND UPPER(TRIM(tt.parte)) = ?
+              AND tt.numero_tema = ?
+            ORDER BY c.id, t.id, tt.id
+            """,
+            (codigo.strip(), PARTE, TEMA),
+        ).fetchall()
+        if not candidatos:
+            raise RuntimeError(
+                f"No existe {PARTE} {TEMA} para la convocatoria {codigo!r}."
+            )
+    else:
+        candidatos = con.execute(
+            """
+            SELECT c.id AS convocatoria_id, c.codigo, t.id AS temario_id,
+                   tt.id AS tema_id, tt.titulo AS titulo_tema
+            FROM convocatorias c
+            JOIN temarios t ON t.convocatoria_id = c.id
+            JOIN temario_temas tt ON tt.temario_id = t.id
+            WHERE UPPER(TRIM(c.codigo)) LIKE 'A1%'
+              AND UPPER(TRIM(tt.parte)) = ?
+              AND tt.numero_tema = ?
+            ORDER BY c.id, t.id, tt.id
+            """,
+            (PARTE, TEMA),
+        ).fetchall()
+
+        if not candidatos:
+            codigos_a1 = [
+                str(r[0])
+                for r in con.execute(
+                    "SELECT codigo FROM convocatorias WHERE UPPER(TRIM(codigo)) LIKE 'A1%' ORDER BY id"
+                ).fetchall()
+            ]
+            detalle = ", ".join(codigos_a1) if codigos_a1 else "ninguna"
+            raise RuntimeError(
+                f"No se encontró ninguna convocatoria A1 con {PARTE} {TEMA}. "
+                f"Convocatorias A1 detectadas: {detalle}."
+            )
+
+    unicos: dict[tuple[int, int, int], sqlite3.Row] = {}
+    for fila in candidatos:
+        clave = (
+            int(fila["convocatoria_id"]),
+            int(fila["temario_id"]),
+            int(fila["tema_id"]),
+        )
+        unicos[clave] = fila
+
+    if len(unicos) != 1:
+        opciones = ", ".join(
+            f"{fila['codigo']} (conv={fila['convocatoria_id']}, temario={fila['temario_id']}, tema={fila['tema_id']})"
+            for fila in unicos.values()
+        )
         raise RuntimeError(
-            f"No existe la convocatoria {CODIGO_CONVOCATORIA!r}."
+            "La localización del piloto no es inequívoca. "
+            f"Candidatos: {opciones}. Usa --codigo CODIGO para seleccionar uno."
         )
 
-    temarios = con.execute(
-        "SELECT id FROM temarios WHERE convocatoria_id=? ORDER BY id",
-        (int(conv[0]),),
-    ).fetchall()
-    if len(temarios) != 1:
-        raise RuntimeError(
-            "La convocatoria debe tener exactamente un temario importado. "
-            f"Encontrados: {len(temarios)}."
-        )
-
-    tema = con.execute(
-        """
-        SELECT id, titulo
-        FROM temario_temas
-        WHERE temario_id=? AND UPPER(TRIM(parte))=? AND numero_tema=?
-        """,
-        (int(temarios[0][0]), PARTE, TEMA),
-    ).fetchone()
-    if tema is None:
-        raise RuntimeError(
-            f"No existe {PARTE} {TEMA} en el temario de {CODIGO_CONVOCATORIA}."
-        )
-
-    return int(conv[0]), int(temarios[0][0]), int(tema[0]), str(tema[1])
+    fila = next(iter(unicos.values()))
+    return (
+        int(fila["convocatoria_id"]),
+        str(fila["codigo"]),
+        int(fila["temario_id"]),
+        int(fila["tema_id"]),
+        str(fila["titulo_tema"]),
+    )
 
 
 def detectar_existencias(con: sqlite3.Connection, tema_id: int) -> dict:
@@ -180,7 +231,7 @@ def detectar_existencias(con: sqlite3.Connection, tema_id: int) -> dict:
     }
 
 
-def plan_escritura(tema_id: int) -> dict:
+def plan_escritura(codigo_convocatoria: str, tema_id: int) -> dict:
     articulos = []
     for art in ARTICULOS_GEN:
         articulos.append(
@@ -197,7 +248,7 @@ def plan_escritura(tema_id: int) -> dict:
         )
 
     return {
-        "convocatoria": CODIGO_CONVOCATORIA,
+        "convocatoria": codigo_convocatoria,
         "parte": PARTE,
         "tema": TEMA,
         "nombre_gen": NOMBRE_GEN,
@@ -220,16 +271,19 @@ def main() -> int:
     with sqlite3.connect(uri, uri=True) as con:
         con.row_factory = sqlite3.Row
         validar_estructura(con)
-        convocatoria_id, temario_id, tema_id, titulo_tema = localizar_objetivo(con)
+        convocatoria_id, codigo_convocatoria, temario_id, tema_id, titulo_tema = localizar_objetivo(
+            con,
+            args.codigo,
+        )
         existentes = detectar_existencias(con, tema_id)
 
-    plan = plan_escritura(tema_id)
+    plan = plan_escritura(codigo_convocatoria, tema_id)
 
     print("=" * 78)
     print("PILOTO GEN - A1 / ESPECIAL 1 - SOLO REVISION")
     print("=" * 78)
     print(f"BD:                    {db}")
-    print(f"Convocatoria:          {CODIGO_CONVOCATORIA} (id={convocatoria_id})")
+    print(f"Convocatoria:          {codigo_convocatoria} (id={convocatoria_id})")
     print(f"Temario id:            {temario_id}")
     print(f"Tema:                  {PARTE} {TEMA} (id={tema_id})")
     print(f"Título:                {titulo_tema}")

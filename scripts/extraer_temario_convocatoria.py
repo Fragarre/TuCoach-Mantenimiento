@@ -1,28 +1,27 @@
 """
-OpoCoach - Extracción de un temario de convocatoria a temario.csv.
+NetReto / OpoCoach - Extracción de temario explícita/implícita.
 
-Ubicación prevista:
-    scripts/extraer_temario_convocatoria.py
-
-Uso normal:
-    python scripts/extraer_temario_convocatoria.py
-
-Uso con rutas explícitas:
-    python scripts/extraer_temario_convocatoria.py ^
-        --pdf data_convocatorias/CONV_C2-01_70_26/temario_70_26.pdf ^
-        --salida data_convocatorias/CONV_C2-01_70_26/temario.csv
-
-Salida:
+Genera un temario.csv desde el PDF oficial con este contrato:
     parte,tema,titulo,LEY,articulo,tipo
 
-Criterios:
-- Un tema no jurídico genera una fila NO_JURIDICO.
-- Cada artículo jurídico genera una fila JURIDICO.
-- Una referencia que no pueda resolverse de forma segura genera una fila
-  PENDIENTE, sin inventar artículos.
-- Los artículos se obtienen del índice consolidado del BOE.
-- Títulos, capítulos, secciones y subsecciones se interpretan por límites
-  estructurales del índice, no mediante rangos codificados manualmente.
+Reglas:
+- Detecta temas GENERAL/ESPECIAL y conserva un título corto:
+  texto hasta el primer punto; si se repite dentro de la misma parte,
+  amplía lo mínimo necesario con las frases siguientes.
+- Resuelve referencias normativas explícitas (norma, artículos,
+  títulos/capítulos/secciones) usando el localizador normativo existente.
+- Aplica un catálogo pequeño y auditable de equivalencias implícitas
+  únicamente cuando el texto identifica de forma suficientemente inequívoca
+  una norma.
+- Una misma combinación LEY + artículo nunca puede quedar asignada a dos
+  puntos diferentes del temario.
+- Si un punto jurídico no produce ninguna referencia segura, genera
+  exactamente una fila:
+      LEY = "No determinada"
+      articulo = "No determinados"
+      tipo = "JURIDICO"
+- No modifica la base de datos. La salida es determinista para el mismo PDF,
+  las mismas fuentes normativas y estas reglas.
 """
 
 from __future__ import annotations
@@ -34,15 +33,14 @@ import re
 import subprocess
 import sys
 import unicodedata
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-import requests
-from bs4 import BeautifulSoup
-
 
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
+RUTA_LOCALIZADOR = RAIZ_PROYECTO / "scripts" / "localizador_normativa.py"
 RUTA_PDF_PREDETERMINADA = (
     RAIZ_PROYECTO
     / "data_convocatorias"
@@ -55,32 +53,9 @@ RUTA_SALIDA_PREDETERMINADA = (
     / "CONV_C2-01_70_26"
     / "temario.csv"
 )
-RUTA_BOE_API = RAIZ_PROYECTO / "scripts" / "boe_api.py"
-RUTA_LOCALIZADOR = RAIZ_PROYECTO / "scripts" / "localizador_normativa.py"
-
-TIMEOUT = 40
-ENCODING_SALIDA = "cp1252"
 
 COLUMNAS = ["parte", "tema", "titulo", "LEY", "articulo", "tipo"]
-
-# Alias cuyo nombre no contiene una referencia tipo + número/año.
-# Solo se incluyen identificadores verificados.
-IDS_BOE_ALIAS = {
-    "constitucion espanola": "BOE-A-1978-31229",
-    "constitucion espanola de 1978": "BOE-A-1978-31229",
-}
-
-NOMBRES_LEY_ALIAS = {
-    "constitucion espanola": "Constitucion Española",
-    "constitucion espanola de 1978": "Constitucion Española",
-}
-
-TITULOS_TEMA_ALIAS = {
-    "constitucion espanola": "Constitucion Española 1978",
-    "constitucion espanola de 1978": "Constitucion Española 1978",
-    "estatuto de autonomia de la comunitat valenciana":
-        "Estatuto de autonomia de la Comunitat Valenciana",
-}
+ENCODING_SALIDA = "utf-8-sig"
 
 PALABRAS_ORDINALES = {
     "primero": 1, "primera": 1,
@@ -113,11 +88,11 @@ PATRON_UNIDAD = re.compile(
 )
 
 PATRON_ARTICULOS = re.compile(
-    r"\bart[ií]culos?\s+"
-    r"((?:\d+(?:\.\d+)?(?:\s+(?:bis|ter|quater|quinquies|sexies|"
+    r"\bart(?:[íi]culo)?s?\.?\s*"
+    r"((?:\d+(?:\.\d+)?(?:\s+(?:bis|ter|quater|quáter|quinquies|sexies|"
     r"septies|octies|nonies|decies))?)"
     r"(?:\s*(?:a|al|-|y|,)\s*"
-    r"\d+(?:\.\d+)?(?:\s+(?:bis|ter|quater|quinquies|sexies|"
+    r"\d+(?:\.\d+)?(?:\s+(?:bis|ter|quater|quáter|quinquies|sexies|"
     r"septies|octies|nonies|decies))?)*)",
     re.IGNORECASE,
 )
@@ -130,12 +105,20 @@ PATRON_NORMA = re.compile(
     r"|Real Decreto Legislativo\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
     r"|Real Decreto(?:-ley|\s+ley)?\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
     r"|Decreto Legislativo\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
+    r"|Decreto-ley\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
     r"|Decreto\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
     r"|Orden\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
     r"|Ley\s+\d+/\d{4}(?:,\s+de\s+\d{1,2}\s+de\s+\w+)?"
     r")",
     re.IGNORECASE,
 )
+
+NOMBRES_ALIAS = {
+    "constitucion espanola": "Constitución Española de 1978",
+    "constitucion espanola de 1978": "Constitución Española de 1978",
+    "estatuto de autonomia de la comunitat valenciana":
+        "Ley Orgánica 5/1982, de Estatuto de Autonomía de la Comunitat Valenciana",
+}
 
 
 class ExtraccionError(RuntimeError):
@@ -147,18 +130,14 @@ class Tema:
     parte: str
     numero: int
     texto: str
+    orden: int
 
 
 @dataclass(frozen=True)
 class ReferenciaNorma:
     nombre_detectado: str
     alcance: str
-
-
-@dataclass(frozen=True)
-class NodoIndice:
-    articulo: str
-    ruta: dict[str, str]
+    explicita: bool = True
 
 
 @dataclass(frozen=True)
@@ -166,6 +145,79 @@ class Selector:
     ruta: dict[str, str]
     articulos_explicitos: tuple[str, ...] = ()
     excluir: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ReglaImplicita:
+    patron: str
+    norma: str
+    alcance: str = ""
+
+
+@dataclass
+class Candidato:
+    parte: str
+    tema: int
+    titulo: str
+    ley: str
+    articulo: str
+    tipo: str
+    explicita: bool
+    precision: int
+    orden_tema: int
+    amplitud_norma_tema: int = 0
+
+    def fila(self) -> dict[str, str]:
+        return {
+            "parte": self.parte,
+            "tema": str(self.tema),
+            "titulo": self.titulo,
+            "LEY": self.ley,
+            "articulo": self.articulo,
+            "tipo": self.tipo,
+        }
+
+
+# Solo equivalencias con una relación suficientemente inequívoca.
+# No se pretende convertir temas doctrinales amplios en normas por semejanza.
+REGLAS_IMPLICITAS = (
+    ReglaImplicita(
+        r"\bjurisdiccion contencioso[- ]administrativa\b",
+        "Ley 29/1998, reguladora de la Jurisdicción Contencioso-administrativa",
+    ),
+    ReglaImplicita(
+        r"\btribunal constitucional\b",
+        "Ley Orgánica 2/1979, del Tribunal Constitucional",
+    ),
+    ReglaImplicita(
+        r"\bcontratos? del sector publico\b",
+        "Ley 9/2017, de Contratos del Sector Público",
+    ),
+    ReglaImplicita(
+        r"\bexpropiacion forzosa\b",
+        "Ley de 16 de diciembre de 1954 sobre expropiación forzosa",
+    ),
+    ReglaImplicita(
+        r"\bsistema de la seguridad social\b",
+        "Real Decreto Legislativo 8/2015, texto refundido de la Ley General de la Seguridad Social",
+    ),
+    ReglaImplicita(
+        r"\bpatrimonio de las administraciones publicas\b",
+        "Ley 33/2003, del Patrimonio de las Administraciones Públicas",
+    ),
+    ReglaImplicita(
+        r"\bley de patrimonio de la generalitat\b",
+        "Ley 14/2003, de Patrimonio de la Generalitat Valenciana",
+    ),
+    ReglaImplicita(
+        r"\bley de tasas de la generalitat\b",
+        "Ley 20/2017, de tasas",
+    ),
+)
+
+
+def limpiar(texto: str | None) -> str:
+    return re.sub(r"\s+", " ", texto or "").strip()
 
 
 def normalizar(texto: str | None) -> str:
@@ -178,20 +230,29 @@ def normalizar(texto: str | None) -> str:
     return texto.strip(" .,:;")
 
 
-def limpiar(texto: str | None) -> str:
-    return re.sub(r"\s+", " ", texto or "").strip()
+def canonicalizar_ley(nombre: str) -> str:
+    n = normalizar(nombre)
+    if n.startswith("constitucion espanola"):
+        return "constitucion espanola 1978"
+    if "estatuto de autonomia de la comunitat valenciana" in n:
+        return "ley organica 5/1982"
+    m = re.search(
+        r"\b(ley organica|ley|real decreto legislativo|real decreto ley|"
+        r"real decreto-ley|real decreto|decreto legislativo|decreto-ley|"
+        r"decreto|orden)\s+(\d+/\d{4})\b",
+        n,
+    )
+    if m:
+        tipo = m.group(1).replace("-", " ")
+        return f"{tipo} {m.group(2)}"
+    return n
 
 
-def cargar_boe_api():
-    if not RUTA_BOE_API.exists():
-        raise ExtraccionError(f"No existe el módulo de apoyo: {RUTA_BOE_API}")
-    spec = importlib.util.spec_from_file_location("opocoach_boe_api", RUTA_BOE_API)
-    if spec is None or spec.loader is None:
-        raise ExtraccionError(f"No se pudo cargar {RUTA_BOE_API}")
-    modulo = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = modulo
-    spec.loader.exec_module(modulo)
-    return modulo
+def nombre_ley_csv(nombre: str) -> str:
+    clave = normalizar(nombre)
+    if clave in NOMBRES_ALIAS:
+        return NOMBRES_ALIAS[clave]
+    return limpiar(nombre)
 
 
 def cargar_localizador():
@@ -199,14 +260,11 @@ def cargar_localizador():
         raise ExtraccionError(
             f"No existe el módulo especializado: {RUTA_LOCALIZADOR}"
         )
-
     spec = importlib.util.spec_from_file_location(
-        "opocoach_localizador_normativa",
-        RUTA_LOCALIZADOR,
+        "opocoach_localizador_normativa", RUTA_LOCALIZADOR
     )
     if spec is None or spec.loader is None:
         raise ExtraccionError(f"No se pudo cargar {RUTA_LOCALIZADOR}")
-
     modulo = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = modulo
     spec.loader.exec_module(modulo)
@@ -214,14 +272,13 @@ def cargar_localizador():
 
 
 def extraer_texto_pdf(ruta_pdf: Path) -> str:
-    """Extrae texto sin OCR. Prueba PyMuPDF, pypdf y pdftotext."""
-    if not ruta_pdf.exists():
+    if not ruta_pdf.is_file():
         raise ExtraccionError(f"No existe el PDF: {ruta_pdf}")
 
     try:
         import fitz  # type: ignore
         with fitz.open(ruta_pdf) as doc:
-            texto = "\n".join(pagina.get_text("text") for pagina in doc)
+            texto = "\n".join(p.get_text("text") for p in doc)
         if texto.strip():
             return texto
     except Exception:
@@ -230,7 +287,7 @@ def extraer_texto_pdf(ruta_pdf: Path) -> str:
     try:
         from pypdf import PdfReader  # type: ignore
         lector = PdfReader(str(ruta_pdf))
-        texto = "\n".join(pagina.extract_text() or "" for pagina in lector.pages)
+        texto = "\n".join(p.extract_text() or "" for p in lector.pages)
         if texto.strip():
             return texto
     except Exception:
@@ -266,15 +323,11 @@ def limpiar_texto_dogv(texto: str) -> str:
             continue
         if re.fullmatch(r"\d+\s*/\s*\d+", l):
             continue
-        if l.startswith("CVE:"):
-            continue
-        if "https://dogv.gva.es" in l:
+        if l.startswith("CVE:") or "https://dogv.gva.es" in l:
             continue
         if re.match(r"^Anexo\s+[IVXLCDM]+$", l, re.I):
             continue
         if re.match(r"^Convocatoria\s+\d+/\d+$", l, re.I):
-            continue
-        if re.match(r"^[A-Z]\d?-\d+\.\s+Cuerpo\b", l, re.I):
             continue
         lineas.append(l)
     return limpiar(" ".join(lineas))
@@ -287,8 +340,9 @@ def extraer_temas(texto_pdf: str) -> list[Tema]:
         re.IGNORECASE,
     )
     coincidencias = list(marcador.finditer(texto))
-    temas: list[Tema] = []
     parte_actual = ""
+    temas: list[Tema] = []
+    orden = 0
 
     for i, m in enumerate(coincidencias):
         if m.group(1):
@@ -312,76 +366,91 @@ def extraer_temas(texto_pdf: str) -> list[Tema]:
             contenido,
         )
         if contenido:
-            temas.append(Tema(parte_actual, numero, contenido))
+            orden += 1
+            temas.append(Tema(parte_actual, numero, contenido, orden))
 
-    # Deduplicación defensiva.
     unicos: dict[tuple[str, int], Tema] = {}
     for tema in temas:
-        unicos[(tema.parte, tema.numero)] = tema
-    return list(unicos.values())
+        unicos.setdefault((tema.parte, tema.numero), tema)
+    resultado = list(unicos.values())
+    if not resultado:
+        raise ExtraccionError("No se detectó ningún tema en el PDF.")
+    return resultado
 
 
-def detectar_referencias_normativas(texto: str) -> list[ReferenciaNorma]:
+def frases_tema(texto: str) -> list[str]:
+    partes = [limpiar(x) for x in re.split(r"\.\s+", limpiar(texto)) if limpiar(x)]
+    return partes or [limpiar(texto)]
+
+
+def construir_titulos(temas: list[Tema]) -> dict[tuple[str, int], str]:
+    frases = {(t.parte, t.numero): frases_tema(t.texto) for t in temas}
+    profundidad = {clave: 1 for clave in frases}
+
+    while True:
+        actuales = {
+            clave: ". ".join(vals[:profundidad[clave]]).rstrip(".")
+            for clave, vals in frases.items()
+        }
+        grupos: dict[tuple[str, str], list[tuple[str, int]]] = defaultdict(list)
+        for clave, titulo in actuales.items():
+            grupos[(clave[0], normalizar(titulo))].append(clave)
+
+        repetidos = [claves for claves in grupos.values() if len(claves) > 1]
+        if not repetidos:
+            return actuales
+
+        cambio = False
+        for claves in repetidos:
+            for clave in claves:
+                if profundidad[clave] < len(frases[clave]):
+                    profundidad[clave] += 1
+                    cambio = True
+        if not cambio:
+            return actuales
+
+
+def detectar_referencias_explicitas(texto: str) -> list[ReferenciaNorma]:
     encontrados = list(PATRON_NORMA.finditer(texto))
     referencias: list[ReferenciaNorma] = []
     for i, m in enumerate(encontrados):
-        inicio_alcance = m.end()
-        fin_alcance = encontrados[i + 1].start() if i + 1 < len(encontrados) else len(texto)
-        alcance = limpiar(texto[inicio_alcance:fin_alcance]).lstrip(" ,:")
+        inicio = m.end()
+        fin = encontrados[i + 1].start() if i + 1 < len(encontrados) else len(texto)
+        alcance = limpiar(texto[inicio:fin]).lstrip(" ,:")
         referencias.append(
             ReferenciaNorma(
                 nombre_detectado=limpiar(m.group(1)),
                 alcance=alcance,
+                explicita=True,
             )
         )
     return referencias
 
 
-def nombre_ley_csv(nombre_detectado: str) -> str:
-    clave = normalizar(nombre_detectado)
-    if clave in NOMBRES_LEY_ALIAS:
-        return NOMBRES_LEY_ALIAS[clave]
-
-    m = re.match(
-        r"(Ley Org[aá]nica|Ley|Real Decreto Legislativo|Real Decreto(?:-ley|\s+ley)?|"
-        r"Decreto Legislativo|Decreto|Orden)\s+(\d+/\d{4})"
-        r"(?:,\s+de\s+(\d{1,2}\s+de\s+\w+))?",
-        nombre_detectado,
-        re.I,
-    )
-    if not m:
-        return limpiar(nombre_detectado)
-
-    tipo = limpiar(m.group(1))
-    tipo = re.sub(r"Org[aá]nica", "Organica", tipo, flags=re.I)
-    resultado = f"{tipo} {m.group(2)}"
-    if m.group(3):
-        resultado += f", de {m.group(3)}"
-    return resultado
-
-
-def titulo_tema_csv(tema: Tema, referencias: list[ReferenciaNorma]) -> str:
-    texto = limpiar(tema.texto)
+def detectar_referencias_implicitas(
+    texto: str,
+    explicitas: list[ReferenciaNorma],
+) -> list[ReferenciaNorma]:
     texto_n = normalizar(texto)
-    texto_sin_articulo = re.sub(r"^(?:la|el)\s+", "", texto_n)
+    explicitas_canon = {
+        canonicalizar_ley(r.nombre_detectado)
+        for r in explicitas
+    }
+    resultado: list[ReferenciaNorma] = []
 
-    for clave, titulo in TITULOS_TEMA_ALIAS.items():
-        if texto_n.startswith(clave) or texto_sin_articulo.startswith(clave):
-            return titulo
-
-    if referencias:
-        primera = referencias[0].nombre_detectado
-        posicion = texto.lower().find(primera.lower())
-        prefijo = limpiar(texto[:posicion]).strip(" .:-") if posicion > 0 else ""
-        prefijo = re.sub(r"\s+(?:La|El)$", "", prefijo).strip(" .:-")
-        if prefijo and len(prefijo) >= 12:
-            return prefijo
-        fin = texto.find(":", posicion + len(primera))
-        if fin != -1:
-            return limpiar(texto[:fin]).strip(" .")
-        return limpiar(primera)
-
-    return texto
+    for regla in REGLAS_IMPLICITAS:
+        if not re.search(regla.patron, texto_n, re.I):
+            continue
+        if canonicalizar_ley(regla.norma) in explicitas_canon:
+            continue
+        resultado.append(
+            ReferenciaNorma(
+                nombre_detectado=regla.norma,
+                alcance=regla.alcance,
+                explicita=False,
+            )
+        )
+    return resultado
 
 
 def valor_unidad(valor: str) -> str:
@@ -394,7 +463,10 @@ def valor_unidad(valor: str) -> str:
     if v.isdigit():
         return str(int(v))
 
-    romanos = {"i": 1, "v": 5, "x": 10, "l": 50, "c": 100, "d": 500, "m": 1000}
+    romanos = {
+        "i": 1, "v": 5, "x": 10, "l": 50,
+        "c": 100, "d": 500, "m": 1000,
+    }
     if v and all(c in romanos for c in v):
         total = 0
         anterior = 0
@@ -409,17 +481,12 @@ def valor_unidad(valor: str) -> str:
     return v
 
 
-def tipo_unidad(tipo: str) -> str:
-    return normalizar(tipo)
-
-
 def normalizar_articulo(valor: str) -> str:
-    return limpiar(valor).lower().replace(",", ".")
+    return limpiar(valor).lower().replace(",", ".").replace("quater", "quáter")
 
 
 def expandir_articulos(expresion: str) -> list[str]:
     expresion = normalizar_articulo(expresion)
-    # Rangos simples N a M / N-M / N al M.
     m = re.fullmatch(r"(\d+)\s*(?:a|al|-)\s*(\d+)", expresion)
     if m:
         ini, fin = int(m.group(1)), int(m.group(2))
@@ -427,7 +494,7 @@ def expandir_articulos(expresion: str) -> list[str]:
             return [str(n) for n in range(ini, fin + 1)]
 
     valores = re.findall(
-        r"\d+(?:\.\d+)?(?:\s+(?:bis|ter|quater|quinquies|sexies|"
+        r"\d+(?:\.\d+)?(?:\s+(?:bis|ter|quáter|quinquies|sexies|"
         r"septies|octies|nonies|decies))?",
         expresion,
         flags=re.I,
@@ -437,36 +504,38 @@ def expandir_articulos(expresion: str) -> list[str]:
 
 def exclusiones_de_alcance(alcance: str) -> tuple[str, ...]:
     m = re.search(
-        r"excepto\s+los\s+art[ií]culos?\s+([^);.]+)",
+        r"excepto\s+los\s+art[íi]culos?\s+([^);.]+)",
         alcance,
         re.I,
     )
-    if not m:
-        return ()
-    return tuple(expandir_articulos(m.group(1)))
+    return tuple(expandir_articulos(m.group(1))) if m else ()
 
 
-def crear_selectores(alcance: str) -> list[Selector]:
+def crear_selectores(alcance: str) -> tuple[list[Selector], int]:
     """
-    Convierte una cita jerárquica en selectores.
-
-    Se divide por punto y coma. Cada fragmento hereda la jerarquía anterior.
-    Se selecciona la unidad más profunda del fragmento:
-      Título III: Capítulo I  -> Capítulo I dentro del Título III
-      Capítulo II            -> Capítulo II dentro del mismo Título III
+    Devuelve selectores y nivel de precisión:
+      3 = artículos explícitos
+      2 = unidad estructural (título/capítulo/sección...)
+      1 = norma completa
+      0 = alcance no resoluble
     """
     alcance = limpiar(alcance)
     excluir = exclusiones_de_alcance(alcance)
 
     explicitos: list[str] = []
     for m in PATRON_ARTICULOS.finditer(alcance):
-        if "excepto" in normalizar(alcance[max(0, m.start() - 20):m.start()]):
+        previo = normalizar(alcance[max(0, m.start() - 20):m.start()])
+        if "excepto" in previo:
             continue
         explicitos.extend(expandir_articulos(m.group(1)))
     if explicitos:
-        return [Selector({}, tuple(dict.fromkeys(explicitos)), excluir)]
+        return [Selector({}, tuple(dict.fromkeys(explicitos)), excluir)], 3
 
-    fragmentos = [limpiar(x) for x in re.split(r";|\.(?=\s+[A-ZÁÉÍÓÚ])", alcance) if limpiar(x)]
+    fragmentos = [
+        limpiar(x)
+        for x in re.split(r";|\.(?=\s+[A-ZÁÉÍÓÚ])", alcance)
+        if limpiar(x)
+    ]
     contexto: dict[str, str] = {}
     selectores: list[Selector] = []
 
@@ -474,18 +543,16 @@ def crear_selectores(alcance: str) -> list[Selector]:
         unidades = list(PATRON_UNIDAD.finditer(fragmento))
         if not unidades:
             continue
-
         for unidad in unidades:
-            tipo = tipo_unidad(unidad.group(1))
+            tipo = normalizar(unidad.group(1))
             valor = valor_unidad(unidad.group(2))
             nivel = TIPOS_JERARQUIA[tipo]
-            # Al cambiar una unidad, se eliminan niveles inferiores.
             for existente in list(contexto):
                 if TIPOS_JERARQUIA[existente] >= nivel:
                     contexto.pop(existente, None)
             contexto[tipo] = valor
 
-        tipo_hoja = tipo_unidad(unidades[-1].group(1))
+        tipo_hoja = normalizar(unidades[-1].group(1))
         ruta = {
             tipo: valor
             for tipo, valor in contexto.items()
@@ -493,102 +560,23 @@ def crear_selectores(alcance: str) -> list[Selector]:
         }
         selectores.append(Selector(ruta, (), excluir))
 
-    if not selectores and ":" not in alcance:
-        # La norma se cita sin limitarla por título/capítulo/sección: se toma
-        # el articulado completo, como en el CSV de referencia.
-        return [Selector({}, (), excluir)]
+    if selectores:
+        unicos: list[Selector] = []
+        vistos: set[tuple[tuple[str, str], ...]] = set()
+        for selector in selectores:
+            clave = tuple(sorted(selector.ruta.items()))
+            if clave not in vistos:
+                vistos.add(clave)
+                unicos.append(selector)
+        return unicos, 2
 
-    # Deduplicación manteniendo orden.
-    resultado: list[Selector] = []
-    vistos: set[tuple[tuple[str, str], ...]] = set()
-    for selector in selectores:
-        clave = tuple(sorted(selector.ruta.items()))
-        if clave not in vistos:
-            resultado.append(selector)
-            vistos.add(clave)
-    return resultado
+    if not alcance or ":" not in alcance:
+        return [Selector({}, (), excluir)], 1
 
-
-def resolver_norma(boe_api, nombre_detectado: str) -> tuple[str, str]:
-    clave = normalizar(nombre_detectado)
-    id_alias = IDS_BOE_ALIAS.get(clave)
-    if id_alias:
-        return id_alias, nombre_ley_csv(nombre_detectado)
-
-    norma = boe_api.buscar_norma(nombre_detectado)
-    return norma.id_boe, nombre_ley_csv(nombre_detectado)
+    return [], 0
 
 
-def descargar_indice_boe(id_boe: str) -> str:
-    respuesta = requests.get(
-        "https://www.boe.es/buscar/act.php",
-        params={"id": id_boe, "tn": "2"},
-        timeout=TIMEOUT,
-        headers={"User-Agent": "OpoCoach/2.0"},
-    )
-    respuesta.raise_for_status()
-    return respuesta.text
-
-
-def es_texto_articulo(texto: str) -> str | None:
-    m = re.fullmatch(
-        r"Art[ií]culo\s+(\d+(?:\.\d+)?(?:\s+(?:bis|ter|quater|quinquies|"
-        r"sexies|septies|octies|nonies|decies))?)\.?",
-        limpiar(texto),
-        re.I,
-    )
-    return normalizar_articulo(m.group(1)) if m else None
-
-
-def interpretar_encabezado(texto: str) -> tuple[str, str] | None:
-    m = PATRON_UNIDAD.search(limpiar(texto))
-    if not m or m.start() != 0:
-        return None
-    return tipo_unidad(m.group(1)), valor_unidad(m.group(2))
-
-
-def construir_indice(html: str) -> list[NodoIndice]:
-    soup = BeautifulSoup(html, "html.parser")
-    ruta: dict[str, str] = {}
-    articulos: list[NodoIndice] = []
-
-    for enlace in soup.find_all("a"):
-        texto = limpiar(enlace.get_text(" ", strip=True))
-        if not texto:
-            continue
-
-        articulo = es_texto_articulo(texto)
-        if articulo:
-            articulos.append(NodoIndice(articulo, dict(ruta)))
-            continue
-
-        encabezado = interpretar_encabezado(texto)
-        if not encabezado:
-            continue
-
-        tipo, valor = encabezado
-        nivel = TIPOS_JERARQUIA[tipo]
-        for existente in list(ruta):
-            if TIPOS_JERARQUIA[existente] >= nivel:
-                ruta.pop(existente, None)
-        ruta[tipo] = valor
-
-    if not articulos:
-        raise ExtraccionError("El BOE no devolvió un índice interpretable.")
-    return articulos
-
-
-def coincide_ruta(ruta_articulo: dict[str, str], ruta_selector: dict[str, str]) -> bool:
-    return all(ruta_articulo.get(k) == v for k, v in ruta_selector.items())
-
-
-def seleccionar_articulos(
-    indice: list[NodoIndice],
-    selectores: list[Selector],
-) -> list[str]:
-    if not selectores:
-        return []
-
+def seleccionar_articulos(indice, selectores: list[Selector]) -> list[str]:
     resultado: list[str] = []
     for selector in selectores:
         if selector.articulos_explicitos:
@@ -597,11 +585,10 @@ def seleccionar_articulos(
             candidatos = [
                 nodo.articulo
                 for nodo in indice
-                if coincide_ruta(nodo.ruta, selector.ruta)
+                if all(nodo.ruta.get(k) == v for k, v in selector.ruta.items())
             ]
         excluidos = set(selector.excluir)
         resultado.extend(a for a in candidatos if a not in excluidos)
-
     return list(dict.fromkeys(resultado))
 
 
@@ -617,173 +604,340 @@ def tema_es_no_juridico(tema: Tema, referencias: list[ReferenciaNorma]) -> bool:
     return any(x in texto_n for x in indicadores)
 
 
-def fila_pendiente(
-    tema: Tema,
-    titulo: str,
-    ley: str = "",
-    motivo: str = "",
-) -> dict[str, str]:
-    # El motivo se imprime en consola; no se añade una columna distinta,
-    # para conservar exactamente el formato del CSV importable.
-    if motivo:
-        print(
-            f"[PENDIENTE] {tema.parte} tema {tema.numero}: {motivo}",
-            file=sys.stderr,
-        )
-    return {
-        "parte": tema.parte,
-        "tema": str(tema.numero),
-        "titulo": titulo,
-        "LEY": ley,
-        "articulo": "",
-        "tipo": "PENDIENTE",
-    }
-
-
 def procesar_tema(
     localizador,
     tema: Tema,
+    titulo: str,
     cache_indices: dict[str, tuple[object, list[object]]],
-) -> list[dict[str, str]]:
-    referencias = detectar_referencias_normativas(tema.texto)
-    titulo = titulo_tema_csv(tema, referencias)
+    incidencias: list[str],
+) -> list[Candidato]:
+    explicitas = detectar_referencias_explicitas(tema.texto)
+    implicitas = detectar_referencias_implicitas(tema.texto, explicitas)
+    referencias = explicitas + implicitas
 
     if tema_es_no_juridico(tema, referencias):
-        return [{
-            "parte": tema.parte,
-            "tema": str(tema.numero),
-            "titulo": titulo,
-            "LEY": "",
-            "articulo": "",
-            "tipo": "NO_JURIDICO",
-        }]
+        return [
+            Candidato(
+                tema.parte, tema.numero, titulo,
+                "No aplicable", "No aplicable", "NO_JURIDICO",
+                True, 999, tema.orden,
+            )
+        ]
 
-    if not referencias:
-        return [fila_pendiente(
-            tema, titulo, motivo="no se detectó una norma jurídica inequívoca"
-        )]
-
-    filas: list[dict[str, str]] = []
+    candidatos: list[Candidato] = []
 
     for referencia in referencias:
         ley_csv = nombre_ley_csv(referencia.nombre_detectado)
-
         try:
-            clave_cache = normalizar(referencia.nombre_detectado)
+            clave_cache = canonicalizar_ley(referencia.nombre_detectado)
             dato_cache = cache_indices.get(clave_cache)
-
             if dato_cache is None:
-                norma, indice = localizador.obtener_indice(
+                dato_cache = localizador.obtener_indice(
                     referencia.nombre_detectado
                 )
-                dato_cache = (norma, indice)
                 cache_indices[clave_cache] = dato_cache
-            else:
-                norma, indice = dato_cache
+            _, indice = dato_cache
 
-            selectores = crear_selectores(referencia.alcance)
-            articulos = seleccionar_articulos(indice, selectores)
-
-            if not articulos:
-                filas.append(fila_pendiente(
-                    tema,
-                    titulo,
-                    ley_csv,
-                    "la norma se localizó, pero el alcance no produjo artículos",
-                ))
+            selectores, precision = crear_selectores(referencia.alcance)
+            if not selectores:
+                incidencias.append(
+                    f"{tema.parte} {tema.numero}: alcance no resoluble para "
+                    f"{ley_csv}: {referencia.alcance!r}"
+                )
                 continue
 
+            articulos = seleccionar_articulos(indice, selectores)
+            if not articulos:
+                incidencias.append(
+                    f"{tema.parte} {tema.numero}: {ley_csv} no produjo artículos."
+                )
+                continue
+
+            score = precision * 10 + (5 if referencia.explicita else 0)
             for articulo in articulos:
-                filas.append({
-                    "parte": tema.parte,
-                    "tema": str(tema.numero),
-                    "titulo": titulo,
-                    "LEY": ley_csv,
-                    "articulo": articulo,
-                    "tipo": "JURIDICO",
-                })
-
+                candidatos.append(
+                    Candidato(
+                        tema.parte,
+                        tema.numero,
+                        titulo,
+                        ley_csv,
+                        normalizar_articulo(articulo),
+                        "JURIDICO",
+                        referencia.explicita,
+                        score,
+                        tema.orden,
+                    )
+                )
         except Exception as exc:
-            filas.append(fila_pendiente(
-                tema,
-                titulo,
-                ley_csv,
-                f"no se pudo resolver {referencia.nombre_detectado}: {exc}",
-            ))
-
-    unicas: dict[tuple[str, str, str, str, str, str], dict[str, str]] = {}
-    for fila in filas:
-        clave = tuple(fila[c] for c in COLUMNAS)
-        unicas[clave] = fila
-
-    return list(unicas.values())
-
-def ordenar_filas(filas: Iterable[dict[str, str]]) -> list[dict[str, str]]:
-    orden_parte = {"GENERAL": 0, "ESPECIAL": 1}
-
-    def clave(fila: dict[str, str]):
-        art = fila["articulo"]
-        m = re.match(r"(\d+)(?:\.(\d+))?(?:\s+(.*))?$", art)
-        if m:
-            articulo_orden = (
-                int(m.group(1)),
-                int(m.group(2) or 0),
-                m.group(3) or "",
+            incidencias.append(
+                f"{tema.parte} {tema.numero}: no se pudo resolver "
+                f"{ley_csv}: {exc}"
             )
-        else:
-            articulo_orden = (10**9, 0, art)
-        return (
-            orden_parte.get(fila["parte"], 9),
-            int(fila["tema"]),
-            fila["LEY"],
-            articulo_orden,
-            fila["tipo"],
+
+    unicos: dict[tuple[str, str], Candidato] = {}
+    for cand in candidatos:
+        clave = (canonicalizar_ley(cand.ley), cand.articulo)
+        anterior = unicos.get(clave)
+        if anterior is None or cand.precision > anterior.precision:
+            unicos[clave] = cand
+    return list(unicos.values())
+
+
+def resolver_colisiones_globales(
+    candidatos: list[Candidato],
+    incidencias: list[str],
+) -> list[Candidato]:
+    juridicos = [c for c in candidatos if c.tipo == "JURIDICO"]
+    otros = [c for c in candidatos if c.tipo != "JURIDICO"]
+
+    amplitud: Counter[tuple[str, int, str]] = Counter(
+        (c.parte, c.tema, canonicalizar_ley(c.ley))
+        for c in juridicos
+    )
+    for c in juridicos:
+        c.amplitud_norma_tema = amplitud[
+            (c.parte, c.tema, canonicalizar_ley(c.ley))
+        ]
+
+    grupos: dict[tuple[str, str], list[Candidato]] = defaultdict(list)
+    for cand in juridicos:
+        grupos[(canonicalizar_ley(cand.ley), cand.articulo)].append(cand)
+
+    elegidos: list[Candidato] = []
+    for _, grupo in grupos.items():
+        temas = {(c.parte, c.tema) for c in grupo}
+        if len(temas) == 1:
+            elegidos.append(max(grupo, key=lambda c: c.precision))
+            continue
+
+        ganador = sorted(
+            grupo,
+            key=lambda c: (
+                -c.precision,
+                c.amplitud_norma_tema,
+                c.orden_tema,
+            ),
+        )[0]
+        elegidos.append(ganador)
+        perdedores = sorted(
+            {(c.parte, c.tema) for c in grupo if c is not ganador}
+        )
+        incidencias.append(
+            "COLISIÓN resuelta "
+            f"{ganador.ley} art. {ganador.articulo}: "
+            f"asignado a {ganador.parte} {ganador.tema}; "
+            f"descartado en {perdedores}."
         )
 
-    return sorted(filas, key=clave)
+    return elegidos + otros
+
+
+def completar_no_determinados(
+    temas: list[Tema],
+    titulos: dict[tuple[str, int], str],
+    candidatos: list[Candidato],
+) -> list[Candidato]:
+    con_filas = {(c.parte, c.tema) for c in candidatos}
+    resultado = list(candidatos)
+    for tema in temas:
+        clave = (tema.parte, tema.numero)
+        if clave in con_filas:
+            continue
+        resultado.append(
+            Candidato(
+                tema.parte,
+                tema.numero,
+                titulos[clave],
+                "No determinada",
+                "No determinados",
+                "JURIDICO",
+                False,
+                0,
+                tema.orden,
+            )
+        )
+    return resultado
+
+
+def validar_invariantes(
+    temas: list[Tema],
+    candidatos: list[Candidato],
+) -> None:
+    esperados = {(t.parte, t.numero) for t in temas}
+    presentes = {(c.parte, c.tema) for c in candidatos}
+    if presentes != esperados:
+        faltan = sorted(esperados - presentes)
+        sobran = sorted(presentes - esperados)
+        raise ExtraccionError(
+            f"Cobertura inválida. Faltan={faltan}; sobran={sobran}"
+        )
+
+    asignaciones: dict[tuple[str, str], set[tuple[str, int]]] = defaultdict(set)
+    for c in candidatos:
+        if c.tipo != "JURIDICO" or c.ley == "No determinada":
+            continue
+        asignaciones[(canonicalizar_ley(c.ley), c.articulo)].add(
+            (c.parte, c.tema)
+        )
+    colisiones = {
+        clave: temas
+        for clave, temas in asignaciones.items()
+        if len(temas) > 1
+    }
+    if colisiones:
+        muestra = list(colisiones.items())[:10]
+        raise ExtraccionError(
+            "Persisten combinaciones LEY+artículo en varios temas: "
+            f"{muestra}"
+        )
+
+    for tema in temas:
+        filas = [
+            c for c in candidatos
+            if c.parte == tema.parte and c.tema == tema.numero
+        ]
+        no_det = [c for c in filas if c.ley == "No determinada"]
+        if no_det and len(filas) != 1:
+            raise ExtraccionError(
+                f"{tema.parte} {tema.numero}: 'No determinada' debe ser "
+                "la única fila del punto."
+            )
+
+
+def ordenar_filas(candidatos: Iterable[Candidato]) -> list[dict[str, str]]:
+    orden_parte = {"GENERAL": 0, "ESPECIAL": 1}
+
+    def clave_articulo(articulo: str):
+        m = re.match(
+            r"(\d+)(?:\.(\d+))?(?:\s+(bis|ter|quáter|quinquies|.*))?$",
+            articulo,
+        )
+        if not m:
+            return (10**9, 0, articulo)
+        return (
+            int(m.group(1)),
+            int(m.group(2) or 0),
+            m.group(3) or "",
+        )
+
+    ordenados = sorted(
+        candidatos,
+        key=lambda c: (
+            orden_parte.get(c.parte, 9),
+            c.tema,
+            c.ley,
+            clave_articulo(c.articulo),
+            c.tipo,
+        ),
+    )
+    return [c.fila() for c in ordenados]
 
 
 def escribir_csv(ruta: Path, filas: list[dict[str, str]]) -> None:
     ruta.parent.mkdir(parents=True, exist_ok=True)
     temporal = ruta.with_suffix(ruta.suffix + ".tmp")
-    with temporal.open("w", encoding=ENCODING_SALIDA, newline="", errors="replace") as f:
+    with temporal.open("w", encoding=ENCODING_SALIDA, newline="") as f:
         escritor = csv.DictWriter(f, fieldnames=COLUMNAS)
         escritor.writeheader()
         escritor.writerows(filas)
     temporal.replace(ruta)
 
 
+def escribir_auditoria(
+    ruta_csv: Path,
+    temas: list[Tema],
+    filas: list[dict[str, str]],
+    incidencias: list[str],
+) -> Path:
+    ruta = ruta_csv.with_suffix(".auditoria.txt")
+    juridicas = sum(
+        f["tipo"] == "JURIDICO" and f["LEY"] != "No determinada"
+        for f in filas
+    )
+    no_determinados = [
+        (f["parte"], f["tema"])
+        for f in filas
+        if f["LEY"] == "No determinada"
+    ]
+    no_juridicos = sum(f["tipo"] == "NO_JURIDICO" for f in filas)
+    colisiones = sum(x.startswith("COLISIÓN") for x in incidencias)
+
+    lineas = [
+        "EXTRACCIÓN TEMARIO EXPLÍCITA/IMPLÍCITA",
+        f"Temas detectados: {len(temas)}",
+        f"Filas totales: {len(filas)}",
+        f"Filas jurídicas determinadas: {juridicas}",
+        f"Temas no determinados: {len(no_determinados)}",
+        f"Temas no jurídicos: {no_juridicos}",
+        f"Colisiones LEY+artículo resueltas: {colisiones}",
+        "Colisiones LEY+artículo restantes: 0",
+        "",
+        "PUNTOS NO DETERMINADOS:",
+    ]
+    lineas.extend(
+        f"- {parte} tema {tema}"
+        for parte, tema in no_determinados
+    )
+    lineas += ["", "INCIDENCIAS / DECISIONES:"]
+    lineas.extend(f"- {x}" for x in incidencias)
+    ruta.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    return ruta
+
+
 def ejecutar(ruta_pdf: Path, ruta_salida: Path) -> None:
     localizador = cargar_localizador()
     temas = extraer_temas(extraer_texto_pdf(ruta_pdf))
-    if not temas:
-        raise ExtraccionError("No se detectó ningún tema en el PDF.")
+    titulos = construir_titulos(temas)
 
     print(f"Temas detectados: {len(temas)}")
     cache_indices: dict[str, tuple[object, list[object]]] = {}
-    filas: list[dict[str, str]] = []
+    incidencias: list[str] = []
+    candidatos: list[Candidato] = []
 
     for tema in temas:
         print(f"Procesando {tema.parte} tema {tema.numero}...")
-        filas.extend(procesar_tema(localizador, tema, cache_indices))
+        candidatos.extend(
+            procesar_tema(
+                localizador,
+                tema,
+                titulos[(tema.parte, tema.numero)],
+                cache_indices,
+                incidencias,
+            )
+        )
 
-    filas = ordenar_filas(filas)
+    candidatos = resolver_colisiones_globales(candidatos, incidencias)
+    candidatos = completar_no_determinados(temas, titulos, candidatos)
+    validar_invariantes(temas, candidatos)
+
+    filas = ordenar_filas(candidatos)
     escribir_csv(ruta_salida, filas)
+    ruta_auditoria = escribir_auditoria(
+        ruta_salida, temas, filas, incidencias
+    )
 
-    juridicas = sum(f["tipo"] == "JURIDICO" for f in filas)
+    juridicas = sum(
+        f["tipo"] == "JURIDICO" and f["LEY"] != "No determinada"
+        for f in filas
+    )
+    no_determinados = sum(f["LEY"] == "No determinada" for f in filas)
     no_juridicas = sum(f["tipo"] == "NO_JURIDICO" for f in filas)
-    pendientes = sum(f["tipo"] == "PENDIENTE" for f in filas)
 
     print()
     print(f"CSV generado: {ruta_salida}")
-    print(f"Filas jurídicas: {juridicas}")
-    print(f"Filas no jurídicas: {no_juridicas}")
-    print(f"Filas pendientes: {pendientes}")
+    print(f"Auditoría: {ruta_auditoria}")
+    print(f"Filas jurídicas determinadas: {juridicas}")
+    print(f"Temas no determinados: {no_determinados}")
+    print(f"Temas no jurídicos: {no_juridicas}")
+    print("Duplicados LEY+artículo entre temas: 0")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Extrae el temario de una convocatoria y genera temario.csv."
+        description=(
+            "Extracción de temario explícita/implícita desde PDF a temario.csv, "
+            "sin duplicar una combinación LEY+artículo entre temas."
+        )
     )
     parser.add_argument(
         "--pdf",

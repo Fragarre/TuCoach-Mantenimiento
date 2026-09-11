@@ -1869,9 +1869,8 @@ def submenu_flujo_habitual() -> None:
         print("3. Generar preguntas jurídicas IA                     [IA → BANCOS → VALIDA]")
         print("4. Generar preguntas de informática IA                [IA → BANCOS → VALIDA]")
         print("5. Sincronizar todos los bancos                       [REVISIÓN → APLICAR → VALIDA]")
-        print("6. Actualizar BD de NetReto Streamlit                [VALIDA → BACKUP → COPIA]")
-        print("7. Ver resumen general del lote                       [SOLO LECTURA]")
-        print("8. Ver resumen de banco de convocatoria               [SOLO LECTURA]")
+        print("6. Ver resumen general del lote                       [SOLO LECTURA]")
+        print("7. Ver resumen de banco de convocatoria               [SOLO LECTURA]")
         print("0. Volver")
         op = input("Opción: ").strip()
         if op == "0": return
@@ -1881,9 +1880,8 @@ def submenu_flujo_habitual() -> None:
             "3": generar_juridicas_ia_menu,
             "4": generar_informatica_menu,
             "5": sincronizar_todos_bancos_menu,
-            "6": actualizar_bd_opocoach,
-            "7": mostrar_resumen_lote_preguntas,
-            "8": mostrar_resumen_banco_convocatoria,
+            "6": mostrar_resumen_lote_preguntas,
+            "7": mostrar_resumen_banco_convocatoria,
         }
         fn = acciones.get(op)
         if fn: fn()

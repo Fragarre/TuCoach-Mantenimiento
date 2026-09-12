@@ -33,6 +33,7 @@ import shutil
 import sqlite3
 import sys
 import traceback
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -60,6 +61,12 @@ ESTADO_SIN_RESOLVER = "SIN_RESOLVER"
 ESTADO_COMPLETADO = "COMPLETADO"
 ESTADO_PENDIENTE = "PENDIENTE"
 ESTADO_ERROR_CONSULTA = "ERROR_CONSULTA_BOE"
+MARCADORES_NO_DETERMINADOS = {
+    "no determinado",
+    "no determinada",
+    "no determinados",
+    "no determinadas",
+}
 
 
 @dataclass(frozen=True)
@@ -83,6 +90,115 @@ def limpiar(texto: object | None) -> str:
     if texto is None:
         return ""
     return " ".join(str(texto).split()).strip()
+
+
+def normalizar_marcador(valor: object | None) -> str:
+    texto = unicodedata.normalize("NFKD", str(valor or "").strip())
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return " ".join(texto.lower().split())
+
+
+def validar_sin_no_determinados_bd(
+    ruta_db: Path,
+    referencia_id: int | None = None,
+    temario_id: int | None = None,
+    articulo_fuente_id: int | None = None,
+) -> None:
+    """Comprueba el ámbito seleccionado usando exclusivamente lectura SQLite."""
+    uri = ruta_db.resolve().as_uri() + "?mode=ro"
+    with sqlite3.connect(uri, uri=True) as conexion:
+        conexion.row_factory = sqlite3.Row
+        tablas = {
+            str(fila[0])
+            for fila in conexion.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        if not {"temario_referencias", "temario_temas"}.issubset(tablas):
+            return
+
+        temarios_objetivo: list[int] | None = None
+        if articulo_fuente_id is not None:
+            temarios_objetivo = [
+                int(fila[0])
+                for fila in conexion.execute(
+                    """
+                    SELECT DISTINCT tt.temario_id
+                    FROM temario_referencias AS r
+                    JOIN temario_temas AS tt ON tt.id = r.tema_id
+                    WHERE r.articulo_fuente_id = ?
+                    ORDER BY tt.temario_id
+                    """,
+                    (articulo_fuente_id,),
+                )
+            ]
+            if not temarios_objetivo:
+                return
+        elif referencia_id is not None:
+            fila = conexion.execute(
+                """
+                SELECT tt.temario_id
+                FROM temario_referencias AS r
+                JOIN temario_temas AS tt ON tt.id = r.tema_id
+                WHERE r.id = ?
+                """,
+                (referencia_id,),
+            ).fetchone()
+            if fila is None:
+                return
+            temarios_objetivo = [int(fila[0])]
+        elif temario_id is not None:
+            temarios_objetivo = [int(temario_id)]
+
+        condiciones: list[str] = []
+        parametros: list[object] = []
+        if temarios_objetivo is not None:
+            marcadores = ",".join("?" for _ in temarios_objetivo)
+            condiciones.append(f"tt.temario_id IN ({marcadores})")
+            parametros.extend(temarios_objetivo)
+
+        where = ""
+        if condiciones:
+            where = "WHERE " + " AND ".join(condiciones)
+
+        filas = conexion.execute(
+            f"""
+            SELECT
+                r.id AS referencia_id,
+                tt.temario_id,
+                tt.parte,
+                tt.numero_tema,
+                r.nombre_norma_csv,
+                r.articulo_solicitado
+            FROM temario_referencias AS r
+            JOIN temario_temas AS tt ON tt.id = r.tema_id
+            {where}
+            ORDER BY tt.temario_id, tt.parte, tt.numero_tema, r.id
+            """,
+            parametros,
+        ).fetchall()
+
+    pendientes = [
+        fila
+        for fila in filas
+        if normalizar_marcador(fila["nombre_norma_csv"])
+        in MARCADORES_NO_DETERMINADOS
+        or normalizar_marcador(fila["articulo_solicitado"])
+        in MARCADORES_NO_DETERMINADOS
+    ]
+    if not pendientes:
+        return
+
+    detalle = "; ".join(
+        f"temario {fila['temario_id']} {fila['parte']} {fila['numero_tema']}"
+        for fila in pendientes[:20]
+    )
+    raise RuntimeError(
+        "BLOQUEADO: el ámbito seleccionado contiene registros NO DETERMINADOS. "
+        "NO SE PROCESA y no se realizará ninguna modificación en la base "
+        "de datos. Resuelva primero estos registros mediante la Fase 2 / GEN. "
+        f"Pendientes: {len(pendientes)} [{detalle}]"
+    )
 
 
 def hash_texto(texto: str) -> str:
@@ -766,6 +882,11 @@ def reparar_articulo_fuente_por_id(
     if not ruta_db.exists():
         raise FileNotFoundError(f"No existe la base de datos: {ruta_db}")
 
+    validar_sin_no_determinados_bd(
+        ruta_db,
+        articulo_fuente_id=articulo_fuente_id,
+    )
+
     copia = None
     if not sin_copia_seguridad:
         copia = crear_copia_seguridad(ruta_db)
@@ -945,11 +1066,18 @@ def reparar_articulo_fuente_por_id(
         print(f"Hash nuevo:    {hash_nuevo}")
         print("Resultado: REPARADO EN EL MISMO articulos_fuente.id")
 
+
 def resolver(args: argparse.Namespace) -> None:
     ruta_db = Path(args.db).resolve()
 
     if not ruta_db.exists():
         raise FileNotFoundError(f"No existe la base de datos: {ruta_db}")
+
+    validar_sin_no_determinados_bd(
+        ruta_db,
+        referencia_id=args.referencia_id,
+        temario_id=args.temario_id,
+    )
 
     copia = None
     if not args.sin_copia_seguridad:
@@ -1085,8 +1213,6 @@ def resolver(args: argparse.Namespace) -> None:
 
             else:
                 if args.reparar_textos_incompletos or args.reparar_mezclas_versiones:
-                    # Reparación conservadora: si no conseguimos una fuente
-                    # mejor, NO se borra ni degrada la vinculación existente.
                     if args.reparar_textos_incompletos:
                         estadisticas["reparaciones_no_resueltas"] += 1
                     if args.reparar_mezclas_versiones:

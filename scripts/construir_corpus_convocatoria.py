@@ -47,6 +47,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -64,6 +65,44 @@ ESTADO_SIN_RESOLVER = "SIN_RESOLVER"
 ESTADO_COMPLETADO = "COMPLETADO"
 ESTADO_PENDIENTE = "PENDIENTE"
 ESTADO_ERROR_CONSULTA = "ERROR_CONSULTA_BOE"
+MARCADORES_NO_DETERMINADOS = {
+    "no determinado",
+    "no determinada",
+    "no determinados",
+    "no determinadas",
+}
+
+
+def normalizar_marcador(valor: object | None) -> str:
+    texto = unicodedata.normalize("NFKD", str(valor or "").strip())
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return " ".join(texto.lower().split())
+
+
+def validar_sin_no_determinados(
+    referencias: list[dict[str, Any]],
+) -> None:
+    pendientes = [
+        fila
+        for fila in referencias
+        if normalizar_marcador(fila.get("nombre_norma_csv"))
+        in MARCADORES_NO_DETERMINADOS
+        or normalizar_marcador(fila.get("articulo_solicitado"))
+        in MARCADORES_NO_DETERMINADOS
+    ]
+    if not pendientes:
+        return
+
+    detalle = "; ".join(
+        f"{fila.get('parte')} {fila.get('numero_tema')}"
+        for fila in pendientes[:20]
+    )
+    raise RuntimeError(
+        "BLOQUEADO: el temario contiene registros NO DETERMINADOS. "
+        "NO SE PROCESA y no se realizará ninguna modificación en la base "
+        "de datos. Resuelva primero estos registros mediante la Fase 2 / GEN. "
+        f"Pendientes: {len(pendientes)} [{detalle}]"
+    )
 
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -392,8 +431,6 @@ def ejecutar_resolvedor_temario(
     if solo_pdf_local:
         comando.append("--solo-pdf-local")
 
-    # Se transmite la salida en tiempo real y, a la vez, se conserva para
-    # el informe. Así cada nueva incorporación da feedback inmediato.
     proceso = subprocess.Popen(
         comando,
         cwd=RAIZ,
@@ -786,6 +823,7 @@ def main() -> None:
             conexion,
             temario_id,
         )
+        validar_sin_no_determinados(referencias_iniciales)
 
     seleccionables = estados_a_procesar(
         args.reintentar_pendientes
@@ -832,9 +870,6 @@ def main() -> None:
             if resultado.stderr.strip():
                 print(resultado.stderr.strip())
 
-        # Segunda pasada explícita y local. Es idempotente: sólo selecciona
-        # referencias todavía pendientes que tengan un PDF inequívoco en
-        # fuentes_normativas/. No repite las ya completadas ni usa Internet.
         with sqlite3.connect(ruta_db) as conexion:
             conexion.row_factory = sqlite3.Row
             restantes = [

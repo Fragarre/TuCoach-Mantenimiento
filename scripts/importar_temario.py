@@ -7,7 +7,9 @@ Este script:
 - no consulta el BOE;
 - no descarga artículos;
 - deja las referencias jurídicas en estado SIN_RESOLVER;
-- permite sincronizar eliminaciones opcionalmente.
+- permite sincronizar eliminaciones opcionalmente;
+- BLOQUEA cualquier operación con la BD si el CSV contiene algún
+  marcador No determinado pendiente de resolver mediante Fase 2 / GEN.
 
 Uso:
 
@@ -42,8 +44,12 @@ from typing import Iterable
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 DB_POR_DEFECTO = RAIZ_PROYECTO / "db" / "oposiciones.sqlite3"
 
-MARCADOR_NORMA_NO_DETERMINADA = "No determinada"
-MARCADOR_ARTICULO_NO_DETERMINADO = "No determinados"
+MARCADORES_NO_DETERMINADO = {
+    "no determinado",
+    "no determinada",
+    "no determinados",
+    "no determinadas",
+}
 
 
 @dataclass(frozen=True)
@@ -75,17 +81,32 @@ def normalizar(texto: str | None) -> str:
     return limpiar(valor)
 
 
-def es_referencia_juridica_real(fila: FilaTemario) -> bool:
-    if not fila.articulo:
-        return False
-
-    es_marcador_no_determinado = (
-        normalizar(fila.nombre_norma)
-        == normalizar(MARCADOR_NORMA_NO_DETERMINADA)
-        and normalizar(fila.articulo)
-        == normalizar(MARCADOR_ARTICULO_NO_DETERMINADO)
+def es_fila_no_determinada(fila: FilaTemario) -> bool:
+    return (
+        normalizar(fila.nombre_norma) in MARCADORES_NO_DETERMINADO
+        or normalizar(fila.articulo) in MARCADORES_NO_DETERMINADO
     )
-    return not es_marcador_no_determinado
+
+
+def validar_temario_completamente_determinado(
+    filas: list[FilaTemario],
+) -> None:
+    pendientes = [fila for fila in filas if es_fila_no_determinada(fila)]
+    if not pendientes:
+        return
+
+    detalle = "; ".join(
+        f"{fila.parte} {fila.numero_tema}"
+        for fila in pendientes[:20]
+    )
+    if len(pendientes) > 20:
+        detalle += f"; ... (+{len(pendientes) - 20})"
+
+    raise RuntimeError(
+        "TEMARIO BLOQUEADO: contiene referencias 'No determinado' "
+        "pendientes de Fase 2 / GEN. No se realizará ninguna operación "
+        f"con la base de datos. Pendientes: {len(pendientes)} [{detalle}]"
+    )
 
 
 def sha256(ruta: Path) -> str:
@@ -404,7 +425,7 @@ def claves_presentes(
     for fila in filas:
         temas.add((fila.parte, fila.numero_tema))
 
-        if es_referencia_juridica_real(fila):
+        if fila.articulo:
             referencias.add(
                 (
                     fila.parte,
@@ -539,14 +560,19 @@ def importar(args: argparse.Namespace) -> None:
     ruta_db = Path(args.db).resolve()
     ruta_csv = Path(args.csv).resolve()
 
-    if not ruta_db.exists():
-        raise FileNotFoundError(
-            f"No existe la base de datos: {ruta_db}"
-        )
-
     if not ruta_csv.exists():
         raise FileNotFoundError(
             f"No existe el CSV: {ruta_csv}"
+        )
+
+    # Regla de entrada obligatoria: el CSV se valida por completo ANTES de
+    # cualquier comprobación, copia, conexión o escritura sobre la BD.
+    filas = leer_csv(ruta_csv, args.encoding)
+    validar_temario_completamente_determinado(filas)
+
+    if not ruta_db.exists():
+        raise FileNotFoundError(
+            f"No existe la base de datos: {ruta_db}"
         )
 
     copia = None
@@ -554,7 +580,6 @@ def importar(args: argparse.Namespace) -> None:
     if not args.sin_copia_seguridad:
         copia = crear_copia_seguridad(ruta_db)
 
-    filas = leer_csv(ruta_csv, args.encoding)
     nombre_temario = args.nombre or f"Temario {args.convocatoria}"
 
     temas_procesados: set[tuple[str, int]] = set()
@@ -594,7 +619,7 @@ def importar(args: argparse.Namespace) -> None:
                 (fila.parte, fila.numero_tema)
             )
 
-            if es_referencia_juridica_real(fila):
+            if fila.articulo:
                 upsert_referencia(
                     conexion,
                     tema_id,

@@ -33,6 +33,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -50,6 +51,13 @@ COLUMNAS_CSV_OBLIGATORIAS = {
     "LEY",
     "articulo",
     "tipo",
+}
+
+MARCADORES_NO_DETERMINADO = {
+    "no determinado",
+    "no determinada",
+    "no determinados",
+    "no determinadas",
 }
 
 COLUMNAS_CONVOCATORIA = {
@@ -72,6 +80,14 @@ COLUMNAS_PARTE = {
     "numero_preguntas",
     "orden",
 }
+
+
+def normalizar_marcador(texto: object | None) -> str:
+    valor = unicodedata.normalize("NFKD", str(texto or "").strip())
+    valor = "".join(
+        caracter for caracter in valor if not unicodedata.combining(caracter)
+    )
+    return " ".join(valor.lower().split())
 
 
 def resolver_ruta(valor: str | Path, base: Path = RAIZ_PROYECTO) -> Path:
@@ -273,6 +289,7 @@ def leer_y_validar_csv(
                 numero_filas = 0
                 temas: set[tuple[str, int]] = set()
                 titulos_por_tema: dict[tuple[str, int], str] = {}
+                pendientes_no_determinados: list[tuple[str, int, int]] = []
 
                 for numero_linea, registro in enumerate(lector, start=2):
                     numero_filas += 1
@@ -320,6 +337,14 @@ def leer_y_validar_csv(
                             "referencia con artículo pero sin LEY."
                         )
 
+                    if (
+                        normalizar_marcador(ley) in MARCADORES_NO_DETERMINADO
+                        or normalizar_marcador(articulo) in MARCADORES_NO_DETERMINADO
+                    ):
+                        pendientes_no_determinados.append(
+                            (parte, numero_tema, numero_linea)
+                        )
+
                     clave = (parte, numero_tema)
                     titulo_anterior = titulos_por_tema.get(clave)
                     if titulo_anterior is not None and titulo_anterior != titulo:
@@ -333,6 +358,24 @@ def leer_y_validar_csv(
 
                 if numero_filas == 0:
                     raise ValueError("El CSV del temario no contiene filas.")
+
+                if pendientes_no_determinados:
+                    detalle = "; ".join(
+                        f"{parte} {tema} (línea {linea})"
+                        for parte, tema, linea in pendientes_no_determinados[:20]
+                    )
+                    if len(pendientes_no_determinados) > 20:
+                        detalle += (
+                            f"; ... (+{len(pendientes_no_determinados) - 20})"
+                        )
+                    raise RuntimeError(
+                        "BLOQUEADO: el temario contiene registros NO DETERMINADOS. "
+                        "No se procesa y no se realiza ninguna operación con la "
+                        "base de datos. Resuelva primero estos registros mediante "
+                        "la Fase 2 / GEN. "
+                        f"Pendientes: {len(pendientes_no_determinados)} "
+                        f"[{detalle}]"
+                    )
 
                 return encoding, numero_filas, len(temas), len(columnas)
 

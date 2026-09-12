@@ -31,6 +31,7 @@ import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+import boe_api
 from boe_api import ArticuloBOE, obtener_articulo
 from openai_api import seleccionar_fragmento_json
 
@@ -40,6 +41,9 @@ SALIDA = CARPETA / "gen_revision"
 ID_GEN = "GEN-A1-ESPECIAL-05"
 NOMBRE_GEN = "GEN - La eficacia temporal de las normas"
 MODELO = "gpt-5.4-nano"
+
+CODIGO_CIVIL_NOMBRE = "Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil"
+CODIGO_CIVIL_ID = "BOE-A-1889-4763"
 
 
 @dataclass(frozen=True)
@@ -65,8 +69,6 @@ class EspecificacionArticulo:
     objetivo: str
 
 
-# Diseño deliberadamente mínimo. CC art. 2 y CE art. 9 están ocupados
-# estructuralmente por temas anteriores, pero su texto puede alimentar el GEN.
 ESPECIFICACIONES = (
     EspecificacionArticulo(
         1,
@@ -107,7 +109,7 @@ ESPECIFICACIONES = (
 )
 
 NORMAS_BOE = {
-    "CC": "Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil",
+    "CC": CODIGO_CIVIL_NOMBRE,
     "CE": "Constitución Española de 1978",
 }
 
@@ -123,6 +125,16 @@ def limpiar(v: object | None) -> str:
 
 def normalizar_para_validar(texto: str) -> str:
     return limpiar(texto).casefold()
+
+
+def preparar_alias_codigo_civil() -> None:
+    clave = boe_api.normalizar(CODIGO_CIVIL_NOMBRE)
+    existente = boe_api.NORMAS_ESPECIALES.get(clave)
+    if existente not in (None, CODIGO_CIVIL_ID):
+        raise RuntimeError(
+            f"Alias Código Civil en conflicto: {existente} != {CODIGO_CIVIL_ID}"
+        )
+    boe_api.NORMAS_ESPECIALES[clave] = CODIGO_CIVIL_ID
 
 
 def bloque_boe(prefijo: str, articulo: ArticuloBOE) -> BloqueOficial:
@@ -142,6 +154,7 @@ def bloque_boe(prefijo: str, articulo: ArticuloBOE) -> BloqueOficial:
 
 
 def obtener_fuentes() -> dict[str, BloqueOficial]:
+    preparar_alias_codigo_civil()
     bloques: dict[str, BloqueOficial] = {}
     for prefijo, numeros in ARTICULOS_BOE.items():
         norma = NORMAS_BOE[prefijo]
@@ -157,7 +170,9 @@ def obtener_fuentes() -> dict[str, BloqueOficial]:
     return bloques
 
 
-def fuentes_para_prompt(e: EspecificacionArticulo, bloques: dict[str, BloqueOficial]) -> list[dict]:
+def fuentes_para_prompt(
+    e: EspecificacionArticulo, bloques: dict[str, BloqueOficial]
+) -> list[dict]:
     return [
         {
             "clave": bloques[c].clave,
@@ -172,7 +187,9 @@ def fuentes_para_prompt(e: EspecificacionArticulo, bloques: dict[str, BloqueOfic
     ]
 
 
-def construir_prompt(e: EspecificacionArticulo, bloques: dict[str, BloqueOficial]) -> str:
+def construir_prompt(
+    e: EspecificacionArticulo, bloques: dict[str, BloqueOficial]
+) -> str:
     paquete = {
         "articulo_gen": e.numero,
         "titulo": e.titulo,
@@ -193,11 +210,14 @@ def construir_prompt(e: EspecificacionArticulo, bloques: dict[str, BloqueOficial
         "8. Devuelve JSON con exactamente dos claves: explicacion, puntos_clave.\n"
         "9. explicacion: entre 350 y 700 palabras.\n"
         "10. puntos_clave: lista de 5 a 10 frases breves.\n\n"
-        "PAQUETE CONTROLADO:\n" + json.dumps(paquete, ensure_ascii=False, indent=2)
+        "PAQUETE CONTROLADO:\n"
+        + json.dumps(paquete, ensure_ascii=False, indent=2)
     )
 
 
-def generar_explicacion(e: EspecificacionArticulo, bloques: dict[str, BloqueOficial]) -> dict:
+def generar_explicacion(
+    e: EspecificacionArticulo, bloques: dict[str, BloqueOficial]
+) -> dict:
     r = seleccionar_fragmento_json(
         prompt=construir_prompt(e, bloques),
         modelo=MODELO,
@@ -220,7 +240,9 @@ def generar_explicacion(e: EspecificacionArticulo, bloques: dict[str, BloqueOfic
     return {"explicacion": explicacion, "puntos_clave": puntos}
 
 
-def renderizar_articulo(e: EspecificacionArticulo, bloques: dict[str, BloqueOficial], ia: dict) -> str:
+def renderizar_articulo(
+    e: EspecificacionArticulo, bloques: dict[str, BloqueOficial], ia: dict
+) -> str:
     partes = [
         f"Artículo {e.numero}. {e.titulo}",
         "",
@@ -245,7 +267,9 @@ def renderizar_articulo(e: EspecificacionArticulo, bloques: dict[str, BloqueOfic
     return "\n".join(partes).strip() + "\n"
 
 
-def validar_integridad(e: EspecificacionArticulo, bloques: dict[str, BloqueOficial], final: str) -> None:
+def validar_integridad(
+    e: EspecificacionArticulo, bloques: dict[str, BloqueOficial], final: str
+) -> None:
     destino = normalizar_para_validar(final)
     for clave in e.claves_bloques:
         esperado = normalizar_para_validar(bloques[clave].texto)
@@ -263,16 +287,22 @@ def guardar_json(ruta: Path, datos: dict) -> None:
 
 
 def parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Genera GEN A1 ESPECIAL 5 fuera de la BD.")
+    p = argparse.ArgumentParser(
+        description="Genera GEN A1 ESPECIAL 5 fuera de la BD."
+    )
     modo = p.add_mutually_exclusive_group(required=True)
     modo.add_argument(
-        "--solo-fuentes", action="store_true", help="Obtiene y valida fuentes; 0 llamadas IA."
+        "--solo-fuentes",
+        action="store_true",
+        help="Obtiene y valida fuentes; 0 llamadas IA.",
     )
     modo.add_argument(
         "--generar", action="store_true", help="Genera 6 artículos y guarda revisión."
     )
     p.add_argument(
-        "--forzar", action="store_true", help="Permite reemplazar una revisión ya existente."
+        "--forzar",
+        action="store_true",
+        help="Permite reemplazar una revisión ya existente.",
     )
     return p
 
@@ -333,7 +363,9 @@ def main() -> int:
                 "explicacion": ia["explicacion"],
                 "puntos_clave": ia["puntos_clave"],
                 "texto_final": final,
-                "hash_texto_final": hashlib.sha256(final.encode("utf-8")).hexdigest(),
+                "hash_texto_final": hashlib.sha256(
+                    final.encode("utf-8")
+                ).hexdigest(),
             }
         )
 
@@ -349,17 +381,17 @@ def main() -> int:
         },
     )
 
-    ruta_md.write_text(
-        f"# {NOMBRE_GEN}\n\n"
-        + "\n\n---\n\n".join(a["texto_final"].rstrip() for a in articulos)
-        + "\n",
-        encoding="utf-8",
-    )
+    markdown = [f"# {NOMBRE_GEN}", ""]
+    for art in articulos:
+        markdown.append(art["texto_final"].rstrip())
+        markdown.append("")
+    ruta_md.write_text("\n".join(markdown).rstrip() + "\n", encoding="utf-8")
 
-    print("\nVALIDACION FINAL: OK")
+    print()
+    print("VALIDACION FINAL: OK")
     print(f"JSON revisión: {ruta_json}")
     print(f"Markdown revisión: {ruta_md}")
-    print("Estado: REVISION_HUMANA_PENDIENTE")
+    print("BD abierta: NO")
     print("BD modificada: NO")
     print("CSV modificado: NO")
     return 0

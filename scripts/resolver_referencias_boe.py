@@ -1213,6 +1213,8 @@ def resolver(args: argparse.Namespace) -> None:
 
             else:
                 if args.reparar_textos_incompletos or args.reparar_mezclas_versiones:
+                    # Reparación conservadora: si no conseguimos una fuente
+                    # mejor, NO se borra ni degrada la vinculación existente.
                     if args.reparar_textos_incompletos:
                         estadisticas["reparaciones_no_resueltas"] += 1
                     if args.reparar_mezclas_versiones:

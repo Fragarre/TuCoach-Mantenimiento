@@ -196,6 +196,11 @@ def construir_prompt(
         "objetivo": e.objetivo,
         "fuentes_normativas_oficiales": fuentes_para_prompt(e, bloques),
     }
+    regla_constitucional = (
+        "Distingue la regla general legal del artículo 2.3 del Código Civil de la garantía constitucional específica del artículo 9.3 CE. Nunca llames constitucional a la regla del Código Civil."
+        if "CE-9" in e.claves_bloques
+        else "El paquete no contiene la Constitución. No introduzcas referencias, garantías ni calificaciones constitucionales. Si mencionas el artículo 2.3 CC, identifícalo solo como regla general legal del Código Civil."
+    )
     return (
         "Redacta EXCLUSIVAMENTE la explicación doctrinal de un artículo de un corpus para oposiciones jurídicas. "
         "No reproduzcas ni reescribas los textos normativos: el programa los añadirá literalmente después.\n\n"
@@ -205,7 +210,7 @@ def construir_prompt(
         "3. No cites ni uses preámbulos, exposiciones de motivos, disposiciones adicionales, transitorias, derogatorias o finales.\n"
         "4. No introduzcas citas normativas concretas que no aparezcan en el paquete.\n"
         "5. Explica con precisión suficiente para derivar preguntas de oposición, sin complejidad innecesaria.\n"
-        "6. Distingue la regla general legal del artículo 2.3 del Código Civil de la garantía constitucional específica del artículo 9.3 CE. Nunca llames constitucional a la regla del Código Civil.\n"
+        f"6. {regla_constitucional}\n"
         "7. La frase del artículo 2.2 CC 'las leyes sólo se derogan por otras posteriores' debe explicarse sin inferir que la derogación sea una teoría general exhaustiva de todas las causas de pérdida de vigencia de cualquier norma.\n"
         "8. Al tratar derechos adquiridos, no los identifiques automáticamente con los derechos individuales del artículo 9.3 CE.\n"
         "9. Devuelve JSON con exactamente dos claves: explicacion, puntos_clave.\n"
@@ -246,12 +251,25 @@ def validar_precision_juridica(e: EspecificacionArticulo, ia: dict) -> None:
         ia["explicacion"] + " " + " ".join(ia["puntos_clave"])
     )
 
-    # Si el paquete no contiene la CE, la IA no puede atribuir carácter
-    # constitucional a una regla que procede exclusivamente del Código Civil.
-    if "CE-9" not in e.claves_bloques and "constitucional" in texto:
-        raise RuntimeError(
-            f"Artículo GEN {e.numero}: atribución constitucional sin CE-9 en las fuentes."
+    # En artículos sin CE-9 se bloquean solo atribuciones constitucionales
+    # concretas; la mera palabra "constitucional" era un criterio demasiado amplio.
+    if "CE-9" not in e.claves_bloques:
+        expresiones_constitucionales_no_admitidas = (
+            "garantía constitucional",
+            "garantia constitucional",
+            "principio constitucional",
+            "regla constitucional",
+            "artículo 9.3",
+            "articulo 9.3",
+            "9.3 ce",
+            "constitución española",
+            "constitucion española",
         )
+        for expresion in expresiones_constitucionales_no_admitidas:
+            if expresion in texto:
+                raise RuntimeError(
+                    f"Artículo GEN {e.numero}: referencia constitucional sin CE-9 en las fuentes."
+                )
 
     if e.numero == 2:
         expresiones_no_admitidas = (

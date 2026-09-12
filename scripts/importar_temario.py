@@ -42,6 +42,9 @@ from typing import Iterable
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 DB_POR_DEFECTO = RAIZ_PROYECTO / "db" / "oposiciones.sqlite3"
 
+MARCADOR_NORMA_NO_DETERMINADA = "No determinada"
+MARCADOR_ARTICULO_NO_DETERMINADO = "No determinados"
+
 
 @dataclass(frozen=True)
 class FilaTemario:
@@ -72,6 +75,19 @@ def normalizar(texto: str | None) -> str:
     return limpiar(valor)
 
 
+def es_referencia_juridica_real(fila: FilaTemario) -> bool:
+    if not fila.articulo:
+        return False
+
+    es_marcador_no_determinado = (
+        normalizar(fila.nombre_norma)
+        == normalizar(MARCADOR_NORMA_NO_DETERMINADA)
+        and normalizar(fila.articulo)
+        == normalizar(MARCADOR_ARTICULO_NO_DETERMINADO)
+    )
+    return not es_marcador_no_determinado
+
+
 def sha256(ruta: Path) -> str:
     resumen = hashlib.sha256()
 
@@ -89,6 +105,7 @@ def crear_copia_seguridad(ruta_db: Path) -> Path:
     )
     shutil.copy2(ruta_db, destino)
     return destino
+
 
 def leer_csv(ruta_csv: Path, encoding: str | None = None) -> list[FilaTemario]:
 
@@ -134,6 +151,7 @@ def leer_csv(ruta_csv: Path, encoding: str | None = None) -> list[FilaTemario]:
             ultimo_error = e
 
     raise ultimo_error
+
 
 def crear_tablas(conexion: sqlite3.Connection) -> None:
     conexion.executescript(
@@ -386,7 +404,7 @@ def claves_presentes(
     for fila in filas:
         temas.add((fila.parte, fila.numero_tema))
 
-        if fila.articulo:
+        if es_referencia_juridica_real(fila):
             referencias.add(
                 (
                     fila.parte,
@@ -576,7 +594,7 @@ def importar(args: argparse.Namespace) -> None:
                 (fila.parte, fila.numero_tema)
             )
 
-            if fila.articulo:
+            if es_referencia_juridica_real(fila):
                 upsert_referencia(
                     conexion,
                     tema_id,

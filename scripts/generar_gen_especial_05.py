@@ -213,9 +213,10 @@ def construir_prompt(
         f"6. {regla_constitucional}\n"
         "7. La frase del artículo 2.2 CC 'las leyes sólo se derogan por otras posteriores' debe explicarse sin inferir que la derogación sea una teoría general exhaustiva de todas las causas de pérdida de vigencia de cualquier norma.\n"
         "8. Al tratar derechos adquiridos, no los identifiques automáticamente con los derechos individuales del artículo 9.3 CE.\n"
-        "9. Devuelve JSON con exactamente dos claves: explicacion, puntos_clave.\n"
-        "10. explicacion: entre 350 y 700 palabras.\n"
-        "11. puntos_clave: lista de 5 a 10 frases breves.\n\n"
+        "9. Al explicar el artículo 2.3 CC, conserva exactamente su alcance: regla general de irretroactividad salvo que la ley disponga lo contrario. No añadas que la retroactividad deba establecerse 'expresamente', 'de forma expresa' o mediante una 'previsión expresa', porque ese requisito adicional no figura en el artículo suministrado.\n"
+        "10. Devuelve JSON con exactamente dos claves: explicacion, puntos_clave.\n"
+        "11. explicacion: entre 350 y 700 palabras.\n"
+        "12. puntos_clave: lista de 5 a 10 frases breves.\n\n"
         "PAQUETE CONTROLADO:\n"
         + json.dumps(paquete, ensure_ascii=False, indent=2)
     )
@@ -270,6 +271,31 @@ def validar_precision_juridica(e: EspecificacionArticulo, ia: dict) -> None:
                 raise RuntimeError(
                     f"Artículo GEN {e.numero}: referencia constitucional sin CE-9 en las fuentes."
                 )
+
+    expresiones_retroactividad_no_admitidas = (
+        "retroactividad requiere una previsión expresa",
+        "retroactividad requiere una prevision expresa",
+        "retroactividad exige una previsión expresa",
+        "retroactividad exige una prevision expresa",
+        "retroactividad requiere previsión expresa",
+        "retroactividad requiere prevision expresa",
+        "retroactividad exige previsión expresa",
+        "retroactividad exige prevision expresa",
+        "solo habrá retroactividad si la ley lo dispone expresamente",
+        "solo habra retroactividad si la ley lo dispone expresamente",
+        "solo hay retroactividad si la ley nueva dispone lo contrario expresamente",
+        "para admitir retroactividad, exista una previsión expresa",
+        "para admitir retroactividad, exista una prevision expresa",
+        "previsión expresa en la propia ley",
+        "prevision expresa en la propia ley",
+        "previsión expresa en la ley nueva",
+        "prevision expresa en la ley nueva",
+    )
+    for expresion in expresiones_retroactividad_no_admitidas:
+        if expresion in texto:
+            raise RuntimeError(
+                f"Artículo GEN {e.numero}: añade un requisito de retroactividad expresa no contenido en CC 2.3."
+            )
 
     if e.numero == 2:
         expresiones_no_admitidas = (

@@ -286,98 +286,105 @@ def leer_y_validar_csv(
                         + ", ".join(faltantes)
                     )
 
-                numero_filas = 0
-                temas: set[tuple[str, int]] = set()
-                titulos_por_tema: dict[tuple[str, int], str] = {}
-                pendientes_no_determinados: list[tuple[str, int, int]] = []
+                registros = list(lector)
 
-                for numero_linea, registro in enumerate(lector, start=2):
-                    numero_filas += 1
-
+            pendientes_no_determinados: list[tuple[str, str, int]] = []
+            for numero_linea, registro in enumerate(registros, start=2):
+                ley = str(registro.get("LEY") or "").strip()
+                articulo = str(registro.get("articulo") or "").strip()
+                if (
+                    normalizar_marcador(ley) in MARCADORES_NO_DETERMINADO
+                    or normalizar_marcador(articulo) in MARCADORES_NO_DETERMINADO
+                ):
                     parte = str(registro.get("parte") or "").strip().upper()
-                    tema_texto = str(registro.get("tema") or "").strip()
-                    titulo = str(registro.get("titulo") or "").strip()
-                    tipo = str(registro.get("tipo") or "").strip().upper()
-                    ley = str(registro.get("LEY") or "").strip()
-                    articulo = str(registro.get("articulo") or "").strip()
-
-                    if not parte:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: parte vacía."
-                        )
-                    if not tema_texto:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: tema vacío."
-                        )
-                    try:
-                        numero_tema = int(tema_texto)
-                    except ValueError as exc:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: "
-                            f"tema no entero: {tema_texto!r}."
-                        ) from exc
-
-                    if numero_tema <= 0:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: "
-                            "el número de tema debe ser positivo."
-                        )
-                    if not titulo:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: título vacío."
-                        )
-                    if tipo not in {"JURIDICO", "INFORMATICA"}:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: "
-                            f"tipo no admitido: {tipo!r}."
-                        )
-                    if articulo and not ley:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: "
-                            "referencia con artículo pero sin LEY."
-                        )
-
-                    if (
-                        normalizar_marcador(ley) in MARCADORES_NO_DETERMINADO
-                        or normalizar_marcador(articulo) in MARCADORES_NO_DETERMINADO
-                    ):
-                        pendientes_no_determinados.append(
-                            (parte, numero_tema, numero_linea)
-                        )
-
-                    clave = (parte, numero_tema)
-                    titulo_anterior = titulos_por_tema.get(clave)
-                    if titulo_anterior is not None and titulo_anterior != titulo:
-                        raise ValueError(
-                            f"CSV línea {numero_linea}: el tema "
-                            f"{parte} {numero_tema} tiene títulos diferentes."
-                        )
-
-                    titulos_por_tema[clave] = titulo
-                    temas.add(clave)
-
-                if numero_filas == 0:
-                    raise ValueError("El CSV del temario no contiene filas.")
-
-                if pendientes_no_determinados:
-                    detalle = "; ".join(
-                        f"{parte} {tema} (línea {linea})"
-                        for parte, tema, linea in pendientes_no_determinados[:20]
-                    )
-                    if len(pendientes_no_determinados) > 20:
-                        detalle += (
-                            f"; ... (+{len(pendientes_no_determinados) - 20})"
-                        )
-                    raise RuntimeError(
-                        "BLOQUEADO: el temario contiene registros NO DETERMINADOS. "
-                        "No se procesa y no se realiza ninguna operación con la "
-                        "base de datos. Resuelva primero estos registros mediante "
-                        "la Fase 2 / GEN. "
-                        f"Pendientes: {len(pendientes_no_determinados)} "
-                        f"[{detalle}]"
+                    tema = str(registro.get("tema") or "").strip()
+                    pendientes_no_determinados.append(
+                        (parte or "<PARTE VACÍA>", tema or "<TEMA VACÍO>", numero_linea)
                     )
 
-                return encoding, numero_filas, len(temas), len(columnas)
+            if pendientes_no_determinados:
+                detalle = "; ".join(
+                    f"{parte} {tema} (línea {linea})"
+                    for parte, tema, linea in pendientes_no_determinados[:20]
+                )
+                if len(pendientes_no_determinados) > 20:
+                    detalle += (
+                        f"; ... (+{len(pendientes_no_determinados) - 20})"
+                    )
+                raise RuntimeError(
+                    "BLOQUEADO: el temario contiene registros NO DETERMINADOS. "
+                    "No se procesa y no se realiza ninguna operación con la "
+                    "base de datos. Resuelva primero estos registros mediante "
+                    "la Fase 2 / GEN. "
+                    f"Pendientes: {len(pendientes_no_determinados)} "
+                    f"[{detalle}]"
+                )
+
+            numero_filas = 0
+            temas: set[tuple[str, int]] = set()
+            titulos_por_tema: dict[tuple[str, int], str] = {}
+
+            for numero_linea, registro in enumerate(registros, start=2):
+                numero_filas += 1
+
+                parte = str(registro.get("parte") or "").strip().upper()
+                tema_texto = str(registro.get("tema") or "").strip()
+                titulo = str(registro.get("titulo") or "").strip()
+                tipo = str(registro.get("tipo") or "").strip().upper()
+                ley = str(registro.get("LEY") or "").strip()
+                articulo = str(registro.get("articulo") or "").strip()
+
+                if not parte:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: parte vacía."
+                    )
+                if not tema_texto:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: tema vacío."
+                    )
+                try:
+                    numero_tema = int(tema_texto)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: "
+                        f"tema no entero: {tema_texto!r}."
+                    ) from exc
+
+                if numero_tema <= 0:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: "
+                        "el número de tema debe ser positivo."
+                    )
+                if not titulo:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: título vacío."
+                    )
+                if tipo not in {"JURIDICO", "INFORMATICA"}:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: "
+                        f"tipo no admitido: {tipo!r}."
+                    )
+                if articulo and not ley:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: "
+                        "referencia con artículo pero sin LEY."
+                    )
+
+                clave = (parte, numero_tema)
+                titulo_anterior = titulos_por_tema.get(clave)
+                if titulo_anterior is not None and titulo_anterior != titulo:
+                    raise ValueError(
+                        f"CSV línea {numero_linea}: el tema "
+                        f"{parte} {numero_tema} tiene títulos diferentes."
+                    )
+
+                titulos_por_tema[clave] = titulo
+                temas.add(clave)
+
+            if numero_filas == 0:
+                raise ValueError("El CSV del temario no contiene filas.")
+
+            return encoding, numero_filas, len(temas), len(columnas)
 
         except UnicodeDecodeError as exc:
             ultimo_error = exc

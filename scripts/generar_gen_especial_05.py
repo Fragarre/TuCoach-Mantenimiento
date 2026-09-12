@@ -80,13 +80,13 @@ ESPECIFICACIONES = (
         2,
         "Entrada en vigor y fin de la vigencia",
         ("CC-2",),
-        "Explicar la regla de entrada en vigor y las formas en que una norma deja de estar vigente, con especial atención a la derogación por una norma posterior.",
+        "Explicar la regla de entrada en vigor y, respecto del fin de vigencia, limitarse a lo que afirma el artículo 2 del Código Civil: las leyes solo se derogan por otras posteriores. No convertir esa frase en una teoría general y exhaustiva sobre todas las posibles causas de pérdida de vigencia de cualquier norma.",
     ),
     EspecificacionArticulo(
         3,
         "Derogación expresa y derogación tácita",
         ("CC-2",),
-        "Explicar la derogación expresa y la derogación tácita por incompatibilidad entre la norma nueva y la anterior sobre la misma materia, así como la regla de no reviviscencia contenida en el artículo 2 del Código Civil.",
+        "Explicar la derogación expresa y la derogación tácita por incompatibilidad entre la norma nueva y la anterior sobre la misma materia, así como la regla de no reviviscencia contenida en el artículo 2 del Código Civil. Si se menciona el artículo 2.3, identificarlo únicamente como regla general legal del Código Civil sobre retroactividad, nunca como garantía constitucional.",
     ),
     EspecificacionArticulo(
         4,
@@ -205,11 +205,12 @@ def construir_prompt(
         "3. No cites ni uses preámbulos, exposiciones de motivos, disposiciones adicionales, transitorias, derogatorias o finales.\n"
         "4. No introduzcas citas normativas concretas que no aparezcan en el paquete.\n"
         "5. Explica con precisión suficiente para derivar preguntas de oposición, sin complejidad innecesaria.\n"
-        "6. Distingue la regla general del Código Civil y la garantía constitucional específica de irretroactividad.\n"
-        "7. Al tratar derechos adquiridos, no los identifiques automáticamente con los derechos individuales del artículo 9.3 CE.\n"
-        "8. Devuelve JSON con exactamente dos claves: explicacion, puntos_clave.\n"
-        "9. explicacion: entre 350 y 700 palabras.\n"
-        "10. puntos_clave: lista de 5 a 10 frases breves.\n\n"
+        "6. Distingue la regla general legal del artículo 2.3 del Código Civil de la garantía constitucional específica del artículo 9.3 CE. Nunca llames constitucional a la regla del Código Civil.\n"
+        "7. La frase del artículo 2.2 CC 'las leyes sólo se derogan por otras posteriores' debe explicarse sin inferir que la derogación sea una teoría general exhaustiva de todas las causas de pérdida de vigencia de cualquier norma.\n"
+        "8. Al tratar derechos adquiridos, no los identifiques automáticamente con los derechos individuales del artículo 9.3 CE.\n"
+        "9. Devuelve JSON con exactamente dos claves: explicacion, puntos_clave.\n"
+        "10. explicacion: entre 350 y 700 palabras.\n"
+        "11. puntos_clave: lista de 5 a 10 frases breves.\n\n"
         "PAQUETE CONTROLADO:\n"
         + json.dumps(paquete, ensure_ascii=False, indent=2)
     )
@@ -238,6 +239,31 @@ def generar_explicacion(
             f"Artículo GEN {e.numero}: puntos_clave inválidos ({len(puntos)})."
         )
     return {"explicacion": explicacion, "puntos_clave": puntos}
+
+
+def validar_precision_juridica(e: EspecificacionArticulo, ia: dict) -> None:
+    texto = normalizar_para_validar(
+        ia["explicacion"] + " " + " ".join(ia["puntos_clave"])
+    )
+
+    # Si el paquete no contiene la CE, la IA no puede atribuir carácter
+    # constitucional a una regla que procede exclusivamente del Código Civil.
+    if "CE-9" not in e.claves_bloques and "constitucional" in texto:
+        raise RuntimeError(
+            f"Artículo GEN {e.numero}: atribución constitucional sin CE-9 en las fuentes."
+        )
+
+    if e.numero == 2:
+        expresiones_no_admitidas = (
+            "no se produce por instrumentos distintos",
+            "única causa de pérdida de vigencia",
+            "unica causa de perdida de vigencia",
+        )
+        for expresion in expresiones_no_admitidas:
+            if expresion in texto:
+                raise RuntimeError(
+                    "Artículo GEN 2: generalización no sustentada sobre pérdida de vigencia."
+                )
 
 
 def renderizar_articulo(
@@ -352,6 +378,7 @@ def main() -> int:
     for e in ESPECIFICACIONES:
         print(f"Artículo {e.numero}/{total}: {e.titulo}")
         ia = generar_explicacion(e, bloques)
+        validar_precision_juridica(e, ia)
         final = renderizar_articulo(e, bloques, ia)
         validar_integridad(e, bloques, final)
         articulos.append(

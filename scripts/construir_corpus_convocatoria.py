@@ -431,6 +431,8 @@ def ejecutar_resolvedor_temario(
     if solo_pdf_local:
         comando.append("--solo-pdf-local")
 
+    # Se transmite la salida en tiempo real y, a la vez, se conserva para
+    # el informe. Así cada nueva incorporación da feedback inmediato.
     proceso = subprocess.Popen(
         comando,
         cwd=RAIZ,
@@ -870,6 +872,9 @@ def main() -> None:
             if resultado.stderr.strip():
                 print(resultado.stderr.strip())
 
+        # Segunda pasada explícita y local. Es idempotente: sólo selecciona
+        # referencias todavía pendientes que tengan un PDF inequívoco en
+        # fuentes_normativas/. No repite las ya completadas ni usa Internet.
         with sqlite3.connect(ruta_db) as conexion:
             conexion.row_factory = sqlite3.Row
             restantes = [

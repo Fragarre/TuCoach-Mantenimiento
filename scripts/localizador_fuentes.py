@@ -19,7 +19,7 @@ import argparse
 import re
 import unicodedata
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -32,6 +32,7 @@ from pdf_normas import buscar_norma_local
 
 
 TIMEOUT = 40
+DOGV_DIAS_BUSQUEDA = 15
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 Chrome/120 Safari/537.36 OpoCoach/1.0"
@@ -129,12 +130,6 @@ def es_valenciana(nombre: str) -> bool:
         "generalitat valenciana", "generalitat", "consell",
     )):
         return True
-    identidad = extraer_identidad(nombre)
-    if not identidad:
-        return False
-    tipo = identidad[0]
-    # Decreto/Decreto-ley/Decreto legislativo sin "Real" y con "Consell"
-    # ya quedan cubiertos arriba. No se atribuyen autonomías solo por el rango.
     return False
 
 
@@ -174,7 +169,8 @@ def localizar_doue(nombre: str) -> FuenteNormativa:
     except requests.RequestException as exc:
         raise LocalizadorFuenteError(f"No se pudo consultar EUR-Lex: {exc}") from exc
 
-    texto = limpiar(BeautifulSoup(r.text, "html.parser").get_text(" ", strip=True))
+    sopa = BeautifulSoup(r.text, "html.parser")
+    texto = limpiar(sopa.get_text(" ", strip=True))
     identidad_doc = extraer_identidad(texto)
     if identidad_doc != identidad:
         raise LocalizadorFuenteError(
@@ -190,7 +186,6 @@ def localizar_doue(nombre: str) -> FuenteNormativa:
             )
 
     titulo = nombre
-    sopa = BeautifulSoup(r.text, "html.parser")
     h1 = sopa.find("h1")
     if h1:
         titulo = limpiar(h1.get_text(" ", strip=True)) or titulo
@@ -247,22 +242,35 @@ def localizar_dogv(nombre: str) -> FuenteNormativa:
             "DOGV requiere identidad tipo+número+año y fecha completa de disposición."
         )
 
-    candidatos = _candidatos_dogv_fecha(fecha_iso)
-    exactos: list[tuple[str, str]] = []
-    for url, contexto in candidatos:
-        if extraer_identidad(contexto) == identidad:
-            exactos.append((url, contexto))
+    fecha_disposicion = datetime.strptime(fecha_iso, "%Y-%m-%d").date()
+    exactos: dict[str, str] = {}
+    errores_red: list[str] = []
 
-    # El DOGV puede publicar la disposición días después de la fecha de firma.
-    # Si el sumario del día de disposición no contiene coincidencia, no se
-    # adivina otra fecha: se deja pendiente para un localizador DOGV más amplio.
+    # La publicación DOGV suele ser posterior a la fecha de disposición.
+    # Se explora una ventana corta y acotada; nunca se amplía por semejanza.
+    for desplazamiento in range(DOGV_DIAS_BUSQUEDA + 1):
+        fecha = fecha_disposicion + timedelta(days=desplazamiento)
+        try:
+            candidatos = _candidatos_dogv_fecha(fecha.isoformat())
+        except LocalizadorFuenteError as exc:
+            errores_red.append(str(exc))
+            continue
+        for url, contexto in candidatos:
+            if extraer_identidad(contexto) == identidad:
+                exactos[url] = contexto
+
     if len(exactos) != 1:
+        detalle = f" Coincidencias: {len(exactos)}."
+        if not exactos and errores_red:
+            detalle += f" Errores de consulta: {len(errores_red)}."
         raise LocalizadorFuenteError(
             f"DOGV no produjo una única coincidencia exacta para {identidad} "
-            f"en la fecha {fecha_iso}. Coincidencias: {len(exactos)}."
+            f"entre {fecha_disposicion.isoformat()} y "
+            f"{(fecha_disposicion + timedelta(days=DOGV_DIAS_BUSQUEDA)).isoformat()}."
+            + detalle
         )
 
-    url, titulo = exactos[0]
+    url, titulo = next(iter(exactos.items()))
     m = re.search(r"/pdf/([^/?#]+)\.pdf", url, re.I)
     if not m:
         raise LocalizadorFuenteError(f"No se pudo obtener identificador DOGV de {url}")
@@ -273,7 +281,7 @@ def localizar_dogv(nombre: str) -> FuenteNormativa:
         id_fuente=id_fuente,
         titulo_oficial=titulo or nombre,
         url_oficial=url,
-        metodo="dogv_sumario_fecha_exacta",
+        metodo="dogv_sumarios_ventana_exacta",
     )
 
 

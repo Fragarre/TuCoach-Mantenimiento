@@ -160,31 +160,26 @@ def localizar_doue(nombre: str) -> FuenteNormativa:
     if identidad is None or identidad[0] not in {"directiva", "reglamento"}:
         raise LocalizadorFuenteError("La referencia no contiene una Directiva o Reglamento UE inequívoco.")
 
-    tipo, numero, anio = identidad
-    eli_tipo = "dir" if tipo == "directiva" else "reg"
-    url = f"https://eur-lex.europa.eu/eli/{eli_tipo}/{anio}/{int(numero)}/oj"
+    celex = celex_desde_identidad(identidad)
+    url = f"https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:{celex}"
     try:
         r = requests.get(url, timeout=TIMEOUT, headers={"User-Agent": USER_AGENT}, allow_redirects=True)
         r.raise_for_status()
     except requests.RequestException as exc:
         raise LocalizadorFuenteError(f"No se pudo consultar EUR-Lex: {exc}") from exc
 
-    sopa = BeautifulSoup(r.text, "html.parser")
-    texto = limpiar(sopa.get_text(" ", strip=True))
-    identidad_doc = extraer_identidad(texto)
-    if identidad_doc != identidad:
+    # La identidad fuerte en EUR-Lex es CELEX. No se valida el título HTML,
+    # porque puede servirse en cualquier lengua de la UE y no debe depender
+    # de palabras como Directiva/Directive. La consulta se hace por el CELEX
+    # calculado de forma determinista desde tipo + año + número y se exige
+    # que EUR-Lex confirme ese mismo identificador en la respuesta.
+    huella = f"{r.url}\n{r.text}".upper()
+    if celex not in huella:
         raise LocalizadorFuenteError(
-            f"EUR-Lex no confirmó la identidad exacta {identidad}; obtuvo {identidad_doc}."
+            f"EUR-Lex no confirmó el CELEX esperado {celex}."
         )
 
-    celex = celex_desde_identidad(identidad)
-    if celex not in texto.upper():
-        m = re.search(r"\b[03]\d{4}[LRD]\d{4}\b", texto.upper())
-        if not m or m.group(0) != celex:
-            raise LocalizadorFuenteError(
-                f"EUR-Lex no confirmó el CELEX esperado {celex}."
-            )
-
+    sopa = BeautifulSoup(r.text, "html.parser")
     titulo = nombre
     h1 = sopa.find("h1")
     if h1:
@@ -195,7 +190,7 @@ def localizar_doue(nombre: str) -> FuenteNormativa:
         id_fuente=f"DOUE-CELEX-{celex}",
         titulo_oficial=titulo,
         url_oficial=r.url,
-        metodo="eurlex_eli_exacta",
+        metodo="eurlex_celex_exacto",
     )
 
 

@@ -8,10 +8,10 @@ SOLO LECTURA:
 - no escribe en fuentes_normativas/.
 
 Clasificación:
-1. PDF local inequívoco -> PDF_LOCAL_RESUELTA
+1. PDF local con identidad respaldada -> PDF_LOCAL_RESUELTA
 2. Directiva/Reglamento UE -> DOUE_RESUELTA o REQUIERE_PDF_LOCAL
-3. Resto -> un intento con el localizador BOE existente
-   -> BOE_RESUELTA o REQUIERE_PDF_LOCAL
+3. Resto -> un intento BOE conservador, también para normativa autonómica
+   publicada en BOE -> BOE_RESUELTA o REQUIERE_PDF_LOCAL
 
 Uso:
     python scripts/diagnosticar_fuentes_pendientes.py \
@@ -25,8 +25,12 @@ import sqlite3
 from collections import Counter
 from pathlib import Path
 
-from localizador_fuentes import es_union_europea, localizar_doue, localizar_pdf_local
-from localizador_normativa import localizar_norma as localizar_boe
+from localizador_fuentes import (
+    es_union_europea,
+    localizar_boe_fuente,
+    localizar_doue,
+    localizar_pdf_local,
+)
 
 
 def abrir_ro(ruta: Path) -> sqlite3.Connection:
@@ -66,8 +70,8 @@ def clasificar(nombre: str) -> tuple[str, str, str]:
             return "REQUIERE_PDF_LOCAL", "", f"DOUE: {exc}"
 
     try:
-        norma = localizar_boe(nombre)
-        return "BOE_RESUELTA", norma.id_boe, norma.metodo
+        fuente = localizar_boe_fuente(nombre)
+        return "BOE_RESUELTA", fuente.id_fuente, fuente.metodo
     except Exception as exc:
         return "REQUIERE_PDF_LOCAL", "", f"BOE: {exc}"
 

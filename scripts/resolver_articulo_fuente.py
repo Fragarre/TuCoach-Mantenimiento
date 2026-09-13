@@ -10,18 +10,27 @@ No escribe en SQLite.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 
 import requests
 from bs4 import BeautifulSoup
 
-from boe_api import ArticuloBOE, BOEError, obtener_articulo
+from boe_api import (
+    ArticuloBOE,
+    BOEError,
+    _datos_bloque_indice,
+    _seleccionar_version_actualizada,
+    _texto_version,
+    _titulo_corresponde_articulo,
+    campos_metadatos,
+    extraer_articulo_desde_html,
+    normalizar_numero_articulo,
+    obtener_bloque_texto,
+    obtener_indice_texto,
+    texto_articulo_suficiente,
+)
 from localizador_fuentes import (
     FuenteNormativa,
     LocalizadorFuenteError,
-    es_valenciana,
-    extraer_fecha,
-    extraer_identidad,
     localizar_fuente,
 )
 from pdf_normas import obtener_articulo as obtener_articulo_pdf
@@ -37,52 +46,131 @@ def limpiar(texto: str | None) -> str:
     return re.sub(r"\s+", " ", texto or "").strip()
 
 
-def _nombre_boe_canonico(nombre: str) -> str:
-    """Construye una cita BOE sin referencias normativas secundarias.
-
-    La fuente ya ha sido validada por localizador_fuentes. Esta cita se usa
-    únicamente para que boe_api descargue el artículo sin volver a confundirse
-    con otra norma citada más tarde en el título oficial.
-    """
-    identidad = extraer_identidad(nombre)
-    if identidad is None:
-        return nombre
-
-    tipo, numero, anio = identidad
-    tipo_visible = tipo.replace("real decreto ley", "real decreto-ley").replace(
-        "decreto ley", "decreto-ley"
-    )
-    partes = [f"{tipo_visible} {numero}/{anio}"]
-    fecha = extraer_fecha(nombre)
-    if fecha:
-        y, m, d = fecha.split("-")
-        meses = {
-            "01": "enero", "02": "febrero", "03": "marzo", "04": "abril",
-            "05": "mayo", "06": "junio", "07": "julio", "08": "agosto",
-            "09": "septiembre", "10": "octubre", "11": "noviembre", "12": "diciembre",
-        }
-        partes.append(f"de {int(d)} de {meses[m]} de {y}")
-    if es_valenciana(nombre):
-        partes.append("Comunitat Valenciana")
-    return ", ".join(partes)
-
-
 def _obtener_boe(nombre: str, articulo: str, fuente: FuenteNormativa) -> ArticuloBOE:
-    consulta = _nombre_boe_canonico(nombre)
-    resultado = obtener_articulo(consulta, articulo)
-    if limpiar(resultado.id_boe).upper() != limpiar(fuente.id_fuente).upper():
-        raise BOEError(
-            "La extracción BOE cambió de identidad documental: "
-            f"esperada={fuente.id_fuente}, obtenida={resultado.id_boe}."
+    """Obtiene un artículo BOE directamente desde el ID ya validado.
+
+    No vuelve a localizar la norma por su título. La identidad documental
+    queda fijada por localizador_fuentes antes de entrar aquí.
+    """
+    id_boe = limpiar(fuente.id_fuente).upper()
+    solicitado = limpiar(articulo).replace(",", ".")
+    base = normalizar_numero_articulo(solicitado).split(".", 1)[0]
+    if not base:
+        raise BOEError(f"Número de artículo no válido: {articulo}")
+
+    try:
+        _, departamento, _ = campos_metadatos(id_boe)
+    except BOEError:
+        departamento = ""
+
+    try:
+        indice = obtener_indice_texto(id_boe)
+    except BOEError:
+        respaldo = extraer_articulo_desde_html(id_boe, base)
+        if respaldo is None:
+            raise
+        id_bloque, titulo, contenido = respaldo
+        if not texto_articulo_suficiente(contenido, titulo):
+            raise BOEError(
+                f"El respaldo HTML de {id_boe} no contiene texto suficiente "
+                f"para el artículo {solicitado}."
+            )
+        return ArticuloBOE(
+            nombre_norma=nombre,
+            id_boe=id_boe,
+            departamento=departamento,
+            articulo=solicitado,
+            id_bloque=id_bloque,
+            titulo_bloque=titulo,
+            texto=contenido,
         )
+
+    candidatos: list[tuple[str, str, str]] = []
+    for elemento in indice.iter():
+        datos = _datos_bloque_indice(elemento)
+        if not datos:
+            continue
+        id_bloque, titulo, fecha_actualizacion = datos
+        if _titulo_corresponde_articulo(titulo, base):
+            candidatos.append((id_bloque, titulo, fecha_actualizacion))
+
+    if not candidatos:
+        respaldo = extraer_articulo_desde_html(id_boe, base)
+        if respaldo is not None:
+            id_bloque, titulo, contenido = respaldo
+            if texto_articulo_suficiente(contenido, titulo):
+                return ArticuloBOE(
+                    nombre_norma=nombre,
+                    id_boe=id_boe,
+                    departamento=departamento,
+                    articulo=solicitado,
+                    id_bloque=id_bloque,
+                    titulo_bloque=titulo,
+                    texto=contenido,
+                )
+        raise BOEError(
+            f"El índice consolidado de {id_boe} no contiene el artículo "
+            f"{solicitado} y el respaldo HTML tampoco permitió recuperarlo."
+        )
+
+    resueltos: list[tuple[str, str, str, str]] = []
+    errores: list[str] = []
+    for id_bloque, titulo, fecha_actualizacion in candidatos:
+        try:
+            raiz_bloque = obtener_bloque_texto(id_boe, id_bloque)
+            version = _seleccionar_version_actualizada(
+                raiz_bloque,
+                fecha_actualizacion,
+            )
+            contenido = _texto_version(version)
+            if not texto_articulo_suficiente(contenido, titulo):
+                respaldo = extraer_articulo_desde_html(id_boe, base)
+                if respaldo is not None:
+                    id_html, titulo_html, contenido_html = respaldo
+                    if texto_articulo_suficiente(contenido_html, titulo_html):
+                        id_bloque = id_html
+                        titulo = titulo_html
+                        contenido = contenido_html
+            if not texto_articulo_suficiente(contenido, titulo):
+                raise BOEError(
+                    "El artículo recuperado no contiene cuerpo normativo; "
+                    "solo se obtuvo el título/rúbrica o texto vacío."
+                )
+            resueltos.append(
+                (id_bloque, titulo, fecha_actualizacion, contenido)
+            )
+        except BOEError as exc:
+            errores.append(f"{id_bloque}: {exc}")
+
+    if not resueltos:
+        detalle = "; ".join(errores)
+        raise BOEError(
+            f"No se pudo resolver el artículo {solicitado} de {id_boe}. "
+            f"{detalle}"
+        )
+
+    if len(resueltos) > 1:
+        fecha_maxima = max(item[2] for item in resueltos)
+        mas_recientes = [item for item in resueltos if item[2] == fecha_maxima]
+        if len(mas_recientes) != 1:
+            resumen = "; ".join(
+                f"{item[0]} ({item[2]})" for item in resueltos
+            )
+            raise BOEError(
+                f"Hay varios bloques válidos para el artículo {solicitado} "
+                f"de {id_boe}; no se selecciona arbitrariamente: {resumen}"
+            )
+        resueltos = mas_recientes
+
+    id_bloque, titulo, _, contenido = resueltos[0]
     return ArticuloBOE(
         nombre_norma=nombre,
-        id_boe=resultado.id_boe,
-        departamento=resultado.departamento,
-        articulo=resultado.articulo,
-        id_bloque=resultado.id_bloque,
-        titulo_bloque=resultado.titulo_bloque,
-        texto=resultado.texto,
+        id_boe=id_boe,
+        departamento=departamento,
+        articulo=solicitado,
+        id_bloque=id_bloque,
+        titulo_bloque=titulo,
+        texto=contenido,
     )
 
 
@@ -122,8 +210,6 @@ def _extraer_articulo_eurlex(html: str, solicitado: str) -> tuple[str, str]:
         if len(bloque) < 3:
             continue
         titulo = f"Artículo {base}"
-        # En EUR-Lex la línea posterior suele ser la rúbrica. Solo se incorpora
-        # como título cuando no parece ya cuerpo numerado del artículo.
         siguiente = bloque[1]
         if not re.match(r"^\d+[.)]?\s", siguiente):
             titulo = f"Artículo {base}. {siguiente}"
@@ -131,10 +217,10 @@ def _extraer_articulo_eurlex(html: str, solicitado: str) -> tuple[str, str]:
         candidatos.append((len(texto), titulo, texto))
 
     if not candidatos:
-        raise BOEError(f"EUR-Lex no contiene un bloque inequívoco para el artículo {solicitado}.")
+        raise BOEError(
+            f"EUR-Lex no contiene un bloque inequívoco para el artículo {solicitado}."
+        )
 
-    # El índice puede repetir encabezados sin cuerpo. El artículo normativo es
-    # el candidato con mayor cuerpo textual.
     candidatos.sort(key=lambda x: x[0], reverse=True)
     _, titulo, texto = candidatos[0]
     return titulo, texto

@@ -148,6 +148,13 @@ def _cabecera_pdf(ruta_str: str) -> str:
 
 def _titulo_desde_cabecera(cabecera: str, ruta: Path) -> str:
     nombre_archivo = normalizar(ruta.stem)
+
+    # Los documentos GEN son normas sinteticas con identidad propia.
+    # Su identidad viene dada exclusivamente por el nombre del fichero;
+    # nunca por las normas reales que puedan citarse dentro de su contenido.
+    if nombre_archivo.startswith("gen "):
+        return ruta.stem
+
     if "tfue" in nombre_archivo:
         return "Tratado de Funcionamiento de la Unión Europea"
     if re.search(r"\btue\b", nombre_archivo):
@@ -172,6 +179,19 @@ def _titulo_desde_cabecera(cabecera: str, ruta: Path) -> str:
 
 
 def _id_desde_cabecera(cabecera: str, titulo: str, ruta: Path) -> str:
+    nombre_archivo = normalizar(ruta.stem)
+
+    # Los documentos GEN conservan siempre una identidad local propia.
+    # No se permite que una referencia BOE/DOGV contenida en su texto
+    # reclasifique el PDF como si fuera esa norma real.
+    if nombre_archivo.startswith("gen "):
+        slug = re.sub(
+            r"[^A-Z0-9]+",
+            "-",
+            normalizar(ruta.stem).upper(),
+        ).strip("-")
+        return f"LOCAL-PDF-{slug}"
+
     m = re.search(r"(?im)^\s*Referencia:\s*(BOE-A-\d{4}-\d+)\s*$", cabecera)
     if m:
         return m.group(1).upper()
@@ -267,6 +287,11 @@ def _tokens_significativos(texto: str) -> set[str]:
 def _compatibilidad(nombre_norma: str, pdf: PDFNorma) -> float:
     q = normalizar(nombre_norma)
     d = normalizar(pdf.titulo + " " + pdf.ruta.stem + " " + pdf.id_fuente)
+
+    # Los documentos GEN se identifican exclusivamente por el nombre exacto
+    # del fichero. No se aplica similitud entre documentos GEN.
+    if q.startswith("gen "):
+        return 1.0 if q == normalizar(pdf.ruta.stem) else 0.0
 
     # Tratados: identidad explícita, no similitud genérica.
     if "tfue" in q or "tratado de funcionamiento de la union europea" in q:

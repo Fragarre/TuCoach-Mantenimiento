@@ -4,11 +4,15 @@ Localizador común de identidad documental normativa.
 Objetivo: identificar de forma conservadora la fuente oficial de una norma
 sin modificar SQLite ni descargar corpus completo.
 
-Prioridad:
-1. PDF local inequívoco (incluidos GEN-*).
+Prioridad operativa:
+1. PDF local inequívoco, pero solo cuando su identidad está respaldada por el
+   nombre del fichero, por un identificador oficial o por una identidad
+   controlada (GEN/TUE/TFUE).
 2. DOUE/EUR-Lex para Directivas y Reglamentos UE.
-3. DOGV para normativa valenciana.
-4. BOE para normativa estatal.
+3. BOE para cualquier norma que el BOE pueda identificar de forma exacta,
+   incluida normativa autonómica publicada también en BOE.
+4. DOGV queda como localizador explícito, no como barrido automático: si BOE
+   no resuelve con seguridad, el flujo normal debe pedir PDF local.
 
 Nunca elige por similitud libre: una fuente solo se acepta si la identidad
 jurídica tipo + número + año coincide exactamente con la referencia pedida.
@@ -26,7 +30,7 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from boe_api import BOEError
+from boe_api import BOEError, CitaNormativa, campos_metadatos, consultar_candidatos
 from localizador_normativa import localizar_norma as localizar_boe
 from pdf_normas import buscar_norma_local
 
@@ -65,6 +69,13 @@ def normalizar(texto: str | None) -> str:
 
 
 def extraer_identidad(texto: str) -> tuple[str, str, str] | None:
+    """Devuelve la primera referencia normativa que aparece en el texto.
+
+    La prioridad de los patrones solo resuelve empates en la misma posición
+    (por ejemplo, Real Decreto Legislativo frente a Real Decreto). Nunca se
+    permite que una norma citada más tarde en el título sustituya a la norma
+    que encabeza el documento.
+    """
     n = normalizar(texto)
     patrones = (
         ("directiva", r"\bdirectiva(?: ue| cee| ce)?\s+(\d{4})\s+(\d+)\b", True),
@@ -79,7 +90,9 @@ def extraer_identidad(texto: str) -> tuple[str, str, str] | None:
         ("decreto", r"\bdecreto\s+(\d+)\s+(\d{4})\b", False),
         ("orden", r"\borden\s+(\d+)\s+(\d{4})\b", False),
     )
-    for tipo, patron, anio_primero in patrones:
+
+    encontrados: list[tuple[int, int, str, str, str]] = []
+    for prioridad, (tipo, patron, anio_primero) in enumerate(patrones):
         m = re.search(patron, n)
         if not m:
             continue
@@ -87,8 +100,13 @@ def extraer_identidad(texto: str) -> tuple[str, str, str] | None:
             anio, numero = m.group(1), str(int(m.group(2)))
         else:
             numero, anio = str(int(m.group(1))), m.group(2)
-        return tipo, numero, anio
-    return None
+        encontrados.append((m.start(), prioridad, tipo, numero, anio))
+
+    if not encontrados:
+        return None
+
+    _, _, tipo, numero, anio = min(encontrados, key=lambda x: (x[0], x[1]))
+    return tipo, numero, anio
 
 
 def extraer_fecha(texto: str) -> str | None:
@@ -133,17 +151,46 @@ def es_valenciana(nombre: str) -> bool:
     return False
 
 
+def _pdf_local_identidad_respaldada(nombre: str, pdf) -> bool:
+    """Impide que un recopilatorio adquiera identidad por una norma interna."""
+    stem_n = normalizar(Path(pdf.ruta).stem)
+    id_n = str(pdf.id_fuente or "").upper()
+
+    # Identidades controladas o documentales oficiales.
+    if stem_n.startswith("gen "):
+        return True
+    if id_n.startswith(("BOE-A-", "DOGV-", "LOCAL-DOGV-", "DOUE-")):
+        return True
+    if "tfue" in stem_n or re.search(r"\btue\b", stem_n):
+        return True
+
+    identidad_solicitada = extraer_identidad(nombre)
+    if identidad_solicitada is None:
+        # Normas históricas/descriptivas sin patrón número/año siguen usando el
+        # criterio conservador previo de pdf_normas.
+        return True
+
+    # Para un LOCAL-PDF-* ordinario, el nombre físico debe identificar la misma
+    # norma. Una aparición interna en el contenido no basta.
+    identidad_fichero = extraer_identidad(Path(pdf.ruta).stem)
+    return identidad_fichero == identidad_solicitada
+
+
 def localizar_pdf_local(nombre: str) -> FuenteNormativa | None:
     try:
         pdf = buscar_norma_local(nombre)
     except BOEError:
         return None
+
+    if not _pdf_local_identidad_respaldada(nombre, pdf):
+        return None
+
     return FuenteNormativa(
         proveedor="PDF_LOCAL",
         id_fuente=pdf.id_fuente,
         titulo_oficial=pdf.titulo,
         url_oficial=str(Path(pdf.ruta).resolve()),
-        metodo="pdf_local_inequivoco",
+        metodo="pdf_local_identidad_respaldada",
     )
 
 
@@ -169,10 +216,7 @@ def localizar_doue(nombre: str) -> FuenteNormativa:
         raise LocalizadorFuenteError(f"No se pudo consultar EUR-Lex: {exc}") from exc
 
     # La identidad fuerte en EUR-Lex es CELEX. No se valida el título HTML,
-    # porque puede servirse en cualquier lengua de la UE y no debe depender
-    # de palabras como Directiva/Directive. La consulta se hace por el CELEX
-    # calculado de forma determinista desde tipo + año + número y se exige
-    # que EUR-Lex confirme ese mismo identificador en la respuesta.
+    # porque puede servirse en cualquier lengua de la UE.
     huella = f"{r.url}\n{r.text}".upper()
     if celex not in huella:
         raise LocalizadorFuenteError(
@@ -192,6 +236,89 @@ def localizar_doue(nombre: str) -> FuenteNormativa:
         url_oficial=r.url,
         metodo="eurlex_celex_exacto",
     )
+
+
+def _cita_boe_desde_nombre(nombre: str) -> CitaNormativa:
+    identidad = extraer_identidad(nombre)
+    if identidad is None:
+        raise LocalizadorFuenteError(
+            f"No se pudo extraer identidad normativa exacta de: {nombre}"
+        )
+    tipo, numero, anio = identidad
+    return CitaNormativa(
+        tipo=tipo.replace("real decreto ley", "real decreto-ley").replace("decreto ley", "decreto-ley"),
+        numero=numero,
+        anio=anio,
+        fecha_iso=extraer_fecha(nombre) or "",
+        ambito="valenciana" if es_valenciana(nombre) else "",
+    )
+
+
+def localizar_boe_fuente(nombre: str) -> FuenteNormativa:
+    """Localiza BOE y corrige de forma conservadora títulos con normas citadas.
+
+    Primero reutiliza el localizador BOE existente. Si este rechaza el candidato
+    por haber extraído una norma citada más tarde en el título, se hace una sola
+    búsqueda oficial por la cita canónica y se valida con la primera identidad
+    normativa del título y de los metadatos oficiales.
+    """
+    try:
+        norma = localizar_boe(nombre)
+        return FuenteNormativa(
+            proveedor="BOE",
+            id_fuente=norma.id_boe,
+            titulo_oficial=norma.titulo,
+            url_oficial=norma.url_indice,
+            metodo=norma.metodo,
+        )
+    except Exception as error_primario:
+        cita = _cita_boe_desde_nombre(nombre)
+        try:
+            candidatos = consultar_candidatos(cita)
+        except Exception as exc:
+            raise LocalizadorFuenteError(str(error_primario)) from exc
+
+        objetivo = extraer_identidad(nombre)
+        exactos = []
+        for candidato in candidatos:
+            if extraer_identidad(candidato.titulo) != objetivo:
+                continue
+            try:
+                titulo_meta, departamento, _ = campos_metadatos(candidato.id_boe)
+            except Exception:
+                continue
+            titulo_meta = titulo_meta or candidato.titulo
+            departamento = departamento or candidato.departamento
+            if extraer_identidad(titulo_meta) != objetivo:
+                continue
+
+            fecha_objetivo = extraer_fecha(nombre)
+            fecha_titulo = extraer_fecha(titulo_meta)
+            if fecha_objetivo and fecha_titulo and fecha_objetivo != fecha_titulo:
+                continue
+
+            if es_valenciana(nombre):
+                dep_n = normalizar(departamento)
+                if not any(x in dep_n for x in (
+                    "comunitat valenciana", "comunidad valenciana",
+                    "generalitat valenciana", "consell",
+                )):
+                    continue
+
+            exactos.append((candidato.id_boe, titulo_meta))
+
+        exactos = sorted(set(exactos))
+        if len(exactos) != 1:
+            raise LocalizadorFuenteError(str(error_primario)) from error_primario
+
+        id_boe, titulo = exactos[0]
+        return FuenteNormativa(
+            proveedor="BOE",
+            id_fuente=id_boe,
+            titulo_oficial=titulo,
+            url_oficial=f"https://www.boe.es/buscar/act.php?id={id_boe}&tn=2",
+            metodo="boe_api_identidad_primera",
+        )
 
 
 def _candidatos_dogv_fecha(fecha_iso: str) -> list[tuple[str, str]]:
@@ -241,8 +368,6 @@ def localizar_dogv(nombre: str) -> FuenteNormativa:
     exactos: dict[str, str] = {}
     errores_red: list[str] = []
 
-    # La publicación DOGV suele ser posterior a la fecha de disposición.
-    # Se explora una ventana corta y acotada; nunca se amplía por semejanza.
     for desplazamiento in range(DOGV_DIAS_BUSQUEDA + 1):
         fecha = fecha_disposicion + timedelta(days=desplazamiento)
         try:
@@ -292,20 +417,10 @@ def localizar_fuente(nombre: str) -> FuenteNormativa:
     if es_union_europea(nombre):
         return localizar_doue(nombre)
 
-    if es_valenciana(nombre):
-        return localizar_dogv(nombre)
-
-    try:
-        norma = localizar_boe(nombre)
-    except Exception as exc:
-        raise LocalizadorFuenteError(str(exc)) from exc
-    return FuenteNormativa(
-        proveedor="BOE",
-        id_fuente=norma.id_boe,
-        titulo_oficial=norma.titulo,
-        url_oficial=norma.url_indice,
-        metodo=norma.metodo,
-    )
+    # BOE se intenta también para normativa autonómica publicada allí. Si no
+    # existe coincidencia segura, el flujo normal pide fuente PDF local; DOGV
+    # no se barre automáticamente.
+    return localizar_boe_fuente(nombre)
 
 
 def main() -> int:

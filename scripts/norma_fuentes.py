@@ -104,6 +104,7 @@ def _extraer_identidad_normativa(texto: str) -> str | None:
         'constitucion espanola':'constitucion espanola',
         'tratado de funcionamiento de la union europea':'tratado de funcionamiento de la union europea',
         'tratado de la union europea':'tratado de la union europea',
+        'reglamento de les corts valencianes':'reglamento de les corts valencianes',
     }
     for prefijo,clave in especiales.items():
         if n.startswith(prefijo): return clave

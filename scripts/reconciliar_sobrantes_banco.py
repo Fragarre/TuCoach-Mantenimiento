@@ -17,22 +17,45 @@ def cargar_constructor(ruta: Path):
     return modulo
 
 
-def calcular_esperadas(con: sqlite3.Connection, constructor, convocatoria_id: int) -> set[int]:
-    temarios = con.execute("SELECT id FROM temarios WHERE convocatoria_id=? ORDER BY id", (convocatoria_id,)).fetchall()
+def calcular_esperadas_juridicas(
+    con: sqlite3.Connection,
+    constructor,
+    convocatoria_id: int,
+) -> set[int]:
+    """
+    Reconstruye exclusivamente el universo jurídico válido por las reglas actuales.
+
+    Este reconciliador se usa tras cambios del temario jurídico. No reevalúa ni elimina
+    preguntas no jurídicas: su pertenencia al banco depende de las equivalencias/categorías
+    no jurídicas y no de norma_id + artículo.
+    """
+    temarios = con.execute(
+        "SELECT id FROM temarios WHERE convocatoria_id=? ORDER BY id",
+        (convocatoria_id,),
+    ).fetchall()
     if len(temarios) != 1:
-        raise RuntimeError(f"La convocatoria {convocatoria_id} debe tener exactamente un temario; encontrados={len(temarios)}")
+        raise RuntimeError(
+            f"La convocatoria {convocatoria_id} debe tener exactamente un temario; encontrados={len(temarios)}"
+        )
     temario_id = int(temarios[0]["id"])
+
     refs, inv_refs, dup_refs = constructor.cargar_referencias_juridicas(con, temario_id)
-    eqs, inv_eqs, dup_eqs = constructor.cargar_equivalencias_no_juridicas(con, temario_id)
-    if inv_refs or dup_refs or inv_eqs or dup_eqs:
-        raise RuntimeError("No se puede reconciliar: existen referencias/equivalencias inválidas o ambiguas en el temario.")
+    if inv_refs or dup_refs:
+        raise RuntimeError(
+            "No se puede reconciliar: existen referencias jurídicas inválidas o ambiguas en el temario."
+        )
+
     jur = constructor.seleccionar_juridicas(con, convocatoria_id, refs, {})
-    nojur = constructor.seleccionar_no_juridicas(con, eqs, {})
-    return {int(p["id"]) for p in jur["nuevas"] + nojur["nuevas"]}
+    return {int(p["id"]) for p in jur["nuevas"]}
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Revisa y, opcionalmente, elimina del banco vínculos que ya no cumplen el temario/reglas actuales.")
+    p = argparse.ArgumentParser(
+        description=(
+            "Revisa y, opcionalmente, elimina del banco vínculos JURÍDICOS que ya no "
+            "cumplen el temario jurídico actual. No modifica preguntas no jurídicas."
+        )
+    )
     p.add_argument("--db", required=True)
     p.add_argument("--constructor", required=True)
     g = p.add_mutually_exclusive_group(required=True)
@@ -43,21 +66,35 @@ def main() -> int:
 
     db = Path(args.db).resolve()
     constructor_path = Path(args.constructor).resolve()
-    if not db.is_file(): raise FileNotFoundError(db)
-    if not constructor_path.is_file(): raise FileNotFoundError(constructor_path)
+    if not db.is_file():
+        raise FileNotFoundError(db)
+    if not constructor_path.is_file():
+        raise FileNotFoundError(constructor_path)
     constructor = cargar_constructor(constructor_path)
 
     with sqlite3.connect(db) as con:
         con.row_factory = sqlite3.Row
         con.execute("PRAGMA foreign_keys=ON")
         if args.codigo:
-            conv = con.execute("SELECT id,codigo FROM convocatorias WHERE codigo=?", (args.codigo,)).fetchone()
+            conv = con.execute(
+                "SELECT id,codigo FROM convocatorias WHERE codigo=?",
+                (args.codigo,),
+            ).fetchone()
         else:
-            conv = con.execute("SELECT id,codigo FROM convocatorias WHERE id=?", (args.convocatoria_id,)).fetchone()
+            conv = con.execute(
+                "SELECT id,codigo FROM convocatorias WHERE id=?",
+                (args.convocatoria_id,),
+            ).fetchone()
         if conv is None:
-            raise RuntimeError(f"No existe la convocatoria solicitada: {args.codigo or args.convocatoria_id}")
+            raise RuntimeError(
+                f"No existe la convocatoria solicitada: {args.codigo or args.convocatoria_id}"
+            )
+
         convocatoria_id = int(conv["id"])
-        esperadas = calcular_esperadas(con, constructor, convocatoria_id)
+        esperadas_juridicas = calcular_esperadas_juridicas(
+            con, constructor, convocatoria_id
+        )
+
         reales_rows = con.execute(
             """
             SELECT bp.id AS banco_id,bp.pregunta_id,lp.tipo_clasificacion,lp.tipo_fuente,
@@ -65,38 +102,59 @@ def main() -> int:
                    tt.parte,tt.numero_tema,tt.titulo
             FROM banco_preguntas bp
             JOIN lote_preguntas lp ON lp.id=bp.pregunta_id
-            LEFT JOIN banco_preguntas_temas bpt ON bpt.banco_pregunta_id=bp.id AND bpt.es_principal=1
+            LEFT JOIN banco_preguntas_temas bpt
+              ON bpt.banco_pregunta_id=bp.id AND bpt.es_principal=1
             LEFT JOIN temario_temas tt ON tt.id=bpt.tema_id
-            WHERE bp.convocatoria_id=? ORDER BY bp.pregunta_id
+            WHERE bp.convocatoria_id=?
+            ORDER BY bp.pregunta_id
             """,
             (convocatoria_id,),
         ).fetchall()
+
         reales = {int(r["pregunta_id"]): r for r in reales_rows}
-        sobrantes_ids = sorted(set(reales) - esperadas)
+        reales_juridicas = {
+            pid: r
+            for pid, r in reales.items()
+            if str(r["tipo_clasificacion"] or "").strip().upper() == "JURIDICA"
+        }
+        reales_no_juridicas = len(reales) - len(reales_juridicas)
+
+        sobrantes_ids = sorted(
+            set(reales_juridicas) - esperadas_juridicas
+        )
 
         print("=" * 78)
-        print("RECONCILIACIÓN DE SOBRANTES DEL BANCO")
+        print("RECONCILIACIÓN DE SOBRANTES JURÍDICOS DEL BANCO")
         print("=" * 78)
         print(f"Convocatoria......................... {conv['id']} | {conv['codigo']}")
         print(f"Modo................................ {'GUARDAR' if args.guardar else 'SOLO REVISIÓN'}")
-        print(f"Esperadas por reglas actuales........ {len(esperadas)}")
-        print(f"Reales en banco...................... {len(reales)}")
-        print(f"Sobrantes............................ {len(sobrantes_ids)}")
+        print(f"Jurídicas esperadas por reglas....... {len(esperadas_juridicas)}")
+        print(f"Jurídicas reales en banco............ {len(reales_juridicas)}")
+        print(f"No jurídicas preservadas............. {reales_no_juridicas}")
+        print(f"Sobrantes jurídicos.................. {len(sobrantes_ids)}")
+
         if sobrantes_ids:
-            print("\nDETALLE DE SOBRANTES")
+            print("\nDETALLE DE SOBRANTES JURÍDICOS")
             print("-" * 78)
             for pid in sobrantes_ids:
-                r = reales[pid]
-                print(f"pregunta={pid} | banco={r['banco_id']} | {r['tipo_clasificacion']} | norma_id={r['norma_id_normalizada']} | art={r['articulo_normalizado'] or '-'} | {r['parte'] or '-'} tema {r['numero_tema'] if r['numero_tema'] is not None else '-'}")
+                r = reales_juridicas[pid]
+                print(
+                    f"pregunta={pid} | banco={r['banco_id']} | {r['tipo_clasificacion']} | "
+                    f"norma_id={r['norma_id_normalizada']} | art={r['articulo_normalizado'] or '-'} | "
+                    f"{r['parte'] or '-'} tema {r['numero_tema'] if r['numero_tema'] is not None else '-'}"
+                )
+
         if not args.guardar:
             print("\nLa base NO ha sido modificada.")
             return 1 if sobrantes_ids else 0
         if not sobrantes_ids:
-            print("\nNo hay cambios que guardar.")
+            print("\nNo hay cambios jurídicos que guardar.")
             return 0
 
     marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup = db.with_name(f"{db.stem}_backup_reconciliacion_{marca}{db.suffix}")
+    backup = db.with_name(
+        f"{db.stem}_backup_reconciliacion_{marca}{db.suffix}"
+    )
     shutil.copy2(db, backup)
     print(f"\nBackup............................... {backup}")
 
@@ -111,14 +169,23 @@ def main() -> int:
         )
         if cur.rowcount != len(sobrantes_ids):
             con.rollback()
-            raise RuntimeError(f"Se iban a eliminar {len(sobrantes_ids)} vínculos, pero DELETE afectó {cur.rowcount}. ROLLBACK.")
+            raise RuntimeError(
+                f"Se iban a eliminar {len(sobrantes_ids)} vínculos jurídicos, "
+                f"pero DELETE afectó {cur.rowcount}. ROLLBACK."
+            )
         if con.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
-            con.rollback(); raise RuntimeError("integrity_check no es ok. ROLLBACK.")
+            con.rollback()
+            raise RuntimeError("integrity_check no es ok. ROLLBACK.")
         fk = con.execute("PRAGMA foreign_key_check").fetchall()
         if fk:
-            con.rollback(); raise RuntimeError(f"foreign_key_check detectó {len(fk)} errores. ROLLBACK.")
+            con.rollback()
+            raise RuntimeError(
+                f"foreign_key_check detectó {len(fk)} errores. ROLLBACK."
+            )
         con.commit()
-    print(f"Vínculos eliminados.................. {len(sobrantes_ids)}")
+
+    print(f"Vínculos jurídicos eliminados........ {len(sobrantes_ids)}")
+    print("Vínculos no jurídicos eliminados..... 0")
     print("lote_preguntas modificado............ NO")
     print("Resultado............................ OK")
     return 0

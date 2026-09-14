@@ -4,7 +4,7 @@ NetReto - menú de mantenimiento.
 El cuerpo estable del menú se conserva en menu_mantenimiento_core.py.
 Este punto de entrada añade extensiones controladas sin modificar el menú estable:
 - auditoría de fidelidad PDF ↔ temario.csv;
-- sincronización determinista del temario C1-01_58_26.
+- sincronización determinista del temario C1-01_58_26, importación a BD y corpus.
 """
 from __future__ import annotations
 
@@ -22,20 +22,47 @@ _importar_temario_manual_base = _base.importar_temario_manual
 def sincronizar_temario_c1_58_26_menu() -> None:
     _base.cabecera_submenu(
         "SINCRONIZAR TEMARIO C1-01_58_26",
-        "[REVISIÓN → BACKUP/APLICAR] Reconcilia temario.csv con el conjunto jurídico "
-        "validado. Conserva sin cambios ESPECIAL 15-23 y una segunda ejecución debe "
-        "producir 0 altas y 0 bajas.",
+        "[REVISIÓN → BACKUP/APLICAR → BD → CORPUS → VALIDACIÓN] Reconcilia "
+        "temario.csv con el conjunto jurídico validado. Conserva ESPECIAL 15-23 "
+        "sin cambios y una segunda ejecución del sincronizador debe producir 0/0.",
     )
 
     if _base.ejecutar_script("sincronizar_temario_c1_58_26.py") != 0:
         _base.pausa()
         return
 
-    if _base.pedir_si_no(
-        "¿Aplicar exactamente las altas y bajas mostradas? Se creará copia de seguridad"
+    if not _base.pedir_si_no(
+        "¿Aplicar exactamente las altas y bajas mostradas y continuar hasta BD/corpus?"
     ):
-        _base.ejecutar_script("sincronizar_temario_c1_58_26.py", "--aplicar")
+        _base.pausa()
+        return
 
+    if _base.ejecutar_script("sincronizar_temario_c1_58_26.py", "--aplicar") != 0:
+        _base.pausa()
+        return
+
+    ruta_csv = "data_convocatorias/CONV_C1-01_58_26/temario.csv"
+    if _base.ejecutar_script(
+        "importar_temario.py",
+        "--convocatoria",
+        "C1-01_58_26",
+        "--csv",
+        ruta_csv,
+        "--sincronizar-eliminaciones",
+    ) != 0:
+        _base.pausa()
+        return
+
+    if _base.ejecutar_script(
+        "construir_corpus_doble_convocatoria.py",
+        "--codigo",
+        "C1-01_58_26",
+        "--aplicar",
+    ) != 0:
+        _base.pausa()
+        return
+
+    _base.ejecutar_script("validacion_completa.py")
     _base.pausa()
 
 
@@ -43,11 +70,11 @@ def importar_temario_manual() -> None:
     while True:
         _base.cabecera_submenu(
             "IMPORTAR / SINCRONIZAR TEMARIO CSV",
-            "Primero ofrece la sincronización determinista validada para C1-01_58_26. "
+            "Primero ofrece el proceso determinista validado para C1-01_58_26. "
             "La importación manual avanzada original se mantiene disponible.",
         )
-        print("1. Sincronizar C1-01_58_26                       [REVISIÓN → BACKUP/APLICAR]")
-        print("2. Importar/sincronizar CSV manualmente          [AVANZADO]")
+        print("1. Sincronizar C1-01_58_26              [CSV → BD → CORPUS → VALIDACIÓN]")
+        print("2. Importar/sincronizar CSV manualmente [AVANZADO]")
         print("0. Volver")
 
         op = input("Opción: ").strip()

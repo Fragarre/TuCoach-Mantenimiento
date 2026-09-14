@@ -62,6 +62,17 @@ def sincronizar_temario_c1_58_26_menu() -> None:
         _base.pausa()
         return
 
+    # El orquestador general puede informar PARCIAL sin considerarlo error fatal.
+    # Para esta sincronización exigimos como postcondición 1.340/1.340 referencias
+    # presentes, COMPLETADO y enlazadas a texto normativo.
+    if _base.ejecutar_script("validar_temario_c1_58_26_db.py") != 0:
+        print(
+            "\nLa sincronización C1 no se considera terminada: el temario o el corpus "
+            "no han quedado completos. Revise el detalle anterior."
+        )
+        _base.pausa()
+        return
+
     _base.ejecutar_script("validacion_completa.py")
     _base.pausa()
 

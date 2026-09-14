@@ -13,9 +13,59 @@ from pathlib import Path
 import sqlite3
 
 from normalizador_normas import normalizar_norma
-from norma_fuentes import asegurar_esquema, sembrar_desde_enlaces_existentes, completar_fuentes_temario
+from norma_fuentes import (
+    asegurar_esquema,
+    sembrar_desde_enlaces_existentes,
+    completar_fuentes_temario,
+    obtener_metadatos_fuente,
+)
 
 RUTA_BD = Path(__file__).resolve().parent.parent / 'db' / 'oposiciones.sqlite3'
+
+
+def diagnosticar_fuentes_no_resueltas(conexion: sqlite3.Connection) -> list[str]:
+    """Describe fuentes pendientes/conflictivas sin tomar decisiones automáticas."""
+    filas = conexion.execute(
+        """
+        SELECT af.id_boe,
+               GROUP_CONCAT(DISTINCT tr.nombre_norma_normalizada) AS nombres
+        FROM temario_referencias tr
+        JOIN articulos_fuente af ON af.id = tr.articulo_fuente_id
+        LEFT JOIN norma_fuentes nf ON nf.id_fuente = af.id_boe
+        WHERE af.id_boe IS NOT NULL
+          AND TRIM(af.id_boe) <> ''
+          AND nf.id_fuente IS NULL
+        GROUP BY af.id_boe
+        ORDER BY af.id_boe
+        """
+    ).fetchall()
+
+    catalogo = {
+        str(clave): (int(nid), str(nombre))
+        for nid, nombre, clave in conexion.execute(
+            'SELECT id,nombre_canonico,clave_normalizada FROM normas'
+        )
+    }
+    detalle: list[str] = []
+    for id_fuente, nombres_concat in filas:
+        nombres = [x.strip() for x in str(nombres_concat or '').split(',') if x.strip()]
+        meta = obtener_metadatos_fuente(str(id_fuente))
+        textos = ([meta.titulo] if meta.titulo else []) + nombres
+        claves = []
+        for texto in textos:
+            clave = normalizar_norma(texto)
+            if clave and clave not in claves:
+                claves.append(clave)
+        candidatos = []
+        for clave in claves:
+            if clave in catalogo:
+                nid, canon = catalogo[clave]
+                candidatos.append(f'{nid}:{canon}')
+        detalle.append(
+            f"id_fuente={id_fuente} | titulo={meta.titulo or '-'} | "
+            f"nombres_temario={nombres or ['-']} | candidatos={candidatos or ['-']}"
+        )
+    return detalle
 
 
 def main() -> None:
@@ -31,7 +81,6 @@ def main() -> None:
                 + '\n- '.join(conflictos_semilla[:20])
             )
 
-        # Solo las fuentes sin identidad documental siguen dependiendo del texto.
         filas = conexion.execute(
             """
             SELECT DISTINCT nombre_norma_normalizado AS nombre
@@ -65,9 +114,14 @@ def main() -> None:
                 creadas_texto += 1
 
         resumen_fuentes = completar_fuentes_temario(conexion)
-        if resumen_fuentes['conflictos']:
+        if resumen_fuentes['conflictos'] or resumen_fuentes['pendientes']:
+            detalle = diagnosticar_fuentes_no_resueltas(conexion)
+            conexion.rollback()
             raise RuntimeError(
-                f"Hay {resumen_fuentes['conflictos']} fuentes con conflicto de identidad normativa."
+                'Identidad normativa documental no resuelta: '
+                f"conflictos={resumen_fuentes['conflictos']}, "
+                f"pendientes={resumen_fuentes['pendientes']}"
+                + ('\n- ' + '\n- '.join(detalle) if detalle else '')
             )
 
         conexion.commit()

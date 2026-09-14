@@ -26,7 +26,14 @@ INFORMES = ROOT / "informes"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from localizador_normativa import obtener_indice, resolver_alcance  # noqa: E402
+from localizador_normativa import (  # noqa: E402
+    obtener_indice,
+    resolver_alcance,
+    localizar_norma,
+    descargar_indice,
+    parsear_indice,
+    parsear_unidades_estructurales,
+)
 from openai_api import seleccionar_fragmento_json  # noqa: E402
 
 COLUMNAS = ("parte", "tema", "titulo", "LEY", "articulo", "tipo")
@@ -164,8 +171,10 @@ def encontrar_norma(nombre: str, opciones: list[str]) -> str | None:
 
 _ESTRUCTURAL_RE = re.compile(
     r"^(?:"
+    r"(?:preambulo)|"
     r"(?:art(?:iculo)?s?\.?\s+.+)|"
-    r"(?:titulo\s+(?:preliminar|[ivxlcdm]+|\d+)(?:\s*,?\s*(?:capitulo|seccion)\s+(?:[ivxlcdm]+|\d+))?)|"
+    r"(?:titulo\s+(?:preliminar|[ivxlcdm]+|\d+)"
+    r"(?:\s*(?:>|,)\s*(?:capitulo|seccion)\s+(?:[ivxlcdm]+|\d+))*)|"
     r"(?:capitulo\s+(?:[ivxlcdm]+|\d+))|"
     r"(?:seccion\s+(?:[ivxlcdm]+|\d+))|"
     r"(?:disposicion(?:es)?\s+(?:adicional(?:es)?|transitoria(?:s)?|derogatoria(?:s)?|final(?:es)?).*)|"
@@ -306,14 +315,148 @@ def resolver_oficial(norma: str, alcances: list[str], norma_completa: bool):
             arts = resolver_alcance(indice, "")
         else:
             arts = []
+            alcances_resolver = []
+            normalizados = [norm(a) for a in alcances]
             for a in alcances:
-                arts.extend(resolver_alcance(indice, a))
+                na = norm(a)
+                m = re.fullmatch(r"titulo\s+(preliminar|[ivxlcdm]+|\d+)", na)
+                if m:
+                    titulo = m.group(1)
+                    tiene_capitulos = any(
+                        re.match(rf"^titulo\s+{re.escape(titulo)}(?:\s*[,>]\s*|\s+)capitulo\s+", n)
+                        for n in normalizados
+                    )
+                    if tiene_capitulos:
+                        continue
+                alcances_resolver.append(a)
+
+            for a in alcances_resolver:
+                if norm(a) == "preambulo":
+                    continue
+                alcance_resolver = re.sub(r"\\s*>\\s*", ", ", a)
+                arts.extend(resolver_alcance(indice, alcance_resolver))
         arts = sorted({art(x) for x in arts if art(x)}, key=clave_articulo)
         if not arts:
             return None, localizada.url_indice, "El alcance oficial no produjo artículos verificables."
         return arts, localizada.url_indice, ""
     except Exception as exc:
         return None, "", f"No pudo resolverse con seguridad contra el índice oficial: {exc}"
+
+
+
+_STOP_ESTRUCTURAL = {
+    "de", "del", "la", "las", "el", "los", "en", "por",
+    "para", "y", "a", "al", "un", "una",
+}
+
+_ORDEN_RUTA = ("libro", "titulo", "capitulo", "seccion", "subseccion")
+
+
+def _tokens_estructurales(texto: str) -> tuple[str, ...]:
+    t = norm(texto)
+    t = re.sub(r"[^a-z0-9]+", " ", t)
+    return tuple(
+        x for x in t.split()
+        if x and x not in _STOP_ESTRUCTURAL
+    )
+
+
+def _patron_contiguo(patron: tuple[str, ...], texto: str) -> bool:
+    if len(patron) < 2:
+        return False
+    tokens = _tokens_estructurales(texto)
+    n = len(patron)
+    return any(tokens[i:i + n] == patron for i in range(len(tokens) - n + 1))
+
+
+def _es_ancestro_unidad(a: dict, b: dict) -> bool:
+    ra = a["ruta"]
+    rb = b["ruta"]
+    return (
+        len(ra) < len(rb)
+        and all(rb.get(k) == v for k, v in ra.items())
+    )
+
+
+def _alcance_desde_ruta(ruta: dict[str, str]) -> str:
+    nombres = {
+        "libro": "Libro",
+        "titulo": "Titulo",
+        "capitulo": "Capitulo",
+        "seccion": "Seccion",
+        "subseccion": "Subseccion",
+    }
+    return ", ".join(
+        f"{nombres[k]} {ruta[k]}"
+        for k in _ORDEN_RUTA
+        if k in ruta
+    )
+
+
+def resolver_material_oficial(norma: str, texto_literal: str):
+    if not norma or not texto_literal.strip():
+        return None, "", "No hay texto literal suficiente para verificar el alcance."
+
+    try:
+        localizada = localizar_norma(norma)
+        html_indice = descargar_indice(localizada)
+        unidades = parsear_unidades_estructurales(html_indice)
+        indice = parsear_indice(html_indice)
+
+        por_patron: dict[tuple[str, ...], list[dict]] = defaultdict(list)
+
+        for unidad in unidades:
+            patron = _tokens_estructurales(unidad.get("titulo") or "")
+            if len(patron) >= 2:
+                por_patron[patron].append(unidad)
+
+        aceptadas = []
+        for patron, candidatas in por_patron.items():
+            if not _patron_contiguo(patron, texto_literal):
+                continue
+            if len(candidatas) != 1:
+                continue
+            aceptadas.append(candidatas[0])
+
+        if not aceptadas:
+            return None, localizada.url_indice, (
+                "No se encontro ningun encabezado oficial inequivoco "
+                "contenido literalmente en el tema."
+            )
+
+        finales = [
+            unidad
+            for unidad in aceptadas
+            if not any(
+                _es_ancestro_unidad(unidad, otra)
+                for otra in aceptadas
+            )
+        ]
+
+        articulos = []
+
+        for unidad in finales:
+            alcance = _alcance_desde_ruta(unidad["ruta"])
+            articulos.extend(resolver_alcance(indice, alcance))
+
+        articulos = sorted(
+            {art(x) for x in articulos if art(x)},
+            key=clave_articulo,
+        )
+
+        if not articulos:
+            return None, localizada.url_indice, (
+                "Los encabezados oficiales reconocidos no produjeron "
+                "articulos verificables."
+            )
+
+        return articulos, localizada.url_indice, ""
+
+    except Exception as exc:
+        return None, "", (
+            "No pudo resolverse el alcance material contra el indice oficial: "
+            f"{exc}"
+        )
 
 
 def _clave_ref_norma(npdf: str, ncsv: str | None) -> tuple:
@@ -330,6 +473,7 @@ def auditar(temas_ia, filas):
 
     for ti in temas_ia:
         p, t = parte(ti.get("parte")), tema(ti.get("tema"))
+        texto_literal = str(ti.get("texto_literal") or "").strip()
         k = (p, t)
         vistos.add(k)
         g = grupos.get(k)
@@ -375,15 +519,20 @@ def auditar(temas_ia, filas):
 
             if ncsv and not pack["ncsv"]:
                 pack["ncsv"] = ncsv
-            if base != "EXPLICITA":
+            if base == "EXPLICITA":
+                esperados, fuente, err = resolver_oficial(
+                    ncsv or npdf, alc, completa
+                )
+            else:
+                # Una coincidencia material con encabezados oficiales puede
+                # confirmar artículos que faltan, pero no demuestra que los
+                # demás artículos del CSV deban eliminarse.
                 pack["bloqueado_eliminar"] = True
-                dudas.append(Hallazgo(
-                    p, t, npdf, ncsv or "", "DUDA", [],
-                    motivo or "Requiere interpretación.", "; ".join(alc)
-                ))
-                continue
+                esperados, fuente, err = resolver_material_oficial(
+                    ncsv or npdf,
+                    texto_literal,
+                )
 
-            esperados, fuente, err = resolver_oficial(npdf, alc, completa)
             if esperados is None:
                 pack["bloqueado_eliminar"] = True
                 dudas.append(Hallazgo(
@@ -444,6 +593,25 @@ def auditar(temas_ia, filas):
             }
             faltan = sorted(set(esperados) - actuales, key=clave_articulo)
             sobran = sorted(actuales - set(esperados), key=clave_articulo)
+
+            # Salvaguarda: artículos bis/ter/etc. no se confirman automáticamente
+            # cuando no han sido citados expresamente en el alcance del PDF.
+            sufijos = ("bis", "ter", "quater", "quinquies", "sexies", "septies")
+            texto_alcance = norm(alcance_txt)
+            especiales = [
+                a for a in faltan
+                if any(re.search(rf"\b{suf}\b", art(a)) for suf in sufijos)
+                and art(a) not in texto_alcance
+            ]
+            if especiales:
+                dudas.append(Hallazgo(
+                    p, t, npdf, ncsv, "DUDA", especiales,
+                    "Artículos especiales bis/ter/etc. obtenidos del índice oficial, "
+                    "pero no citados expresamente en el PDF; requieren revisión manual.",
+                    alcance_txt,
+                    fuente,
+                ))
+                faltan = [a for a in faltan if a not in especiales]
 
             if faltan:
                 confirmados.append(Hallazgo(

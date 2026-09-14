@@ -111,7 +111,7 @@ PATRON_UNIDAD = re.compile(
 )
 
 PATRON_ARTICULO = re.compile(
-    r"^\s*art[ií]culo\s+("
+    r"^\s*(?:art[i\u00ed]culo|art\.)\s+("
     r"\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies|sexies|"
     r"septies|octies|nonies|decies))?"
     r"|[uú]nico"
@@ -651,6 +651,67 @@ def parsear_indice(html: str) -> list[EntradaIndice]:
     return entradas
 
 
+
+def parsear_unidades_estructurales(html: str) -> list[dict]:
+    """
+    Extrae las unidades estructurales del indice oficial conservando:
+    - tipo y numero;
+    - titulo literal;
+    - ruta jerarquica completa.
+
+    No resuelve materias ni realiza semejanza semantica.
+    """
+    sopa = BeautifulSoup(html, "html.parser")
+    ruta: dict[str, str] = {}
+    resultado: list[dict] = []
+    vistos_elementos: set[int] = set()
+    vistos_unidades: set[tuple] = set()
+
+    for etiqueta in elementos_indice_en_orden(sopa):
+        identidad = id(etiqueta)
+        if identidad in vistos_elementos:
+            continue
+        vistos_elementos.add(identidad)
+
+        texto = limpiar(etiqueta.get_text(" ", strip=True))
+        if not texto or len(texto) > 300:
+            continue
+
+        m = PATRON_UNIDAD.match(texto)
+        if not m:
+            continue
+
+        tipo = normalizar_tipo_unidad(m.group(1))
+        valor = normalizar_valor_unidad(m.group(2))
+        nivel = TIPOS_NIVEL[tipo]
+
+        ruta = {
+            t: v
+            for t, v in ruta.items()
+            if TIPOS_NIVEL[t] < nivel
+        }
+        ruta[tipo] = valor
+
+        titulo = limpiar(texto[m.end():]).lstrip(" .:-")
+
+        clave = (
+            tuple(ruta.items()),
+            normalizar(titulo),
+        )
+        if clave in vistos_unidades:
+            continue
+        vistos_unidades.add(clave)
+
+        resultado.append({
+            "tipo": tipo,
+            "valor": valor,
+            "titulo": titulo,
+            "ruta": dict(ruta),
+        })
+
+    return resultado
+
+
 def expandir_articulos(expresion: str) -> list[str]:
     expresion = normalizar(expresion).replace(",", ".")
 
@@ -690,13 +751,16 @@ def articulos_excluidos(alcance: str) -> set[str]:
 
 def unidades_alcance(alcance: str) -> dict[str, str]:
     """
-    Devuelve la ruta jerárquica citada. Si aparecen Título y Capítulo,
-    se exigirán ambos.
+    Devuelve la ruta jerarquica citada. Si aparecen Titulo y Capitulo,
+    se exigiran ambos.
     """
     ruta: dict[str, str] = {}
-    for m in re.finditer(PATRON_UNIDAD, alcance):
-        tipo = normalizar_tipo_unidad(m.group(1))
-        valor = normalizar_valor_unidad(m.group(2))
+    partes = re.split(r"\s*(?:,|>|;)\s*", alcance)
+    for parte in partes:
+        unidad = unidad_desde_texto(parte)
+        if not unidad:
+            continue
+        tipo, valor = unidad
         ruta[tipo] = valor
     return ruta
 

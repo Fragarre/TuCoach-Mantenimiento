@@ -1,9 +1,10 @@
 """
 NetReto - menú de mantenimiento.
 
-El cuerpo estable del menú se conserva sin cambios en menu_mantenimiento_core.py.
-Este punto de entrada añade únicamente la auditoría de fidelidad PDF ↔ temario.csv
-al submenú de auditorías y delega el resto en el menú estable.
+El cuerpo estable del menú se conserva en menu_mantenimiento_core.py.
+Este punto de entrada añade extensiones controladas sin modificar el menú estable:
+- auditoría de fidelidad PDF ↔ temario.csv;
+- sincronización determinista del temario C1-01_58_26.
 """
 from __future__ import annotations
 
@@ -13,6 +14,51 @@ import menu_mantenimiento_core as _base
 for _nombre in dir(_base):
     if not _nombre.startswith("_"):
         globals().setdefault(_nombre, getattr(_base, _nombre))
+
+
+_importar_temario_manual_base = _base.importar_temario_manual
+
+
+def sincronizar_temario_c1_58_26_menu() -> None:
+    _base.cabecera_submenu(
+        "SINCRONIZAR TEMARIO C1-01_58_26",
+        "[REVISIÓN → BACKUP/APLICAR] Reconcilia temario.csv con el conjunto jurídico "
+        "validado. Conserva sin cambios ESPECIAL 15-23 y una segunda ejecución debe "
+        "producir 0 altas y 0 bajas.",
+    )
+
+    if _base.ejecutar_script("sincronizar_temario_c1_58_26.py") != 0:
+        _base.pausa()
+        return
+
+    if _base.pedir_si_no(
+        "¿Aplicar exactamente las altas y bajas mostradas? Se creará copia de seguridad"
+    ):
+        _base.ejecutar_script("sincronizar_temario_c1_58_26.py", "--aplicar")
+
+    _base.pausa()
+
+
+def importar_temario_manual() -> None:
+    while True:
+        _base.cabecera_submenu(
+            "IMPORTAR / SINCRONIZAR TEMARIO CSV",
+            "Primero ofrece la sincronización determinista validada para C1-01_58_26. "
+            "La importación manual avanzada original se mantiene disponible.",
+        )
+        print("1. Sincronizar C1-01_58_26                       [REVISIÓN → BACKUP/APLICAR]")
+        print("2. Importar/sincronizar CSV manualmente          [AVANZADO]")
+        print("0. Volver")
+
+        op = input("Opción: ").strip()
+        if op == "0":
+            return
+        if op == "1":
+            sincronizar_temario_c1_58_26_menu()
+        elif op == "2":
+            _importar_temario_manual_base()
+        else:
+            print("Opción no válida.")
 
 
 def auditar_fidelidad_temario_menu() -> None:
@@ -69,7 +115,9 @@ def submenu_auditorias() -> None:
             print("Opción no válida.")
 
 
-# main() vive en el módulo estable; se parchea únicamente la entrada de auditorías.
+# Parches controlados sobre el menú estable.
+_base.importar_temario_manual = importar_temario_manual
+_base.sincronizar_temario_c1_58_26_menu = sincronizar_temario_c1_58_26_menu
 _base.submenu_auditorias = submenu_auditorias
 _base.auditar_fidelidad_temario_menu = auditar_fidelidad_temario_menu
 

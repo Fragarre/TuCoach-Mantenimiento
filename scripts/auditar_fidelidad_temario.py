@@ -15,7 +15,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import fitz
+try:
+    import pymupdf as fitz
+except ImportError:  # compatibilidad con instalaciones antiguas
+    import fitz
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = Path(__file__).resolve().parent
@@ -23,7 +26,14 @@ INFORMES = ROOT / "informes"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from localizador_normativa import obtener_indice, resolver_alcance  # noqa: E402
+from localizador_normativa import (  # noqa: E402
+    obtener_indice,
+    resolver_alcance,
+    localizar_norma,
+    descargar_indice,
+    parsear_indice,
+    parsear_unidades_estructurales,
+)
 from openai_api import seleccionar_fragmento_json  # noqa: E402
 
 COLUMNAS = ("parte", "tema", "titulo", "LEY", "articulo", "tipo")
@@ -77,7 +87,30 @@ def compactar(vals: list[str]) -> str:
 
 
 def identidad_norma(s: str) -> tuple[str, str, str] | None:
+    """Devuelve una identidad estable cuando la denominación permite reconocer la norma."""
     t = norm(s)
+
+    if "constitucion espanola" in t:
+        return ("constitucion espanola", "", "1978")
+    if (
+        "estatuto de autonomia de la comunitat valenciana" in t
+        or "estatuto de autonomia de la comunidad valenciana" in t
+        or "ley organica 5/1982" in t
+    ):
+        return ("estatuto autonomia cv", "5", "1982")
+    if "ley de contratos del sector publico" in t or re.search(r"\bley\s+9\s*/\s*2017\b", t):
+        return ("ley", "9", "2017")
+    if (
+        "estatuto basico del empleado publico" in t
+        or "trebep" in t
+        or re.search(r"\breal decreto legislativo\s+5\s*/\s*2015\b", t)
+    ):
+        return ("real decreto legislativo", "5", "2015")
+    if t in {"tue", "tratado de la union europea"} or "tratado de la union europea" in t:
+        return ("tratado union europea", "", "")
+    if t in {"tfue", "tratado de funcionamiento de la union europea"} or "tratado de funcionamiento de la union europea" in t:
+        return ("tratado funcionamiento ue", "", "")
+
     pats = (
         ("real decreto legislativo", r"real decreto legislativo"),
         ("real decreto ley", r"real decreto[\s-]+ley"),
@@ -96,18 +129,74 @@ def identidad_norma(s: str) -> tuple[str, str, str] | None:
     return None
 
 
+def tokens_norma(s: str) -> set[str]:
+    stop = {
+        "de", "del", "la", "el", "los", "las", "por", "que", "se", "un", "una",
+        "y", "en", "para", "con", "texto", "refundido", "aprueba",
+    }
+    return {
+        x for x in re.findall(r"[a-z0-9]+", norm(s))
+        if len(x) > 2 and x not in stop
+    }
+
+
 def similitud(a: str, b: str) -> float:
     ia, ib = identidad_norma(a), identidad_norma(b)
     if ia and ib:
         return 1.0 if ia == ib else 0.0
-    aa = {x for x in re.findall(r"[a-z0-9]+", norm(a)) if len(x) > 2}
-    bb = {x for x in re.findall(r"[a-z0-9]+", norm(b)) if len(x) > 2}
+    if bool(ia) != bool(ib):
+        aa, bb = tokens_norma(a), tokens_norma(b)
+        if aa and bb and (aa <= bb or bb <= aa):
+            return min(len(aa), len(bb)) / max(len(aa), len(bb))
+        return 0.0
+    aa, bb = tokens_norma(a), tokens_norma(b)
     return len(aa & bb) / len(aa | bb) if aa and bb else 0.0
+
+
+def encontrar_norma(nombre: str, opciones: list[str]) -> str | None:
+    if not opciones:
+        return None
+    ident = identidad_norma(nombre)
+    if ident:
+        exactas = [x for x in opciones if identidad_norma(x) == ident]
+        if len(exactas) == 1:
+            return exactas[0]
+        if len(exactas) > 1:
+            return None
+    scores = sorted(((similitud(nombre, x), x) for x in opciones), reverse=True)
+    if scores[0][0] >= 0.72 and (len(scores) == 1 or scores[0][0] - scores[1][0] >= 0.12):
+        return scores[0][1]
+    return None
+
+
+_ESTRUCTURAL_RE = re.compile(
+    r"^(?:"
+    r"(?:preambulo)|"
+    r"(?:art(?:iculo)?s?\.?\s+.+)|"
+    r"(?:titulo\s+(?:preliminar|[ivxlcdm]+|\d+)"
+    r"(?:\s*(?:>|,)\s*(?:capitulo|seccion)\s+(?:[ivxlcdm]+|\d+))*)|"
+    r"(?:capitulo\s+(?:[ivxlcdm]+|\d+))|"
+    r"(?:seccion\s+(?:[ivxlcdm]+|\d+))|"
+    r"(?:disposicion(?:es)?\s+(?:adicional(?:es)?|transitoria(?:s)?|derogatoria(?:s)?|final(?:es)?).*)|"
+    r"(?:anexo(?:s)?(?:\s+[ivxlcdm\d]+)?)"
+    r")$",
+    re.IGNORECASE,
+)
+
+
+def alcance_estructural(s: str) -> bool:
+    t = norm(s)
+    if not t:
+        return False
+    return bool(_ESTRUCTURAL_RE.match(t))
 
 
 def leer_pdf(path: Path) -> str:
     with fitz.open(path) as doc:
-        texto = "\n".join(f"--- PÁGINA {i + 1} ---\n{p.get_text('text') or ''}" for i, p in enumerate(doc))
+        texto = "\n".join(
+            f"--- PÁGINA {i + 1} ---\n{p.get_text('text') or ''}"
+            for i, p in enumerate(doc)
+        )
     if len(texto.strip()) < 200:
         raise RuntimeError("El PDF no contiene texto extraíble suficiente.")
     return texto
@@ -158,7 +247,10 @@ def agrupar(filas):
 
 def resumen(filas) -> str:
     out = []
-    for (p, t), g in sorted(agrupar(filas).items(), key=lambda x: (x[0][0], int(x[0][1]) if x[0][1].isdigit() else 9999)):
+    for (p, t), g in sorted(
+        agrupar(filas).items(),
+        key=lambda x: (x[0][0], int(x[0][1]) if x[0][1].isdigit() else 9999),
+    ):
         out.append(f"{p} {t} | {g['titulo']}")
         for ley, rs in g["normas"].items():
             out.append(f"  - {ley}: {compactar([r['articulo'] for r in rs])}")
@@ -173,11 +265,16 @@ Extrae del PDF, tema por tema, SOLO lo que el PDF permite afirmar.
 
 REGLAS:
 - No uses memoria jurídica externa.
-- EXPLICITA: el PDF identifica inequívocamente la norma y un alcance verificable
-  (norma completa, artículos, título, capítulo, sección, disposición...).
+- EXPLICITA: el PDF identifica inequívocamente la norma y un alcance ESTRUCTURAL verificable:
+  artículos concretos, título, capítulo, sección, disposición o anexo.
+- Las expresiones materiales como "objeto", "ámbito de aplicación", "principios",
+  "organización", "competencias", "procedimiento", etc. NO son alcances estructurales:
+  clasifícalas como IMPLICITA salvo que el PDF cite además la división estructural exacta.
 - IMPLICITA: la materia exige interpretar qué norma o artículos corresponden.
 - Divide alcances complejos en piezas simples.
-- Si se cita la norma completa, usa alcances=[].
+- norma_completa=true SOLO si el PDF exige inequívocamente la norma entera.
+  No lo uses simplemente porque el PDF mencione el nombre de una norma.
+- Si no hay alcance estructural y la norma no se exige completa, usa IMPLICITA.
 - Conserva los temas no jurídicos con juridico=false.
 - Ante duda, IMPLICITA.
 
@@ -190,7 +287,7 @@ PDF:
 Devuelve SOLO JSON:
 {{"temas":[{{"parte":"GENERAL","tema":"1","texto_literal":"...",
 "juridico":true,"referencias":[{{"norma":"...","base":"EXPLICITA|IMPLICITA",
-"alcances":["Título I"],"motivo":"..."}}]}}]}}"""
+"alcances":["Título I"],"norma_completa":false,"motivo":"..."}}]}}]}}"""
     r = seleccionar_fragmento_json(
         prompt=prompt,
         modelo=modelo,
@@ -203,36 +300,180 @@ Devuelve SOLO JSON:
     return temas
 
 
-def encontrar_norma(nombre: str, opciones: list[str]) -> str | None:
-    if not opciones:
-        return None
-    scores = sorted(((similitud(nombre, x), x) for x in opciones), reverse=True)
-    if scores[0][0] >= 0.72 and (len(scores) == 1 or scores[0][0] - scores[1][0] >= 0.12):
-        return scores[0][1]
-    return None
-
-
-def resolver_oficial(norma: str, alcances: list[str]):
+def resolver_oficial(norma: str, alcances: list[str], norma_completa: bool):
     try:
+        if not norma_completa:
+            malos = [a for a in alcances if not alcance_estructural(a)]
+            if not alcances or malos:
+                detalle = ", ".join(malos) if malos else "sin alcance estructural"
+                return None, "", (
+                    "No se confirma automáticamente: el PDF no aporta un alcance "
+                    f"estructural inequívoco ({detalle})."
+                )
         localizada, indice = obtener_indice(norma)
-        if not alcances:
+        if norma_completa:
             arts = resolver_alcance(indice, "")
         else:
             arts = []
+            alcances_resolver = []
+            normalizados = [norm(a) for a in alcances]
             for a in alcances:
-                arts.extend(resolver_alcance(indice, a))
-        arts = sorted({art(x) for x in arts}, key=clave_articulo)
+                na = norm(a)
+                m = re.fullmatch(r"titulo\s+(preliminar|[ivxlcdm]+|\d+)", na)
+                if m:
+                    titulo = m.group(1)
+                    tiene_capitulos = any(
+                        re.match(rf"^titulo\s+{re.escape(titulo)}(?:\s*[,>]\s*|\s+)capitulo\s+", n)
+                        for n in normalizados
+                    )
+                    if tiene_capitulos:
+                        continue
+                alcances_resolver.append(a)
+
+            for a in alcances_resolver:
+                if norm(a) == "preambulo":
+                    continue
+                alcance_resolver = re.sub(r"\\s*>\\s*", ", ", a)
+                arts.extend(resolver_alcance(indice, alcance_resolver))
+        arts = sorted({art(x) for x in arts if art(x)}, key=clave_articulo)
+        if not arts:
+            return None, localizada.url_indice, "El alcance oficial no produjo artículos verificables."
         return arts, localizada.url_indice, ""
     except Exception as exc:
         return None, "", f"No pudo resolverse con seguridad contra el índice oficial: {exc}"
+
+
+
+_STOP_ESTRUCTURAL = {
+    "de", "del", "la", "las", "el", "los", "en", "por",
+    "para", "y", "a", "al", "un", "una",
+}
+
+_ORDEN_RUTA = ("libro", "titulo", "capitulo", "seccion", "subseccion")
+
+
+def _tokens_estructurales(texto: str) -> tuple[str, ...]:
+    t = norm(texto)
+    t = re.sub(r"[^a-z0-9]+", " ", t)
+    return tuple(
+        x for x in t.split()
+        if x and x not in _STOP_ESTRUCTURAL
+    )
+
+
+def _patron_contiguo(patron: tuple[str, ...], texto: str) -> bool:
+    if len(patron) < 2:
+        return False
+    tokens = _tokens_estructurales(texto)
+    n = len(patron)
+    return any(tokens[i:i + n] == patron for i in range(len(tokens) - n + 1))
+
+
+def _es_ancestro_unidad(a: dict, b: dict) -> bool:
+    ra = a["ruta"]
+    rb = b["ruta"]
+    return (
+        len(ra) < len(rb)
+        and all(rb.get(k) == v for k, v in ra.items())
+    )
+
+
+def _alcance_desde_ruta(ruta: dict[str, str]) -> str:
+    nombres = {
+        "libro": "Libro",
+        "titulo": "Titulo",
+        "capitulo": "Capitulo",
+        "seccion": "Seccion",
+        "subseccion": "Subseccion",
+    }
+    return ", ".join(
+        f"{nombres[k]} {ruta[k]}"
+        for k in _ORDEN_RUTA
+        if k in ruta
+    )
+
+
+def resolver_material_oficial(norma: str, texto_literal: str):
+    if not norma or not texto_literal.strip():
+        return None, "", "No hay texto literal suficiente para verificar el alcance."
+
+    try:
+        localizada = localizar_norma(norma)
+        html_indice = descargar_indice(localizada)
+        unidades = parsear_unidades_estructurales(html_indice)
+        indice = parsear_indice(html_indice)
+
+        por_patron: dict[tuple[str, ...], list[dict]] = defaultdict(list)
+
+        for unidad in unidades:
+            patron = _tokens_estructurales(unidad.get("titulo") or "")
+            if len(patron) >= 2:
+                por_patron[patron].append(unidad)
+
+        aceptadas = []
+        for patron, candidatas in por_patron.items():
+            if not _patron_contiguo(patron, texto_literal):
+                continue
+            if len(candidatas) != 1:
+                continue
+            aceptadas.append(candidatas[0])
+
+        if not aceptadas:
+            return None, localizada.url_indice, (
+                "No se encontro ningun encabezado oficial inequivoco "
+                "contenido literalmente en el tema."
+            )
+
+        finales = [
+            unidad
+            for unidad in aceptadas
+            if not any(
+                _es_ancestro_unidad(unidad, otra)
+                for otra in aceptadas
+            )
+        ]
+
+        articulos = []
+
+        for unidad in finales:
+            alcance = _alcance_desde_ruta(unidad["ruta"])
+            articulos.extend(resolver_alcance(indice, alcance))
+
+        articulos = sorted(
+            {art(x) for x in articulos if art(x)},
+            key=clave_articulo,
+        )
+
+        if not articulos:
+            return None, localizada.url_indice, (
+                "Los encabezados oficiales reconocidos no produjeron "
+                "articulos verificables."
+            )
+
+        return articulos, localizada.url_indice, ""
+
+    except Exception as exc:
+        return None, "", (
+            "No pudo resolverse el alcance material contra el indice oficial: "
+            f"{exc}"
+        )
+
+
+def _clave_ref_norma(npdf: str, ncsv: str | None) -> tuple:
+    ident = identidad_norma(ncsv or npdf)
+    if ident:
+        return ("ID",) + ident
+    return ("TXT", norm(ncsv or npdf))
 
 
 def auditar(temas_ia, filas):
     grupos = agrupar(filas)
     confirmados, dudas, ok = [], [], []
     vistos = set()
+
     for ti in temas_ia:
         p, t = parte(ti.get("parte")), tema(ti.get("tema"))
+        texto_literal = str(ti.get("texto_literal") or "").strip()
         k = (p, t)
         vistos.add(k)
         g = grupos.get(k)
@@ -241,66 +482,178 @@ def auditar(temas_ia, filas):
             continue
         if not bool(ti.get("juridico", True)):
             continue
+
         opciones = list(g["normas"])
         referenciadas = set()
-        hubo = False
+        paquetes: dict[tuple, dict[str, Any]] = {}
+        dudas_tema_antes = len(dudas)
+
         for ref in ti.get("referencias") or []:
             npdf = str(ref.get("norma") or "").strip()
             base = str(ref.get("base") or "IMPLICITA").upper()
             alc = [str(x).strip() for x in ref.get("alcances") or [] if str(x).strip()]
+            completa = bool(ref.get("norma_completa", False))
             motivo = str(ref.get("motivo") or "").strip()
+
             if not npdf:
-                dudas.append(Hallazgo(p, t, "", "", "DUDA", [], motivo or "Referencia no identificable.", "; ".join(alc)))
+                dudas.append(Hallazgo(
+                    p, t, "", "", "DUDA", [],
+                    motivo or "Referencia no identificable.", "; ".join(alc)
+                ))
                 continue
+
             ncsv = encontrar_norma(npdf, opciones)
             if ncsv:
                 referenciadas.add(ncsv)
-            if base != "EXPLICITA":
-                dudas.append(Hallazgo(p, t, npdf, ncsv or "", "DUDA", [], motivo or "Requiere interpretación.", "; ".join(alc)))
-                continue
-            esperados, fuente, err = resolver_oficial(npdf, alc)
+
+            key = _clave_ref_norma(npdf, ncsv)
+            pack = paquetes.setdefault(key, {
+                "npdf": npdf,
+                "ncsv": ncsv,
+                "esperados": set(),
+                "fuentes": set(),
+                "alcances": [],
+                "bloqueado_eliminar": False,
+                "resuelto": False,
+            })
+
+            if ncsv and not pack["ncsv"]:
+                pack["ncsv"] = ncsv
+            if base == "EXPLICITA":
+                esperados, fuente, err = resolver_oficial(
+                    ncsv or npdf, alc, completa
+                )
+            else:
+                # Una coincidencia material con encabezados oficiales puede
+                # confirmar artículos que faltan, pero no demuestra que los
+                # demás artículos del CSV deban eliminarse.
+                pack["bloqueado_eliminar"] = True
+                esperados, fuente, err = resolver_material_oficial(
+                    ncsv or npdf,
+                    texto_literal,
+                )
+
             if esperados is None:
-                dudas.append(Hallazgo(p, t, npdf, ncsv or "", "DUDA", [], err, "; ".join(alc), fuente))
-                continue
-            if ncsv is None:
-                confirmados.append(Hallazgo(
-                    p, t, npdf, "", "AÑADIR", esperados,
-                    "Norma y alcance explícitos en PDF; no existe norma equivalente en CSV.",
-                    "; ".join(alc) or "Norma completa", fuente,
+                pack["bloqueado_eliminar"] = True
+                dudas.append(Hallazgo(
+                    p, t, npdf, ncsv or "", "DUDA", [], err,
+                    "; ".join(alc) or ("Norma completa" if completa else ""), fuente
                 ))
-                hubo = True
                 continue
-            actuales = {art(r["articulo"]) for r in g["normas"][ncsv] if art(r["articulo"])}
+
+            pack["resuelto"] = True
+            pack["esperados"].update(esperados)
+            pack["alcances"].extend(alc)
+            if completa:
+                pack["alcances"].append("Norma completa")
+            if fuente:
+                pack["fuentes"].add(fuente)
+
+        hubo_confirmado = False
+
+        for pack in paquetes.values():
+            if not pack["resuelto"]:
+                continue
+
+            npdf = pack["npdf"]
+            ncsv = pack["ncsv"]
+            esperados = sorted(pack["esperados"], key=clave_articulo)
+            alcance_txt = "; ".join(dict.fromkeys(pack["alcances"]))
+            fuente = "; ".join(sorted(pack["fuentes"]))
+
+            if ncsv is None:
+                ident_pdf = identidad_norma(npdf)
+                ident_opciones = [identidad_norma(x) for x in opciones]
+                identidad_segura = bool(ident_pdf) and all(
+                    i is not None and i != ident_pdf for i in ident_opciones
+                )
+                if not opciones:
+                    identidad_segura = bool(ident_pdf)
+
+                if identidad_segura:
+                    confirmados.append(Hallazgo(
+                        p, t, npdf, "", "AÑADIR", esperados,
+                        "Norma y alcance explícitos en PDF; no existe norma equivalente en CSV.",
+                        alcance_txt or "Norma completa", fuente,
+                    ))
+                    hubo_confirmado = True
+                else:
+                    dudas.append(Hallazgo(
+                        p, t, npdf, "", "DUDA", [],
+                        "No se encontró equivalencia segura con las denominaciones del CSV; "
+                        "no se añade automáticamente para evitar duplicar una norma existente.",
+                        alcance_txt, fuente,
+                    ))
+                continue
+
+            actuales = {
+                art(r["articulo"])
+                for r in g["normas"][ncsv]
+                if art(r["articulo"])
+            }
             faltan = sorted(set(esperados) - actuales, key=clave_articulo)
             sobran = sorted(actuales - set(esperados), key=clave_articulo)
+
+            # Salvaguarda: artículos bis/ter/etc. no se confirman automáticamente
+            # cuando no han sido citados expresamente en el alcance del PDF.
+            sufijos = ("bis", "ter", "quater", "quinquies", "sexies", "septies")
+            texto_alcance = norm(alcance_txt)
+            especiales = [
+                a for a in faltan
+                if any(re.search(rf"\b{suf}\b", art(a)) for suf in sufijos)
+                and art(a) not in texto_alcance
+            ]
+            if especiales:
+                dudas.append(Hallazgo(
+                    p, t, npdf, ncsv, "DUDA", especiales,
+                    "Artículos especiales bis/ter/etc. obtenidos del índice oficial, "
+                    "pero no citados expresamente en el PDF; requieren revisión manual.",
+                    alcance_txt,
+                    fuente,
+                ))
+                faltan = [a for a in faltan if a not in especiales]
+
             if faltan:
                 confirmados.append(Hallazgo(
                     p, t, npdf, ncsv, "AÑADIR", faltan,
                     "Artículos exigidos por alcance explícito del PDF y ausentes del CSV.",
-                    "; ".join(alc) or "Norma completa", fuente,
+                    alcance_txt or "Norma completa", fuente,
                 ))
-                hubo = True
+                hubo_confirmado = True
+
             if sobran:
-                confirmados.append(Hallazgo(
-                    p, t, npdf, ncsv, "ELIMINAR", sobran,
-                    "Artículos del CSV fuera del alcance explícito resuelto oficialmente.",
-                    "; ".join(alc) or "Norma completa", fuente,
-                ))
-                hubo = True
+                if pack["bloqueado_eliminar"]:
+                    dudas.append(Hallazgo(
+                        p, t, npdf, ncsv, "DUDA", sobran,
+                        "Existen referencias implícitas o no resueltas de la misma norma; "
+                        "no es seguro eliminar los artículos sobrantes.",
+                        alcance_txt, fuente,
+                    ))
+                else:
+                    confirmados.append(Hallazgo(
+                        p, t, npdf, ncsv, "ELIMINAR", sobran,
+                        "Artículos del CSV fuera del alcance explícito resuelto oficialmente.",
+                        alcance_txt or "Norma completa", fuente,
+                    ))
+                    hubo_confirmado = True
+
         for ncsv in opciones:
             if ncsv not in referenciadas:
                 dudas.append(Hallazgo(
                     p, t, "", ncsv, "DUDA", [],
                     "La norma del CSV no quedó vinculada a una referencia extraída del PDF; se mantiene.",
                 ))
-        if not hubo and not any(x.parte == p and x.tema == t for x in dudas):
+
+        if not hubo_confirmado and len(dudas) == dudas_tema_antes:
             ok.append((p, t, g["titulo"]))
+
     for (p, t), g in grupos.items():
         if (p, t) not in vistos:
             dudas.append(Hallazgo(
                 p, t, "", "", "DUDA", [],
                 "El tema del CSV no fue reconocido en la extracción del PDF; se mantiene.",
             ))
+
     return confirmados, dudas, ok
 
 
@@ -322,10 +675,23 @@ def generar_html(pdf, csvp, modelo, confirmados, dudas, ok, aplicado=False, back
                 f"<td>{esc(h.alcance)}</td>",
                 f"<td>{esc(h.motivo)}</td>",
             ]) + "</tr>")
-        return "<table><thead><tr><th>Parte</th><th>Tema</th><th>Norma</th><th>Estado</th><th>Artículos</th><th>Alcance</th><th>Motivo</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>"
+        return (
+            "<table><thead><tr><th>Parte</th><th>Tema</th><th>Norma</th>"
+            "<th>Estado</th><th>Artículos</th><th>Alcance</th><th>Motivo</th>"
+            "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>"
+        )
 
-    aplicado_txt = f"<p><b>Aplicado:</b> sí. Backup: {esc(backup)}</p>" if aplicado else "<p><b>Aplicado:</b> no.</p>"
-    ok_html = "<ul>" + "".join(f"<li>{esc(p)} {esc(t)} — {esc(tit)}</li>" for p, t, tit in ok) + "</ul>" if ok else "<p>Sin temas clasificados como OK.</p>"
+    aplicado_txt = (
+        f"<p><b>Aplicado:</b> sí. Backup: {esc(backup)}</p>"
+        if aplicado else "<p><b>Aplicado:</b> no.</p>"
+    )
+    ok_html = (
+        "<ul>" + "".join(
+            f"<li>{esc(p)} {esc(t)} — {esc(tit)}</li>"
+            for p, t, tit in ok
+        ) + "</ul>"
+        if ok else "<p>Sin temas clasificados como OK.</p>"
+    )
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Auditoría temario</title>
 <style>body{{font-family:Arial,sans-serif;max-width:1500px;margin:28px auto;padding:0 18px;color:#222}}table{{border-collapse:collapse;width:100%;font-size:14px}}th,td{{border:1px solid #ccc;padding:7px;vertical-align:top}}th{{background:#eee}}.cards{{display:flex;gap:12px;flex-wrap:wrap}}.card{{border:1px solid #bbb;border-radius:8px;padding:12px 18px}}</style></head>
 <body><h1>Auditoría de fidelidad PDF ↔ temario.csv</h1>
@@ -334,7 +700,7 @@ def generar_html(pdf, csvp, modelo, confirmados, dudas, ok, aplicado=False, back
 <h2>Modificaciones confirmadas</h2><p>Solo estas pueden aplicarse automáticamente.</p>{tabla(confirmados)}
 <h2>Dudas / revisión manual</h2><p>No producen cambios automáticos.</p>{tabla(dudas)}
 <h2>Temas sin incidencias</h2>{ok_html}
-<h2>Criterio</h2><p>Solo se confirma una diferencia cuando el PDF aporta una referencia explícita y su alcance puede resolverse contra el índice oficial. Las inferencias quedan como DUDA.</p>
+<h2>Criterio</h2><p>Solo se confirma una diferencia cuando el PDF aporta una referencia normativa explícita, la identidad de la norma es segura y su alcance estructural puede resolverse contra el índice oficial. Las materias semánticas y cualquier inferencia quedan como DUDA.</p>
 </body></html>"""
 
 
@@ -343,7 +709,10 @@ def aplicar(csvp, filas, campos, real, encoding, delim, quote, eol, confirmados)
     altas = []
     for h in confirmados:
         if h.accion == "ELIMINAR":
-            eliminar |= {(parte(h.parte), tema(h.tema), norm(h.norma_csv), art(a)) for a in h.articulos}
+            eliminar |= {
+                (parte(h.parte), tema(h.tema), norm(h.norma_csv), art(a))
+                for a in h.articulos
+            }
         elif h.accion == "AÑADIR":
             altas.append(h)
 
@@ -396,7 +765,10 @@ def aplicar(csvp, filas, campos, real, encoding, delim, quote, eol, confirmados)
             rr = salida[i + 1]
             sig = (parte(rr[real["parte"]]), tema(rr[real["tema"]]))
         if sig != kt and kt in nuevas:
-            final.extend(sorted(nuevas.pop(kt), key=lambda x: (norm(x[real["LEY"]]), clave_articulo(x[real["articulo"]]))))
+            final.extend(sorted(
+                nuevas.pop(kt),
+                key=lambda x: (norm(x[real["LEY"]]), clave_articulo(x[real["articulo"]])),
+            ))
     for vals in nuevas.values():
         final.extend(vals)
 
@@ -459,13 +831,24 @@ def main() -> int:
     conf, dudas, ok = auditar(temas, filas)
 
     INFORMES.mkdir(parents=True, exist_ok=True)
-    informe = INFORMES / f"auditoria_fidelidad_temario_{csvp.stem}_{datetime.now():%Y%m%d_%H%M%S}.html"
-    informe.write_text(generar_html(pdf, csvp, a.modelo, conf, dudas, ok), encoding="utf-8")
-    print(f"\nConfirmados: {len(conf)}\nDudas: {len(dudas)}\nOK: {len(ok)}\nInforme: {informe}")
+    informe = INFORMES / (
+        f"auditoria_fidelidad_temario_{csvp.stem}_{datetime.now():%Y%m%d_%H%M%S}.html"
+    )
+    informe.write_text(
+        generar_html(pdf, csvp, a.modelo, conf, dudas, ok),
+        encoding="utf-8",
+    )
+    print(
+        f"\nConfirmados: {len(conf)}\nDudas: {len(dudas)}\n"
+        f"OK: {len(ok)}\nInforme: {informe}"
+    )
 
     aplicar_ok = a.aplicar
     if not a.no_preguntar_aplicar and not a.aplicar:
-        aplicar_ok = input("\n¿Incorporar modificaciones confirmadas? [s/N]: ").strip().lower() in {"s", "si", "sí"}
+        aplicar_ok = (
+            input("\n¿Incorporar modificaciones confirmadas? [s/N]: ")
+            .strip().lower() in {"s", "si", "sí"}
+        )
     if not aplicar_ok:
         print("No se ha modificado el CSV.")
         return 0
@@ -474,7 +857,10 @@ def main() -> int:
         return 0
 
     backup = aplicar(csvp, filas, campos, real, enc, delim, quote, eol, conf)
-    informe.write_text(generar_html(pdf, csvp, a.modelo, conf, dudas, ok, True, backup), encoding="utf-8")
+    informe.write_text(
+        generar_html(pdf, csvp, a.modelo, conf, dudas, ok, True, backup),
+        encoding="utf-8",
+    )
     print(f"Backup: {backup}\nTemario actualizado: {csvp}\nInforme: {informe}")
     return 0
 

@@ -10,10 +10,9 @@ No escribe en SQLite.
 from __future__ import annotations
 
 import re
-import xml.etree.ElementTree as ET
 
 import requests
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup
 
 from boe_api import (
     ArticuloBOE,
@@ -227,199 +226,31 @@ def _extraer_articulo_eurlex(html: str, solicitado: str) -> tuple[str, str]:
     return titulo, texto
 
 
-def _token_consolidacion_celex(celex: str) -> str:
-    """Convierte un CELEX legislativo sector 3 en su token de consolidación."""
-    celex = limpiar(celex).upper()
-    if not re.fullmatch(r"3\d{4}[A-Z]\d{4}", celex):
-        raise BOEError(
-            f"CELEX no soportado para resolución CELLAR automática: {celex}"
-        )
-    return celex[1:]
-
-
-def _fecha_consolidacion_desde_url(url: str) -> str:
-    m = re.search(r"%2F(\d{8})", url, flags=re.I)
-    return m.group(1) if m else "00000000"
-
-
-def _localizar_xhtml_cellar(celex: str) -> str:
-    """Localiza de forma inequívoca la manifestación XHTML española.
-
-    Se consulta el árbol oficial CELLAR del CELEX y se elige la versión
-    consolidada española más reciente cuyo identificador documental coincide
-    exactamente con el CELEX validado. No se seleccionan recursos relacionados.
-    """
-    token = _token_consolidacion_celex(celex)
-    url_arbol = f"https://publications.europa.eu/resource/celex/{celex}"
-    try:
-        r = requests.get(
-            url_arbol,
-            timeout=TIMEOUT,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "application/xml;notice=tree",
-                "Accept-Language": "spa",
-            },
-            allow_redirects=True,
-        )
-        r.raise_for_status()
-    except requests.RequestException as exc:
-        raise BOEError(
-            f"No se pudo obtener el árbol CELLAR del CELEX {celex}."
-        ) from exc
-
-    if not r.content:
-        raise BOEError(f"CELLAR devolvió vacío el árbol del CELEX {celex}.")
-
-    try:
-        raiz = ET.fromstring(r.content)
-    except ET.ParseError as exc:
-        raise BOEError(
-            f"CELLAR no devolvió XML válido para el CELEX {celex}."
-        ) from exc
-
-    urls: set[str] = set()
-    for elem in raiz.iter():
-        if elem.tag.split("}")[-1] != "VALUE":
-            continue
-        valor = limpiar(elem.text)
-        if not valor:
-            continue
-        if not valor.lower().endswith(".spa.xhtml"):
-            continue
-        if "/resource/consolidation/" not in valor.lower():
-            continue
-        if token.lower() not in valor.lower():
-            continue
-        urls.add(valor)
-
-    if not urls:
-        raise BOEError(
-            f"CELLAR no ofrece una manifestación XHTML española consolidada "
-            f"inequívoca para el CELEX {celex}."
-        )
-
-    ordenadas = sorted(
-        urls,
-        key=lambda url: (_fecha_consolidacion_desde_url(url), url),
-        reverse=True,
-    )
-    fecha_maxima = _fecha_consolidacion_desde_url(ordenadas[0])
-    mejores = [u for u in ordenadas if _fecha_consolidacion_desde_url(u) == fecha_maxima]
-    if len(mejores) != 1:
-        raise BOEError(
-            f"CELLAR devuelve varias manifestaciones XHTML españolas para la "
-            f"misma versión de {celex}; no se selecciona arbitrariamente."
-        )
-    return mejores[0]
-
-
-def _descargar_xhtml_cellar(celex: str) -> tuple[str, str]:
-    url = _localizar_xhtml_cellar(celex)
-    try:
-        r = requests.get(
-            url,
-            timeout=TIMEOUT,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "application/xhtml+xml,text/html",
-                "Accept-Language": "es",
-            },
-            allow_redirects=True,
-        )
-        r.raise_for_status()
-    except requests.RequestException as exc:
-        raise BOEError(
-            f"No se pudo descargar la manifestación XHTML de CELLAR: {url}"
-        ) from exc
-
-    tipo = (r.headers.get("content-type") or "").lower()
-    if not r.content or ("html" not in tipo and "xhtml" not in tipo):
-        raise BOEError(
-            f"CELLAR no devolvió XHTML utilizable para el CELEX {celex}."
-        )
-    return r.url, r.text
-
-
-def _es_tag_encabezado_cellar(tag: Tag) -> bool:
-    if tag.name != "p":
-        return False
-    clases = tag.get("class") or []
-    return "title-article-norm" in clases
-
-
-def _extraer_articulo_cellar(html: str, solicitado: str) -> tuple[str, str]:
-    """Extrae un artículo usando la estructura normativa explícita de CELLAR."""
-    base = limpiar(solicitado).replace(",", ".").split(".", 1)[0]
-    sopa = BeautifulSoup(html, "html.parser")
-    encabezados = [
-        tag for tag in sopa.find_all("p")
-        if isinstance(tag, Tag) and _es_tag_encabezado_cellar(tag)
-    ]
-
-    objetivo: Tag | None = None
-    coincidencias = 0
-    for tag in encabezados:
-        texto = limpiar(tag.get_text(" ", strip=True))
-        m = _es_encabezado_articulo(texto)
-        if m and limpiar(m.group(1)).lower() == base.lower():
-            coincidencias += 1
-            objetivo = tag
-
-    if coincidencias != 1 or objetivo is None:
-        raise BOEError(
-            f"CELLAR no contiene un encabezado inequívoco para el artículo "
-            f"{solicitado}."
-        )
-
-    titulo = f"Artículo {base}"
-    siguiente_p = objetivo.find_next("p")
-    if isinstance(siguiente_p, Tag):
-        clases = siguiente_p.get("class") or []
-        if "stitle-article-norm" in clases:
-            subtitulo = limpiar(siguiente_p.get_text(" ", strip=True))
-            if subtitulo:
-                titulo = f"Artículo {base}. {subtitulo}"
-
-    lineas: list[str] = [limpiar(objetivo.get_text(" ", strip=True))]
-    for nodo in objetivo.next_elements:
-        if nodo is objetivo:
-            continue
-        if isinstance(nodo, Tag) and _es_tag_encabezado_cellar(nodo):
-            break
-        if not isinstance(nodo, NavigableString):
-            continue
-        padre = nodo.parent
-        if isinstance(padre, Tag) and padre.name in {"script", "style", "noscript"}:
-            continue
-        texto = limpiar(str(nodo))
-        if texto:
-            lineas.append(texto)
-
-    texto = "\n".join(lineas).strip()
-    if len(texto) < 80:
-        raise BOEError(
-            f"CELLAR recuperó texto insuficiente para el artículo {solicitado}."
-        )
-    return titulo, texto
-
-
 def _obtener_doue(nombre: str, articulo: str, fuente: FuenteNormativa) -> ArticuloBOE:
-    celex = limpiar(fuente.id_fuente).upper().removeprefix("DOUE-CELEX-")
-    if not celex:
-        raise BOEError(
-            f"La fuente DOUE no contiene un CELEX válido: {fuente.id_fuente}"
+    try:
+        r = requests.get(
+            fuente.url_oficial,
+            timeout=TIMEOUT,
+            headers={"User-Agent": USER_AGENT, "Accept-Language": "es"},
+            allow_redirects=True,
         )
+        r.raise_for_status()
+    except requests.RequestException as exc:
+        raise BOEError(f"No se pudo descargar EUR-Lex: {fuente.url_oficial}") from exc
 
-    _, html = _descargar_xhtml_cellar(celex)
-    titulo, texto = _extraer_articulo_cellar(html, articulo)
+    celex = fuente.id_fuente.upper().removeprefix("DOUE-CELEX-")
+    huella = f"{r.url}\n{r.text}".upper()
+    if celex and celex not in huella:
+        raise BOEError(f"EUR-Lex no confirmó el CELEX esperado {celex}.")
+
+    titulo, texto = _extraer_articulo_eurlex(r.text, articulo)
     base = limpiar(articulo).replace(",", ".").split(".", 1)[0]
     return ArticuloBOE(
         nombre_norma=nombre,
         id_boe=fuente.id_fuente,
         departamento="Unión Europea",
         articulo=limpiar(articulo).replace(",", "."),
-        id_bloque=f"cellar-{celex.lower()}-art-{base.lower()}",
+        id_bloque=f"eurlex-{celex.lower()}-art-{base.lower()}",
         titulo_bloque=titulo,
         texto=texto,
     )

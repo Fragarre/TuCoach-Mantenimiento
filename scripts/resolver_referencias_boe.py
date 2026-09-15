@@ -51,6 +51,10 @@ from pdf_normas import (
     obtener_articulo as obtener_articulo_pdf,
     tiene_pdf_local,
 )
+from resolver_articulo_fuente import (
+    id_fuente_validada,
+    obtener_articulo_desde_fuente,
+)
 
 
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
@@ -313,43 +317,15 @@ def articulo_normalizado(articulo_solicitado: str) -> str:
 def clave_documental_referencia(
     referencia: Referencia,
 ) -> str:
-    """
-    Devuelve una identidad documental más precisa que
-    nombre_norma_normalizada.
-
-    - Para PDFs locales utiliza el identificador real de la fuente.
-    - Para normas BOE utiliza la cita completa extraída por boe_api
-      (tipo, número, año, fecha y ámbito).
-    - Para normas especiales sin patrón número/año utiliza el id_boe
-      validado por buscar_norma().
-    """
-    if tiene_pdf_local(referencia.nombre_norma_csv):
-        norma = buscar_norma_pdf(referencia.nombre_norma_csv)
-        return f"pdf|{limpiar(norma.id_boe)}"
-
-    try:
-        cita = extraer_cita(referencia.nombre_norma_csv)
-        return f"boe-cita|{cita.clave}"
-    except BOEError:
-        norma = buscar_norma(referencia.nombre_norma_csv)
-        return f"boe-id|{limpiar(norma.id_boe)}"
+    """Identidad documental decidida exclusivamente por el localizador com?n."""
+    return f"fuente|{limpiar(id_fuente_validada(referencia.nombre_norma_csv))}"
 
 
 def id_fuente_esperada(
     referencia: Referencia,
 ) -> str:
-    """
-    Resuelve la identidad documental real de la norma usando la cita
-    original del temario. Esta comprobación impide reutilizar una
-    resolución cacheada de otra norma que comparta tipo+número+año.
-    """
-    if tiene_pdf_local(referencia.nombre_norma_csv):
-        return limpiar(
-            buscar_norma_pdf(referencia.nombre_norma_csv).id_boe
-        )
-
-    return limpiar(buscar_norma(referencia.nombre_norma_csv).id_boe)
-
+    """Identidad documental esperada seg?n el localizador com?n validado."""
+    return limpiar(id_fuente_validada(referencia.nombre_norma_csv))
 
 def buscar_resolucion_bd(
     conexion: sqlite3.Connection,
@@ -582,18 +558,10 @@ def resolver_una(
     referencia: Referencia,
 ) -> ResultadoResolucion:
     try:
-        if tiene_pdf_local(referencia.nombre_norma_csv):
-            buscar_norma_pdf(referencia.nombre_norma_csv)
-            articulo = obtener_articulo_pdf(
-                referencia.nombre_norma_csv,
-                referencia.articulo_solicitado,
-            )
-        else:
-            buscar_norma(referencia.nombre_norma_csv)
-            articulo = obtener_articulo(
-                referencia.nombre_norma_csv,
-                referencia.articulo_solicitado,
-            )
+        articulo = obtener_articulo_desde_fuente(
+            referencia.nombre_norma_csv,
+            referencia.articulo_solicitado,
+        )
 
         if not texto_articulo_suficiente(articulo.texto, articulo.titulo_bloque):
             raise BOEError(

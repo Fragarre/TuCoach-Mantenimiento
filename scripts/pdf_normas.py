@@ -204,10 +204,11 @@ def _id_desde_cabecera(cabecera: str, titulo: str, ruta: Path) -> str:
     if m:
         return m.group(1).upper()
     nombre_archivo = normalizar(ruta.stem)
-    nt = normalizar(titulo + " " + cabecera[:1200])
-    if "tfue" in nombre_archivo or "tratado de funcionamiento de la union europea" in nt:
+
+    if "tfue" in nombre_archivo:
         return "DOUE-C-2010-083-TFUE"
-    if re.search(r"\btue\b", nombre_archivo) or "tratado de la union europea" in nt:
+
+    if re.search(r"\btue\b", nombre_archivo):
         return "DOUE-C-2010-083-TUE"
     # Identidad local estable, solo como último recurso para un PDF inequívoco.
     slug = re.sub(r"[^A-Z0-9]+", "-", normalizar(ruta.stem).upper()).strip("-")
@@ -260,8 +261,29 @@ def inventario_pdfs() -> tuple[PDFNorma, ...]:
 
 def _extraer_tipo_numero_anio(texto: str) -> tuple[str, str, str] | None:
     n = normalizar(texto)
+
+    # Normas UE: año + número.
+    patrones_ue = (
+        ("directiva ue", r"\bdirectiva(?:\s+ue)?\s+(\d{4})\s+(\d+)\b"),
+        (
+            "reglamento ue euratom",
+            r"\breglamento(?:\s+ue\s+euratom|\s+ue,\s*euratom|\s+euratom)?\s+(\d{4})\s+(\d+)\b",
+        ),
+        ("reglamento ue", r"\breglamento(?:\s+ue)?\s+(\d{4})\s+(\d+)\b"),
+    )
+    for tipo, patron in patrones_ue:
+        m = re.search(patron, n)
+        if m:
+            return tipo, str(int(m.group(2))), m.group(1)
+
+    # Normas españolas: número + año.
     patrones = (
+        ("real decreto legislativo", r"\breal decreto legislativo\s+(\d+)\s+(\d{4})\b"),
+        ("real decreto ley", r"\breal decreto ley\s+(\d+)\s+(\d{4})\b"),
+        ("decreto legislativo", r"\bdecreto legislativo\s+(\d+)\s+(\d{4})\b"),
+        ("decreto ley", r"\bdecreto ley\s+(\d+)\s+(\d{4})\b"),
         ("ley organica", r"\bley organica\s+(\d+)\s+(\d{4})\b"),
+        ("real decreto", r"\breal decreto\s+(\d+)\s+(\d{4})\b"),
         ("ley", r"\bley\s+(\d+)\s+(\d{4})\b"),
         ("decreto", r"\bdecreto\s+(\d+)\s+(\d{4})\b"),
         ("orden", r"\borden\s+(\d+)\s+(\d{4})\b"),
@@ -270,6 +292,7 @@ def _extraer_tipo_numero_anio(texto: str) -> tuple[str, str, str] | None:
         m = re.search(patron, n)
         if m:
             return tipo, str(int(m.group(1))), m.group(2)
+
     return None
 
 
@@ -457,11 +480,27 @@ def normalizar_articulo(articulo: str) -> str:
     valor = str(articulo or "").strip().replace(",", ".")
     if valor.upper() == "ANEXO":
         return "ANEXO"
-    m = re.fullmatch(r"(\d+)(?:\.(\d+))?", valor)
+
+    valor = re.sub(r"\s+", " ", valor).strip().lower()
+
+    m = re.fullmatch(
+        r"(\d+)(?:\.(\d+))?(?:\s+(bis|ter|quater))?",
+        valor,
+    )
     if not m:
         raise BOEError(f"Artículo PDF no válido: {articulo!r}")
-    return valor
 
+    numero = m.group(1)
+    apartado = m.group(2)
+    sufijo = m.group(3)
+
+    resultado = numero
+    if apartado:
+        resultado += f".{apartado}"
+    if sufijo:
+        resultado += f" {sufijo}"
+
+    return resultado
 
 def _encabezados(texto: str) -> list[tuple[int, int, str, str]]:
     patron = re.compile(r"(?im)^[ \t]*art[ií]culo[ \t]+([^\n.]+(?:\.[0-9]+)?)[ \t]*\.?[ \t]*([^\n]*)$")
@@ -470,9 +509,15 @@ def _encabezados(texto: str) -> list[tuple[int, int, str, str]]:
         bruto = m.group(1).strip()
         # Numérico, eventualmente 4.3.
         num = None
-        mn = re.match(r"^(\d+(?:\.\d+)?)\b", bruto)
+        mn = re.match(
+            r"^(\d+(?:\.\d+)?)(?:\s+(bis|ter|quater))?\b",
+            bruto,
+            flags=re.I,
+        )
         if mn:
             num = mn.group(1)
+            if mn.group(2):
+                num += f" {mn.group(2).lower()}"
         else:
             # Solo palabras del número; evita absorber la rúbrica.
             palabras = []
@@ -493,7 +538,7 @@ def _bloque_articulo(pdf: PDFNorma, articulo_solicitado: str) -> tuple[str, str,
     solicitado = normalizar_articulo(articulo_solicitado)
     if solicitado == "ANEXO":
         raise BOEError("La extracción automática de ANEXO completo no está habilitada para PDF genérico.")
-    base = solicitado.split(".", 1)[0]
+    base = solicitado
     texto = _texto_pdf(str(pdf.ruta.resolve()))
     encabezados = _encabezados(texto)
     candidatos = [h for h in encabezados if h[2] == base]

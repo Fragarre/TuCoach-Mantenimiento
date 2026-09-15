@@ -3,7 +3,7 @@
 Propaga un temario.csv ya aprobado a BD, corpus, normalización y banco.
 No deduce ni corrige el contenido material del CSV y nunca modifica lote_preguntas.
 
-Sin --aplicar solo valida parámetros y muestra el plan.
+Sin --aplicar compara CSV y BD en solo lectura y muestra el delta previsto.
 Con --aplicar ejecuta la cadena completa y sus postcondiciones de idempotencia.
 """
 from __future__ import annotations
@@ -31,17 +31,13 @@ def ejecutar(nombre: str, *args: str) -> None:
 
 def comprobar_convocatoria(db: Path, codigo: str) -> None:
     with sqlite3.connect(db) as con:
-        fila = con.execute(
-            "SELECT id FROM convocatorias WHERE codigo=?", (codigo,)
-        ).fetchone()
+        fila = con.execute("SELECT id FROM convocatorias WHERE codigo=?", (codigo,)).fetchone()
         if fila is None:
             raise RuntimeError(f"No existe la convocatoria {codigo}.")
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(
-        description="Actualiza BD, corpus, normalización y banco desde un temario.csv aprobado."
-    )
+    p = argparse.ArgumentParser(description="Actualiza BD, corpus, normalización y banco desde un temario.csv aprobado.")
     p.add_argument("--codigo", required=True)
     p.add_argument("--csv", required=True)
     p.add_argument("--db", default=str(DB_DEFECTO))
@@ -77,64 +73,21 @@ def main() -> int:
         print("  7. Comprobar idempotencia del banco")
         print("  8. Validación final")
 
+        db_s = str(db)
         if not args.aplicar:
+            ejecutar("revisar_delta_temario.py", "--db", db_s, "--codigo", args.codigo, "--csv", str(csv))
             print("\nLa base NO ha sido modificada. Use --aplicar para ejecutar la cadena.")
             return 0
 
-        db_s = str(db)
-        ejecutar(
-            "importar_temario.py",
-            "--db", db_s,
-            "--convocatoria", args.codigo,
-            "--csv", str(csv),
-            "--sincronizar-eliminaciones",
-        )
-        ejecutar(
-            "construir_corpus_incremental_convocatoria.py",
-            "--db", db_s,
-            "--codigo", args.codigo,
-            "--aplicar",
-        )
-        ejecutar(
-            "normalizar_temario_convocatoria.py",
-            "--db", db_s,
-            "--codigo", args.codigo,
-        )
-        ejecutar(
-            "validar_temario_convocatoria.py",
-            "--db", db_s,
-            "--codigo", args.codigo,
-        )
-        ejecutar(
-            "reconciliar_sobrantes_banco.py",
-            "--db", db_s,
-            "--constructor", str(SCRIPTS / "mantener_banco_preguntas.py"),
-            "--codigo", args.codigo,
-            "--guardar",
-        )
-        ejecutar(
-            "mantener_banco_preguntas.py",
-            "--db", db_s,
-            "--codigo", args.codigo,
-            "--guardar",
-        )
-
-        ejecutar(
-            "reconciliar_sobrantes_banco.py",
-            "--db", db_s,
-            "--constructor", str(SCRIPTS / "mantener_banco_preguntas.py"),
-            "--codigo", args.codigo,
-        )
-        ejecutar(
-            "mantener_banco_preguntas.py",
-            "--db", db_s,
-            "--codigo", args.codigo,
-        )
-        ejecutar(
-            "validar_temario_convocatoria.py",
-            "--db", db_s,
-            "--codigo", args.codigo,
-        )
+        ejecutar("importar_temario.py", "--db", db_s, "--convocatoria", args.codigo, "--csv", str(csv), "--sincronizar-eliminaciones")
+        ejecutar("construir_corpus_incremental_convocatoria.py", "--db", db_s, "--codigo", args.codigo, "--aplicar")
+        ejecutar("normalizar_temario_convocatoria.py", "--db", db_s, "--codigo", args.codigo)
+        ejecutar("validar_temario_convocatoria.py", "--db", db_s, "--codigo", args.codigo)
+        ejecutar("reconciliar_sobrantes_banco.py", "--db", db_s, "--constructor", str(SCRIPTS / "mantener_banco_preguntas.py"), "--codigo", args.codigo, "--guardar")
+        ejecutar("mantener_banco_preguntas.py", "--db", db_s, "--codigo", args.codigo, "--guardar")
+        ejecutar("reconciliar_sobrantes_banco.py", "--db", db_s, "--constructor", str(SCRIPTS / "mantener_banco_preguntas.py"), "--codigo", args.codigo)
+        ejecutar("mantener_banco_preguntas.py", "--db", db_s, "--codigo", args.codigo)
+        ejecutar("validar_temario_convocatoria.py", "--db", db_s, "--codigo", args.codigo)
 
         print("\n" + "=" * 78)
         print(f"RESULTADO: OK - mantenimiento completo de {args.codigo}")

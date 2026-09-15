@@ -69,7 +69,7 @@ def main() -> int:
         print("lote_preguntas: NO SE MODIFICA")
         print("\nCadena:")
         print("  1. Importar/sincronizar temario CSV en BD")
-        print("  2. Construir/actualizar corpus de la convocatoria")
+        print("  2. Construir/actualizar corpus incremental de la convocatoria")
         print("  3. Normalizar identidades normativas")
         print("  4. Validar temario/corpus/normalización")
         print("  5. Eliminar del banco vínculos jurídicos sobrantes")
@@ -90,7 +90,7 @@ def main() -> int:
             "--sincronizar-eliminaciones",
         )
         ejecutar(
-            "construir_corpus_doble_convocatoria.py",
+            "construir_corpus_incremental_convocatoria.py",
             "--db", db_s,
             "--codigo", args.codigo,
             "--aplicar",
@@ -119,7 +119,6 @@ def main() -> int:
             "--guardar",
         )
 
-        # Postcondiciones: ambos procesos deben informar cero cambios pendientes.
         ejecutar(
             "reconciliar_sobrantes_banco.py",
             "--db", db_s,

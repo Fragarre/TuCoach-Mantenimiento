@@ -2,12 +2,15 @@
 NetReto - menú de mantenimiento.
 
 El cuerpo estable del menú se conserva en menu_mantenimiento_core.py.
-Este punto de entrada añade extensiones controladas sin modificar el menú estable:
+Este punto de entrada añade extensiones controladas:
 - auditoría de fidelidad PDF ↔ temario.csv;
-- sincronización determinista del temario C1-01_58_26;
-- normalización normativa, corpus y reconciliación del banco.
+- mantenimiento integral de temario por convocatoria;
+- corpus, normalización y reconciliación del banco.
 """
 from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
 
 import menu_mantenimiento_core as _base
 
@@ -18,69 +21,110 @@ for _nombre in dir(_base):
 _importar_temario_manual_base = _base.importar_temario_manual
 
 
-def sincronizar_temario_c1_58_26_menu() -> None:
-    codigo = "C1-01_58_26"
-    ruta_csv = "data_convocatorias/CONV_C1-01_58_26/temario.csv"
+def seleccionar_convocatoria_temario() -> tuple[str, Path] | None:
+    """Selecciona una convocatoria activa y resuelve su temario.csv real."""
+    db = _base.RAIZ / "db" / "oposiciones.sqlite3"
+    if not db.is_file():
+        print(f"\nERROR: no existe la base:\n{db}")
+        return None
+
+    with sqlite3.connect(db) as con:
+        con.row_factory = sqlite3.Row
+        columnas = {r[1] for r in con.execute("PRAGMA table_info(convocatorias)")}
+        if "codigo" not in columnas:
+            print("\nERROR: convocatorias no contiene la columna codigo.")
+            return None
+        campos = ["id", "codigo"]
+        if "puesto" in columnas:
+            campos.append("puesto")
+        if "temario_csv" in columnas:
+            campos.append("temario_csv")
+        sql = f"SELECT {', '.join(campos)} FROM convocatorias"
+        params: tuple[object, ...] = ()
+        if "activa" in columnas:
+            sql += " WHERE COALESCE(activa,1)=1"
+        sql += " ORDER BY id"
+        filas = con.execute(sql, params).fetchall()
+
+    if not filas:
+        print("\nNo hay convocatorias activas.")
+        return None
+
+    print("\nConvocatorias activas")
+    print("-" * 78)
+    for i, fila in enumerate(filas, 1):
+        puesto = str(fila["puesto"] or "").strip() if "puesto" in fila.keys() else ""
+        sufijo = f" | {puesto}" if puesto else ""
+        print(f"{i}. {fila['codigo']}{sufijo}")
+    print("0. Volver")
+
+    while True:
+        op = input("Opción: ").strip()
+        if op == "0":
+            return None
+        if op.isdigit() and 1 <= int(op) <= len(filas):
+            fila = filas[int(op) - 1]
+            codigo = str(fila["codigo"])
+            ruta_guardada = (
+                str(fila["temario_csv"] or "").strip()
+                if "temario_csv" in fila.keys()
+                else ""
+            )
+            ruta = Path(ruta_guardada) if ruta_guardada else Path("data_convocatorias") / f"CONV_{codigo}" / "temario.csv"
+            if not ruta.is_absolute():
+                ruta = _base.RAIZ / ruta
+            ruta = ruta.resolve()
+            if not ruta.is_file():
+                print(f"\nERROR: no existe el temario.csv de {codigo}:\n{ruta}")
+                return None
+            return codigo, ruta
+        print("Opción no válida.")
+
+
+def mantener_temario_convocatoria_menu() -> None:
     _base.cabecera_submenu(
-        "SINCRONIZAR TEMARIO C1-01_58_26",
-        "[REVISIÓN → BACKUP/APLICAR → BD → CORPUS → NORMALIZACIÓN → BANCO → VALIDACIÓN] "
-        "Reconcilia temario.csv con el conjunto jurídico validado. lote_preguntas nunca se modifica.",
+        "MANTENIMIENTO INTEGRAL DE TEMARIO",
+        "[CSV → BD → CORPUS → NORMALIZACIÓN → BANCO → VALIDACIÓN] "
+        "Propaga un temario.csv ya aprobado. lote_preguntas nunca se modifica.",
     )
+    seleccion = seleccionar_convocatoria_temario()
+    if seleccion is None:
+        return
+    codigo, ruta_csv = seleccion
 
-    if _base.ejecutar_script("sincronizar_temario_c1_58_26.py") != 0:
-        _base.pausa(); return
-    if not _base.pedir_si_no("¿Aplicar exactamente las altas y bajas mostradas y continuar el proceso completo?"):
-        _base.pausa(); return
-    if _base.ejecutar_script("sincronizar_temario_c1_58_26.py", "--aplicar") != 0:
-        _base.pausa(); return
+    print("\nSelección")
+    print("-" * 78)
+    print(f"Convocatoria: {codigo}")
+    print(f"Temario CSV:  {ruta_csv}")
+
+    # Primera pasada: el orquestador comprueba convocatoria, CSV, BD y muestra
+    # exactamente la cadena que ejecutará sin escribir nada.
     if _base.ejecutar_script(
-        "importar_temario.py", "--convocatoria", codigo, "--csv", ruta_csv, "--sincronizar-eliminaciones"
-    ) != 0:
-        _base.pausa(); return
-
-    # El corpus resuelve articulo_fuente_id. Después se fija la identidad normativa
-    # reutilizando norma_fuentes/normas; este paso no toca lote_preguntas.
-    if _base.ejecutar_script("construir_corpus_doble_convocatoria.py", "--codigo", codigo, "--aplicar") != 0:
-        _base.pausa(); return
-    if _base.ejecutar_script("normalizar_temario_convocatoria.py", "--codigo", codigo) != 0:
-        print("\nLa sincronización se detiene: quedan identidades normativas ambiguas o pendientes.")
-        _base.pausa(); return
-
-    # Exige conjunto exacto, norma_id completo y corpus 1.340/1.340.
-    if _base.ejecutar_script("validar_temario_c1_58_26_db.py") != 0:
-        print("\nLa sincronización C1 no se considera terminada: temario, normalización o corpus incompletos.")
-        _base.pausa(); return
-
-    # Primero se retiran SOLO vínculos del banco que ya no cumplen el temario.
-    # lote_preguntas permanece intacto. Después se incorporan las nuevas coincidencias.
-    if _base.ejecutar_script(
-        "reconciliar_sobrantes_banco.py",
-        "--db", "db/oposiciones.sqlite3",
-        "--constructor", "scripts/mantener_banco_preguntas.py",
+        "orquestar_mantenimiento_temario.py",
         "--codigo", codigo,
-        "--guardar",
+        "--csv", str(ruta_csv),
     ) != 0:
-        _base.pausa(); return
-    if _base.ejecutar_script("mantener_banco_preguntas.py", "--codigo", codigo, "--guardar") != 0:
-        _base.pausa(); return
+        _base.pausa()
+        return
 
-    # Postcondiciones de idempotencia del banco: cero sobrantes y cero nuevas.
+    if not _base.pedir_si_no(
+        "¿Aplicar el mantenimiento completo de esta convocatoria?"
+    ):
+        print("Operación cancelada. La base no ha sido modificada por el orquestador.")
+        _base.pausa()
+        return
+
     if _base.ejecutar_script(
-        "reconciliar_sobrantes_banco.py",
-        "--db", "db/oposiciones.sqlite3",
-        "--constructor", "scripts/mantener_banco_preguntas.py",
+        "orquestar_mantenimiento_temario.py",
         "--codigo", codigo,
+        "--csv", str(ruta_csv),
+        "--aplicar",
     ) != 0:
-        print("\nERROR: el banco conserva vínculos sobrantes tras la reconciliación.")
-        _base.pausa(); return
-    if _base.ejecutar_script("mantener_banco_preguntas.py", "--codigo", codigo) != 0:
-        print("\nERROR: el banco no ha quedado estable tras la actualización.")
-        _base.pausa(); return
-    if _base.ejecutar_script("validar_temario_c1_58_26_db.py") != 0:
-        _base.pausa(); return
+        print("\nEl mantenimiento se ha detenido por una incidencia.")
+        _base.pausa()
+        return
 
-    print("\nRESULTADO C1: OK - temario, corpus, normalización y banco reconciliados.")
-    print("lote_preguntas: NO MODIFICADO por este flujo.")
+    print(f"\nRESULTADO: OK - mantenimiento integral de {codigo} completado.")
     _base.pausa()
 
 
@@ -88,16 +132,20 @@ def importar_temario_manual() -> None:
     while True:
         _base.cabecera_submenu(
             "IMPORTAR / SINCRONIZAR TEMARIO CSV",
-            "Primero ofrece el proceso determinista validado para C1-01_58_26. La importación manual avanzada original se mantiene disponible.",
+            "El mantenimiento integral propaga un temario.csv aprobado a BD, corpus, normalización y banco. La importación manual avanzada se conserva.",
         )
-        print("1. Sincronizar C1-01_58_26 [CSV → BD → CORPUS → NORMALIZACIÓN → BANCO]")
+        print("1. Mantenimiento integral de temario por convocatoria")
         print("2. Importar/sincronizar CSV manualmente [AVANZADO]")
         print("0. Volver")
         op = input("Opción: ").strip()
-        if op == "0": return
-        if op == "1": sincronizar_temario_c1_58_26_menu()
-        elif op == "2": _importar_temario_manual_base()
-        else: print("Opción no válida.")
+        if op == "0":
+            return
+        if op == "1":
+            mantener_temario_convocatoria_menu()
+        elif op == "2":
+            _importar_temario_manual_base()
+        else:
+            print("Opción no válida.")
 
 
 def auditar_fidelidad_temario_menu() -> None:
@@ -129,7 +177,8 @@ def submenu_auditorias() -> None:
         print("12. Auditar fidelidad PDF ↔ temario.csv               [IA · INFORME → BACKUP/APLICAR]")
         print("0. Volver")
         op = input("Opción: ").strip()
-        if op == "0": return
+        if op == "0":
+            return
         acciones = {
             "1": _base.validacion_completa,
             "2": _base.auditar_bd_directo,
@@ -145,12 +194,14 @@ def submenu_auditorias() -> None:
             "12": auditar_fidelidad_temario_menu,
         }
         fn = acciones.get(op)
-        if fn: fn()
-        else: print("Opción no válida.")
+        if fn:
+            fn()
+        else:
+            print("Opción no válida.")
 
 
 _base.importar_temario_manual = importar_temario_manual
-_base.sincronizar_temario_c1_58_26_menu = sincronizar_temario_c1_58_26_menu
+_base.mantener_temario_convocatoria_menu = mantener_temario_convocatoria_menu
 _base.submenu_auditorias = submenu_auditorias
 _base.auditar_fidelidad_temario_menu = auditar_fidelidad_temario_menu
 

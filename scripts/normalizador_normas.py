@@ -39,42 +39,44 @@ def normalizar_norma(texto: str) -> str:
     if not texto:
         return ""
 
-    texto = texto.strip().lower()
-    texto = texto.replace("_", " ")
-
+    texto = texto.strip().lower().replace("_", " ")
     texto = "".join(
         caracter
         for caracter in unicodedata.normalize("NFD", texto)
         if unicodedata.category(caracter) != "Mn"
     )
-
-    if texto == "tfue":
-        return aplicar_equivalencia(
-            "tratado de funcionamiento de la union europea"
-        )
-
-    if texto == "tue":
-        return aplicar_equivalencia("tratado de la union europea")
-
     texto = re.sub(r"\s+", " ", texto)
 
+    if texto == "tfue":
+        return aplicar_equivalencia("tratado de funcionamiento de la union europea")
+    if texto == "tue":
+        return aplicar_equivalencia("tratado de la union europea")
     if texto == "constitucion espanola de 1978":
         return aplicar_equivalencia("constitucion espanola")
 
+    # Buscar TODAS las identidades estructuradas y escoger la primera que aparece
+    # en el texto. Esto evita que una norma citada dentro del título gane por la
+    # prioridad artificial del tipo normativo (p. ej. RD 635/2014 ... LO 2/2012).
     patrones = [
-        r"(ley organica)\s+(\d+)\s*/?\s*(\d{4})",
-        r"(real decreto legislativo)\s+(\d+)\s*/?\s*(\d{4})",
-        r"(real decreto)\s+(\d+)\s*/?\s*(\d{4})",
-        r"(decreto legislativo)\s+(\d+)\s*/?\s*(\d{4})",
-        r"(decreto ley)\s+(\d+)\s*/?\s*(\d{4})",
-        r"(decreto)\s+(\d+)\s*/?\s*(\d{4})",
-        r"(ley)\s+(\d+)\s*/?\s*(\d{4})",
+        (r"(ley organica)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(real decreto legislativo)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(real decreto)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(decreto legislativo)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(decreto ley)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(decreto)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(ley)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(directiva(?:\s+ue)?)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"directiva ue {g[1]}/{g[2]}"),
+        (r"(reglamento\s+ue\s+euratom)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"reglamento ue euratom {g[1]}/{g[2]}"),
+        (r"(reglamento(?:\s+ue)?)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"reglamento ue {g[1]}/{g[2]}"),
     ]
 
-    for patron in patrones:
-        coincidencia = re.search(patron, texto)
-        if coincidencia:
-            tipo, numero, anio = coincidencia.groups()
-            return aplicar_equivalencia(f"{tipo} {numero}/{anio}")
+    hallados = []
+    for patron, construir in patrones:
+        m = re.search(patron, texto)
+        if m:
+            hallados.append((m.start(), construir(m.groups())))
+    if hallados:
+        _pos, clave = min(hallados, key=lambda x: x[0])
+        return aplicar_equivalencia(clave)
 
     return aplicar_equivalencia(texto)

@@ -47,8 +47,6 @@ def extraer_preguntas(texto: str) -> list[dict[str, object]]:
         numero = int(marca.group(1))
         fin = marcas[i + 1].start() if i + 1 < len(marcas) else len(texto)
         bloque = texto[marca.start():fin].strip()
-        # Los simulacros de la aplicación llevan cuatro opciones. Esta condición
-        # evita confundir numeraciones internas del texto con preguntas.
         if not all(re.search(rf"(?m)^\s*{letra}\)\s+", bloque) for letra in "ABCD"):
             continue
         bloque = re.split(r"(?m)^\s*Seguridad en la respuesta:", bloque, maxsplit=1)[0].strip()
@@ -161,10 +159,23 @@ th,td{{border:1px solid #bbb;padding:6px;vertical-align:top}}th{{background:#eee
     ruta.write_text(doc, encoding="utf-8")
 
 
-def resolver_pdf(valor: str) -> Path:
-    p = Path(valor).expanduser()
+def limpiar_ruta(valor: str) -> str:
+    """Acepta rutas Windows pegadas con o sin comillas exteriores."""
+    valor = str(valor).strip()
+    if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in {'"', "'"}:
+        valor = valor[1:-1].strip()
+    return valor
+
+
+def resolver_ruta(valor: str) -> Path:
+    p = Path(limpiar_ruta(valor)).expanduser()
     if not p.is_absolute():
         p = (ROOT / p).resolve()
+    return p
+
+
+def resolver_pdf(valor: str) -> Path:
+    p = resolver_ruta(valor)
     if not p.is_file() or p.suffix.lower() != ".pdf":
         raise FileNotFoundError(f"No existe un PDF válido: {p}")
     return p
@@ -186,17 +197,13 @@ def main() -> int:
     for valor in args.simulacro or []:
         simulacros.append(resolver_pdf(valor))
     if args.carpeta:
-        carpeta = Path(args.carpeta).expanduser()
-        if not carpeta.is_absolute():
-            carpeta = (ROOT / carpeta).resolve()
+        carpeta = resolver_ruta(args.carpeta)
         if not carpeta.is_dir():
             raise FileNotFoundError(f"No existe la carpeta: {carpeta}")
         simulacros.extend(sorted(carpeta.glob("*.pdf")))
     if not simulacros:
         valor = input("Ruta de un simulacro PDF o carpeta con simulacros: ").strip()
-        p = Path(valor).expanduser()
-        if not p.is_absolute():
-            p = (ROOT / p).resolve()
+        p = resolver_ruta(valor)
         if p.is_dir():
             simulacros = sorted(p.glob("*.pdf"))
         else:

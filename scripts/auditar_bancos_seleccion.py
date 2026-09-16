@@ -89,7 +89,7 @@ def main() -> int:
                 continue
             tid = int(temarios[0]["id"])
 
-            refs, inv_refs, dup_refs = constructor.cargar_referencias_juridicas(con, tid)
+            refs, inv_refs, dup_refs, _ = constructor.cargar_referencias_juridicas(con, tid)
             eqs, inv_eq, dup_eq = constructor.cargar_equivalencias_no_juridicas(con, tid)
             jur = constructor.seleccionar_juridicas(con, cid, refs, {})
             nojur = constructor.seleccionar_no_juridicas(con, eqs, {})
@@ -112,7 +112,17 @@ def main() -> int:
                 reales[int(r["pregunta_id"])].append(dict(r))
 
             faltan = set(esperadas) - set(reales)
-            sobran = set(reales) - set(esperadas)
+
+            # La reconciliaci?n derivada del temario jur?dico solo puede
+            # considerar sobrantes las preguntas jur?dicas. Las NO_JURIDICA
+            # se preservan y se validan por sus reglas espec?ficas.
+            reales_juridicas = {
+                pid
+                for pid, filas in reales.items()
+                if filas
+                and filas[0]["tipo_vinculacion"] == "JURIDICA"
+            }
+            sobran = reales_juridicas - set(esperadas)
             tema_mal = []
             tipo_mal = []
             metodo_mal = []

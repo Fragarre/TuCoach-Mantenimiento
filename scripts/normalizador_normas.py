@@ -62,12 +62,12 @@ def normalizar_norma(texto: str) -> str:
         (r"(real decreto legislativo)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
         (r"(real decreto)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
         (r"(decreto legislativo)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
-        (r"(decreto ley)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
+        (r"(decreto[-\s]+ley)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"decreto ley {g[1]}/{g[2]}"),
         (r"(decreto)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
         (r"(ley)\s+(\d+)\s*/?\s*(\d{4})", lambda g: f"{g[0]} {g[1]}/{g[2]}"),
-        (r"(directiva(?:\s+ue)?)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"directiva ue {g[1]}/{g[2]}"),
-        (r"(reglamento\s+ue\s+euratom)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"reglamento ue euratom {g[1]}/{g[2]}"),
-        (r"(reglamento(?:\s+ue)?)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"reglamento ue {g[1]}/{g[2]}"),
+        (r"(directiva(?:\s*\(\s*ue\s*\)|\s+ue)?)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"directiva ue {g[1]}/{g[2]}"),
+        (r"(reglamento\s*\(\s*ue\s*,\s*euratom\s*\))\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"reglamento ue euratom {g[1]}/{g[2]}"),
+        (r"(reglamento(?:\s*\(\s*ue\s*\)|\s+ue)?)\s+(\d{4})\s*/?\s*(\d+)", lambda g: f"reglamento ue {g[1]}/{g[2]}"),
     ]
 
     hallados = []
@@ -77,6 +77,51 @@ def normalizar_norma(texto: str) -> str:
             hallados.append((m.start(), construir(m.groups())))
     if hallados:
         _pos, clave = min(hallados, key=lambda x: x[0])
+
+        # La fecha de disposici?n forma parte de la identidad normativa cuando
+        # est? expresamente incluida en la denominaci?n. Esto evita colisiones
+        # entre normas distintas con el mismo tipo, n?mero y a?o.
+        meses = (
+            "enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
+            "septiembre|setiembre|octubre|noviembre|diciembre"
+        )
+        m_fecha = re.search(
+            rf"\bde\s+(\d{{1,2}})\s+de\s+({meses})"
+            rf"(?:\s+de\s+(\d{{4}}))?\b",
+            texto[_pos:],
+        )
+        if m_fecha:
+            dia = str(int(m_fecha.group(1)))
+            mes = "septiembre" if m_fecha.group(2) == "setiembre" else m_fecha.group(2)
+            anio_fecha = m_fecha.group(3)
+
+            fecha = f"de {dia} de {mes}"
+            if anio_fecha:
+                fecha += f" de {anio_fecha}"
+
+            clave = f"{clave} {fecha}"
+
         return aplicar_equivalencia(clave)
 
     return aplicar_equivalencia(texto)
+
+def identidad_sin_fecha(clave: str) -> str:
+    """Retira ?nicamente la fecha final de una identidad normativa normalizada."""
+    clave = (clave or "").strip()
+    if not clave:
+        return ""
+
+    # Solo las identidades estructuradas con n?mero/a?o participan
+    # en esta equivalencia de base.
+    if not re.search(r"\b\d+/\d{4}\b", clave):
+        return clave
+
+    meses = (
+        "enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
+        "septiembre|octubre|noviembre|diciembre"
+    )
+    return re.sub(
+        rf"\s+de\s+\d{{1,2}}\s+de\s+(?:{meses})(?:\s+de\s+\d{{4}})?$",
+        "",
+        clave,
+    ).strip()

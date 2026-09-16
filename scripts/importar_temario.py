@@ -38,6 +38,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
+from normalizador_normas import identidad_sin_fecha, normalizar_norma
+
 
 RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 DB_POR_DEFECTO = RAIZ_PROYECTO / "db" / "oposiciones.sqlite3"
@@ -326,6 +328,55 @@ def upsert_referencia(
     tema_id: int,
     fila: FilaTemario,
 ) -> None:
+    identidad = normalizar_norma(fila.nombre_norma)
+
+    # Reutilizar la referencia existente aunque haya sido creada con una
+    # version anterior del normalizador. El CSV sigue siendo la autoridad.
+    existentes = conexion.execute(
+        """
+        SELECT id, nombre_norma_csv
+        FROM temario_referencias
+        WHERE tema_id = ?
+          AND articulo_solicitado = ?
+        """,
+        (tema_id, fila.articulo),
+    ).fetchall()
+
+    compatibles = [
+        r for r in existentes
+        if normalizar_norma(str(r["nombre_norma_csv"] or "")) == identidad
+    ]
+
+    # Si solo se ha precisado la identidad incorporando la fecha oficial,
+    # reutilizar la referencia existente y conservar sus enlaces de corpus.
+    if not compatibles:
+        base_nueva = identidad_sin_fecha(identidad)
+        compatibles = [
+            r for r in existentes
+            if identidad_sin_fecha(
+                normalizar_norma(str(r["nombre_norma_csv"] or ""))
+            ) == base_nueva
+        ]
+
+    if len(compatibles) > 1:
+        raise RuntimeError(
+            f"Referencia ambigua en tema_id={tema_id}, "
+            f"norma={fila.nombre_norma!r}, articulo={fila.articulo!r}"
+        )
+
+    if len(compatibles) == 1:
+        conexion.execute(
+            """
+            UPDATE temario_referencias
+            SET nombre_norma_csv = ?,
+                nombre_norma_normalizada = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (fila.nombre_norma, identidad, compatibles[0]["id"]),
+        )
+        return
+
     conexion.execute(
         """
         INSERT INTO temario_referencias (
@@ -348,7 +399,7 @@ def upsert_referencia(
         (
             tema_id,
             fila.nombre_norma,
-            normalizar(fila.nombre_norma),
+            normalizar_norma(fila.nombre_norma),
             fila.articulo,
         ),
     )
@@ -391,7 +442,7 @@ def claves_presentes(
                 (
                     fila.parte,
                     fila.numero_tema,
-                    normalizar(fila.nombre_norma),
+                    normalizar_norma(fila.nombre_norma),
                     fila.articulo,
                 )
             )
@@ -426,6 +477,7 @@ def sincronizar_eliminaciones(
             t.parte,
             t.numero_tema,
             r.nombre_norma_normalizada,
+            r.nombre_norma_csv,
             r.articulo_solicitado
         FROM temario_referencias AS r
         JOIN temario_temas AS t
@@ -439,7 +491,7 @@ def sincronizar_eliminaciones(
         clave = (
             registro["parte"],
             int(registro["numero_tema"]),
-            registro["nombre_norma_normalizada"],
+            normalizar_norma(str(registro["nombre_norma_csv"] or "")),
             registro["articulo_solicitado"],
         )
 

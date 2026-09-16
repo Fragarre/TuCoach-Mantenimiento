@@ -40,6 +40,8 @@ class RevisionBanco:
     convocatoria_id: int
     codigo: str
     total_nuevas: int
+    total_retirables: int
+    total_reasignables: int
     resumen: dict[str, Any]
 
 
@@ -174,6 +176,8 @@ def _validar_resumen_revision(
     try:
         bloqueos = int(resumen["bloqueos"])
         total_nuevas = int(resumen["total_nuevas"])
+        total_retirables = int(resumen.get("total_retirables", 0))
+        total_reasignables = int(resumen.get("total_reasignables", 0))
         incidencias_finales = int(resumen["incidencias_finales"])
     except (KeyError, TypeError, ValueError) as exc:
         raise RuntimeError(
@@ -194,6 +198,8 @@ def _validar_resumen_revision(
         convocatoria_id=convocatoria_id,
         codigo=codigo,
         total_nuevas=total_nuevas,
+        total_retirables=total_retirables,
+        total_reasignables=total_reasignables,
         resumen=resumen,
     )
 
@@ -232,11 +238,17 @@ def sincronizar_todos_bancos(
         revisiones.append(revision)
         print(
             f"  {cid} | {codigo:<24} OK | "
-            f"nuevas={revision.total_nuevas}"
+            f"nuevas={revision.total_nuevas} | "
+            f"retirables={revision.total_retirables} | "
+            f"reasignables={revision.total_reasignables}"
         )
 
-    total = sum(r.total_nuevas for r in revisiones)
-    print(f"\nTotal de vinculaciones nuevas previstas: {total}")
+    total_nuevas = sum(r.total_nuevas for r in revisiones)
+    total_retirables = sum(r.total_retirables for r in revisiones)
+    total_reasignables = sum(r.total_reasignables for r in revisiones)
+    print(f"\nTotal de vinculaciones nuevas previstas: {total_nuevas}")
+    print(f"Total de vinculaciones a retirar previstas: {total_retirables}")
+    print(f"Total de vinculaciones a reasignar previstas: {total_reasignables}")
 
     if not aplicar:
         print("\nSOLO REVISIÓN: no se ha modificado ningún banco.")
@@ -244,7 +256,11 @@ def sincronizar_todos_bancos(
 
     print("\nFase 2: guardado")
     for revision in revisiones:
-        if revision.total_nuevas == 0:
+        if (
+            revision.total_nuevas == 0
+            and revision.total_retirables == 0
+            and revision.total_reasignables == 0
+        ):
             print(
                 f"  {revision.codigo}: sin cambios; "
                 "no se crea backup innecesario."
@@ -276,7 +292,9 @@ def sincronizar_todos_bancos(
 
         print(
             f"  {revision.codigo}: guardado correcto | "
-            f"nuevas={revision.total_nuevas}"
+            f"nuevas={revision.total_nuevas} | "
+            f"retiradas={revision.total_retirables} | "
+            f"reasignadas={revision.total_reasignables}"
         )
 
     if validar_final:

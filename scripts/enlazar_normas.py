@@ -26,41 +26,59 @@ def enlazar_lote_preguntas(conexion, catalogo):
            WHERE nombre_norma_normalizado IS NOT NULL
              AND TRIM(nombre_norma_normalizado)<>''"""
     ).fetchall()
-    actualizadas=sin_correspondencia=0
-    for pid,nombre,actual in filas:
-        nid=catalogo.get(normalizar_norma(nombre))
-        if nid is None:
-            sin_correspondencia+=1; continue
-        if actual==nid: continue
-        conexion.execute('UPDATE lote_preguntas SET norma_id_normalizada=? WHERE id=?',(nid,pid))
-        actualizadas+=1
-    return actualizadas,sin_correspondencia
 
+    actualizadas = sin_correspondencia = 0
+
+    for pid, nombre, actual in filas:
+        nid = catalogo.get(normalizar_norma(nombre))
+
+        if nid is None:
+            sin_correspondencia += 1
+            continue
+
+        if actual == nid:
+            continue
+
+        conexion.execute(
+            'UPDATE lote_preguntas SET norma_id_normalizada=? WHERE id=?',
+            (nid, pid),
+        )
+        actualizadas += 1
+
+    return actualizadas, sin_correspondencia
 
 def enlazar_temario_referencias(conexion, catalogo):
     filas = conexion.execute(
         """
-        SELECT tr.id, tr.nombre_norma_normalizada, tr.norma_id,
-               nf.norma_id AS norma_id_fuente
+        SELECT tr.id, tr.nombre_norma_csv, tr.norma_id
         FROM temario_referencias tr
-        LEFT JOIN articulos_fuente af ON af.id=tr.articulo_fuente_id
-        LEFT JOIN norma_fuentes nf ON nf.id_fuente=af.id_boe
-        WHERE tr.nombre_norma_normalizada IS NOT NULL
-          AND TRIM(tr.nombre_norma_normalizada)<>''
+        WHERE tr.nombre_norma_csv IS NOT NULL
+          AND TRIM(tr.nombre_norma_csv)<>''
         """
     ).fetchall()
-    actualizadas=sin_correspondencia=por_fuente=por_texto=0
-    for rid,nombre,actual,nid_fuente in filas:
-        if nid_fuente is not None:
-            nid=int(nid_fuente); por_fuente+=1
-        else:
-            nid=catalogo.get(normalizar_norma(nombre)); por_texto+=1
+
+    actualizadas = sin_correspondencia = por_texto = 0
+
+    for rid, nombre, actual in filas:
+        # Un norma_id ya resuelto es estable. Este proceso no puede
+        # sustituirlo por otro ID a partir de una coincidencia textual.
+        if actual is not None:
+            continue
+
+        por_texto += 1
+        nid = catalogo.get(normalizar_norma(nombre))
+
         if nid is None:
-            sin_correspondencia+=1; continue
-        if actual==nid: continue
-        conexion.execute('UPDATE temario_referencias SET norma_id=? WHERE id=?',(nid,rid))
-        actualizadas+=1
-    return actualizadas,sin_correspondencia,por_fuente,por_texto
+            sin_correspondencia += 1
+            continue
+
+        conexion.execute(
+            'UPDATE temario_referencias SET norma_id=? WHERE id=?',
+            (nid, rid),
+        )
+        actualizadas += 1
+
+    return actualizadas, sin_correspondencia, 0, por_texto
 
 
 def main():

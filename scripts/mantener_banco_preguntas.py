@@ -179,6 +179,44 @@ def normalizar_articulo(valor: Any) -> str | None:
     return f"{numero} {sufijo}" if sufijo else numero
 
 
+def normalizar_referencia_articulo(valor: Any) -> str | None:
+    """
+    Normaliza una referencia de art?culo conservando sus apartados.
+
+    Ejemplos:
+        23          -> 23
+        Art. 23     -> 23
+        23,2        -> 23.2
+        23.2        -> 23.2
+        149.1.18    -> 149.1.18
+        14-bis      -> 14 bis
+    """
+    texto = "" if valor is None else str(valor)
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(
+        caracter
+        for caracter in texto
+        if not unicodedata.combining(caracter)
+    )
+    texto = texto.lower().strip()
+    texto = re.sub(r"^(articulo|art)\.?\s*", "", texto)
+    texto = texto.replace(",", ".")
+    texto = re.sub(r"\s+", " ", texto)
+    texto = re.sub(
+        r"^(\d+)[\s.\-]*(bis|ter|quater|quinquies)(?=$|[.\s])",
+        r"\1 \2",
+        texto,
+    )
+
+    if not re.fullmatch(
+        r"\d+(?: (?:bis|ter|quater|quinquies))?(?:\.[0-9a-z]+)*",
+        texto,
+    ):
+        return None
+
+    return texto
+
+
 def normalizar_categoria(valor: Any) -> str:
     """
     Normalización conservadora para el cruce no jurídico.
@@ -385,14 +423,22 @@ def cargar_referencias_juridicas(
     dict[tuple[int, str], dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
+    dict[tuple[int, str], list[dict[str, Any]]],
 ]:
     """
     Devuelve:
-    - mapa único norma_id + artículo -> punto del temario;
+    - mapa norma_id + artículo base usado por la selección vigente;
     - referencias sin norma o artículo válido;
-    - combinaciones repetidas en varios puntos.
+    - referencias completas repetidas en varios puntos;
+    - todos los candidatos por norma_id + artículo base, para revalidar
+      de forma inequívoca las vinculaciones ya existentes.
     """
     por_clave: dict[
+        tuple[int, str],
+        dict[int, dict[str, Any]],
+    ] = defaultdict(dict)
+
+    por_referencia_completa: dict[
         tuple[int, str],
         dict[int, dict[str, Any]],
     ] = defaultdict(dict)
@@ -453,10 +499,20 @@ def cargar_referencias_juridicas(
             "articulo_normalizado_proceso": articulo,
         }
 
+        referencia_completa = normalizar_referencia_articulo(
+            fila["articulo_solicitado"]
+        )
+        if referencia_completa is not None:
+            clave_completa = (int(norma_id), referencia_completa)
+            por_referencia_completa[clave_completa][int(fila["tema_id"])] = {
+                **fila,
+                "articulo_normalizado_proceso": referencia_completa,
+            }
+
     duplicadas: list[dict[str, Any]] = []
     mapa: dict[tuple[int, str], dict[str, Any]] = {}
 
-    for clave, temas in sorted(por_clave.items()):
+    for clave, temas in sorted(por_referencia_completa.items()):
         candidatos = list(temas.values())
 
         if len(candidatos) > 1:
@@ -479,10 +535,17 @@ def cargar_referencias_juridicas(
                     ),
                 }
             )
-        elif candidatos:
+    for clave, temas in sorted(por_clave.items()):
+        candidatos = list(temas.values())
+        if candidatos:
             mapa[clave] = candidatos[0]
 
-    return mapa, invalidas, duplicadas
+    candidatos_por_clave = {
+        clave: list(temas.values())
+        for clave, temas in por_clave.items()
+    }
+
+    return mapa, invalidas, duplicadas, candidatos_por_clave
 
 
 def cargar_equivalencias_no_juridicas(
@@ -592,6 +655,7 @@ def cargar_existentes(
             bp.tipo_vinculacion,
             bp.estado,
             bp.metodo_vinculacion,
+            bp.convocatoria_parte_id,
             COUNT(DISTINCT bpt.tema_id) AS numero_temas,
             MIN(bpt.tema_id) AS tema_id
         FROM banco_preguntas AS bp
@@ -603,7 +667,8 @@ def cargar_existentes(
             bp.pregunta_id,
             bp.tipo_vinculacion,
             bp.estado,
-            bp.metodo_vinculacion
+            bp.metodo_vinculacion,
+            bp.convocatoria_parte_id
         ORDER BY bp.pregunta_id
         """,
         (convocatoria_id,),
@@ -896,6 +961,162 @@ def seleccionar_juridicas(
     return resultado
 
 
+
+
+def resolver_tema_existente_inequivoco(
+    pregunta: dict[str, Any],
+    candidatos_por_clave: dict[tuple[int, str], list[dict[str, Any]]],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Resuelve el tema esperado sin elegir arbitrariamente entre candidatos."""
+    norma_id = pregunta.get("norma_id_normalizada")
+    articulo_base = normalizar_articulo(pregunta.get("articulo_normalizado"))
+
+    if norma_id is None or articulo_base is None:
+        return None, None
+
+    candidatos = candidatos_por_clave.get((int(norma_id), articulo_base), [])
+    if not candidatos:
+        return None, None
+
+    temas = {int(fila["tema_id"]) for fila in candidatos}
+    if len(temas) == 1:
+        return candidatos[0], None
+
+    referencia_pregunta = normalizar_referencia_articulo(pregunta.get("articulo"))
+    if referencia_pregunta is not None:
+        exactos = [
+            fila
+            for fila in candidatos
+            if normalizar_referencia_articulo(fila.get("articulo_solicitado"))
+            == referencia_pregunta
+        ]
+        temas_exactos = {int(fila["tema_id"]) for fila in exactos}
+        if len(temas_exactos) == 1:
+            return exactos[0], None
+
+    return None, {
+        "id": int(pregunta["id"]),
+        "norma_id_normalizada": int(norma_id),
+        "articulo": pregunta.get("articulo"),
+        "articulo_normalizado": pregunta.get("articulo_normalizado"),
+        "motivo": "TEMA_AMBIGUO_NO_REASIGNADO",
+        "tema_ids_candidatos": " | ".join(str(x) for x in sorted(temas)),
+    }
+
+
+def detectar_juridicas_reasignables(
+    conexion: sqlite3.Connection,
+    convocatoria_id: int,
+    candidatos_por_clave: dict[tuple[int, str], list[dict[str, Any]]],
+    existentes: dict[int, dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Detecta cambios inequívocos de tema y resuelve también la parte."""
+    reasignables: list[dict[str, Any]] = []
+    ambiguas: list[dict[str, Any]] = []
+
+    filas = conexion.execute(
+        """
+        SELECT
+            id,
+            articulo,
+            norma_id_normalizada,
+            articulo_normalizado,
+            teorica_practica,
+            tema_no_juridico
+        FROM lote_preguntas
+        WHERE tipo_clasificacion = ?
+        ORDER BY id
+        """,
+        (CLASIFICACION_JURIDICA,),
+    ).fetchall()
+
+    for fila_sql in filas:
+        pregunta = dict(fila_sql)
+        pregunta_id = int(pregunta["id"])
+        existente = existentes.get(pregunta_id)
+
+        if existente is None or existente.get("tema_id") is None:
+            continue
+
+        punto, incidencia = resolver_tema_existente_inequivoco(
+            pregunta,
+            candidatos_por_clave,
+        )
+        if incidencia is not None:
+            # Si no existe evidencia inequívoca para cambiar el tema,
+            # se conserva la vinculación actual. No es una incidencia:
+            # este mantenimiento nunca elige arbitrariamente entre temas.
+            continue
+
+        if punto is None:
+            continue
+
+        tema_actual = int(existente["tema_id"])
+        tema_esperado = int(punto["tema_id"])
+        if tema_actual == tema_esperado:
+            continue
+
+        tema_para_parte = {
+            "parte": punto["parte"],
+            "tipo_contenido": punto["tipo_contenido"],
+        }
+        parte_id, error_parte = resolver_parte_convocatoria(
+            conexion,
+            convocatoria_id,
+            pregunta,
+            tema_para_parte,
+        )
+        if error_parte is not None or parte_id is None:
+            ambiguas.append({
+                "id": pregunta_id,
+                "banco_pregunta_id": int(existente["banco_pregunta_id"]),
+                "tema_id_actual": tema_actual,
+                "tema_id_esperado": tema_esperado,
+                "motivo": error_parte or "PARTE_NO_RESUELTA",
+            })
+            continue
+
+        reasignables.append({
+            **pregunta,
+            "banco_pregunta_id": int(existente["banco_pregunta_id"]),
+            "tema_id_actual": tema_actual,
+            "tema_id": tema_esperado,
+            "convocatoria_parte_id_actual": existente.get("convocatoria_parte_id"),
+            "convocatoria_parte_id": int(parte_id),
+            "parte": punto["parte"],
+            "numero_tema": punto["numero_tema"],
+            "titulo_tema": punto["titulo"],
+            "motivo": "TEMA_DESACTUALIZADO_INEQUIVOCO",
+        })
+
+    return reasignables, ambiguas
+
+def detectar_juridicas_retirables(conexion, referencias, existentes):
+    """Vínculos jurídicos existentes que ya no son elegibles."""
+    retirables=[]
+    filas=conexion.execute(
+        """
+        SELECT id,enunciado,norma_id_normalizada,articulo_normalizado,
+               tipo_norma_normalizado,nombre_norma_normalizado,estado_vigencia
+        FROM lote_preguntas WHERE tipo_clasificacion=? ORDER BY id
+        """,(CLASIFICACION_JURIDICA,)
+    ).fetchall()
+    for fila_sql in filas:
+        p=dict(fila_sql); pid=int(p["id"]); existente=existentes.get(pid)
+        if existente is None: continue
+        norma=p["norma_id_normalizada"]
+        art=normalizar_articulo(p["articulo_normalizado"])
+        vig=str(p.get("estado_vigencia") or "").strip().upper()
+        motivo=None
+        if vig.startswith("OBSOLETA"): motivo="ESTADO_VIGENCIA_OBSOLETO"
+        elif norma is None: motivo="NORMA_ID_NULA"
+        elif art is None: motivo="ARTICULO_NO_NORMALIZABLE"
+        elif (int(norma),art) not in referencias: motivo="FUERA_TEMARIO"
+        if motivo:
+            retirables.append({**p,"banco_pregunta_id":existente["banco_pregunta_id"],
+                               "articulo_normalizado_proceso":art,"motivo":motivo})
+    return retirables
+
 def seleccionar_no_juridicas(
     conexion: sqlite3.Connection,
     equivalencias: dict[str, dict[str, Any]],
@@ -1034,6 +1255,8 @@ def insertar_nuevas(
     convocatoria_id: int,
     juridicas: list[dict[str, Any]],
     no_juridicas: list[dict[str, Any]],
+    juridicas_retirables: list[dict[str, Any]] | None = None,
+    juridicas_reasignables: list[dict[str, Any]] | None = None,
 ) -> None:
     nuevas = [
         *juridicas,
@@ -1073,6 +1296,54 @@ def insertar_nuevas(
         preparadas.append((fila, parte_id))
 
     conexion.execute("BEGIN IMMEDIATE")
+
+    for fila in juridicas_retirables or []:
+        cursor = conexion.execute(
+            "DELETE FROM banco_preguntas WHERE id=? AND convocatoria_id=? AND pregunta_id=?",
+            (int(fila["banco_pregunta_id"]),convocatoria_id,int(fila["id"])),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(f"No se retiró exactamente una vinculación para pregunta {fila['id']}.")
+
+    for fila in juridicas_reasignables or []:
+        cursor = conexion.execute(
+            """
+            UPDATE banco_preguntas_temas
+            SET tema_id = ?
+            WHERE banco_pregunta_id = ?
+              AND tema_id = ?
+              AND es_principal = 1
+            """,
+            (
+                int(fila["tema_id"]),
+                int(fila["banco_pregunta_id"]),
+                int(fila["tema_id_actual"]),
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(
+                f"No se reasignó exactamente un tema para pregunta {fila['id']}."
+            )
+
+        cursor = conexion.execute(
+            """
+            UPDATE banco_preguntas
+            SET convocatoria_parte_id = ?
+            WHERE id = ?
+              AND convocatoria_id = ?
+              AND pregunta_id = ?
+            """,
+            (
+                int(fila["convocatoria_parte_id"]),
+                int(fila["banco_pregunta_id"]),
+                convocatoria_id,
+                int(fila["id"]),
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise RuntimeError(
+                f"No se actualizó exactamente una parte para pregunta {fila['id']}."
+            )
 
     for fila, parte_id in preparadas:
         cursor = conexion.execute(
@@ -1313,6 +1584,18 @@ def guardar_informes(
         carpeta / "juridicas_fuera_temario.csv",
         juridicas["fuera_temario"],
     )
+    escribir_csv(
+        carpeta / "juridicas_retirables.csv",
+        juridicas.get("retirables", []),
+    )
+    escribir_csv(
+        carpeta / "juridicas_reasignables.csv",
+        juridicas.get("reasignables", []),
+    )
+    escribir_csv(
+        carpeta / "juridicas_tema_ambiguo.csv",
+        juridicas.get("ambiguas_tema", []),
+    )
 
     escribir_csv(
         carpeta / "no_juridicas_nuevas.csv",
@@ -1410,6 +1693,9 @@ def guardar_informes(
             f"{len(juridicas['sin_normalizacion'])}"
         ),
         f"Fuera del temario: {len(juridicas['fuera_temario'])}",
+        f"Retirables del banco: {len(juridicas.get('retirables', []))}",
+        f"Reasignables de tema: {len(juridicas.get('reasignables', []))}",
+        f"Temas ambiguos no reasignados: {len(juridicas.get('ambiguas_tema', []))}",
         "",
         "PREGUNTAS NO JURÍDICAS",
         f"Nuevas incorporables: {len(no_juridicas['nuevas'])}",
@@ -1523,6 +1809,7 @@ def main() -> None:
             referencias_juridicas,
             invalidas_juridicas,
             duplicadas_juridicas,
+            candidatos_juridicos_por_clave,
         ) = cargar_referencias_juridicas(
             conexion,
             temario_id,
@@ -1555,6 +1842,19 @@ def main() -> None:
             existentes,
         )
 
+        juridicas["retirables"] = detectar_juridicas_retirables(
+            conexion, referencias_juridicas, existentes,
+        )
+        (
+            juridicas["reasignables"],
+            juridicas["ambiguas_tema"],
+        ) = detectar_juridicas_reasignables(
+            conexion,
+            convocatoria_id,
+            candidatos_juridicos_por_clave,
+            existentes,
+        )
+
         no_juridicas = seleccionar_no_juridicas(
             conexion,
             equivalencias_no_juridicas,
@@ -1580,6 +1880,8 @@ def main() -> None:
                 convocatoria_id,
                 juridicas["nuevas"],
                 no_juridicas["nuevas"],
+                juridicas["retirables"],
+                juridicas["reasignables"],
             )
 
             auditoria_final = auditar_resultado(
@@ -1619,6 +1921,17 @@ def main() -> None:
         "total_nuevas": (
             len(juridicas["nuevas"])
             + len(no_juridicas["nuevas"])
+        ),
+        "juridicas_retirables": len(juridicas["retirables"]),
+        "total_retirables": len(juridicas["retirables"]),
+        "juridicas_reasignables": len(juridicas["reasignables"]),
+        "total_reasignables": len(juridicas["reasignables"]),
+        "juridicas_tema_ambiguo": len(juridicas["ambiguas_tema"]),
+        "total_cambios": (
+            len(juridicas["nuevas"])
+            + len(no_juridicas["nuevas"])
+            + len(juridicas["retirables"])
+            + len(juridicas["reasignables"])
         ),
         "total_banco_final": auditoria_final["total"],
         "juridicas_banco_final": auditoria_final["juridicas"],
@@ -1677,6 +1990,10 @@ def main() -> None:
         "Total nuevas: "
         f"{len(juridicas['nuevas']) + len(no_juridicas['nuevas'])}"
     )
+
+    print(f"Jurídicas retirables: {len(juridicas['retirables'])}")
+    print(f"Jurídicas reasignables: {len(juridicas['reasignables'])}")
+    print(f"Jurídicas con tema ambiguo: {len(juridicas['ambiguas_tema'])}")
 
     if args.guardar and bloqueos:
         print()

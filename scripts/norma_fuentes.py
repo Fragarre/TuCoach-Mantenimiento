@@ -1,8 +1,8 @@
 """
 Identidad documental de normas para OpoCoach.
 
-Mantiene la relación persistente entre un documento normativo real
-(BOE/DOGV/DOUE/PDF local) y la norma canónica del catálogo `normas`.
+Mantiene la relaciÃ³n persistente entre un documento normativo real
+(BOE/DOGV/DOUE/PDF local) y la norma canÃ³nica del catÃ¡logo `normas`.
 
 Principios:
 - data driven: usa primero la identidad documental ya resuelta en articulos_fuente;
@@ -95,32 +95,64 @@ def obtener_metadatos_fuente(id_fuente: str) -> MetadatosFuente:
     if boe is not None: return boe
     return MetadatosFuente(id_fuente,None,None)
 
+def _extraer_identidad_gen(id_fuente: str, nombres: list[str]) -> str | None:
+    """
+    Identidad interna para documentos GEN.
+
+    Un LOCAL-PDF-GEN-* se trata como una norma interna del temario.
+    Solo se acepta cuando todas las referencias de esa fuente identifican
+    inequÃ­vocamente el mismo GEN.
+    """
+    id_fuente = (id_fuente or "").strip()
+    if not id_fuente.upper().startswith("LOCAL-PDF-GEN-"):
+        return None
+
+    identidades = {
+        normalizar_norma(nombre)
+        for nombre in nombres
+        if str(nombre or "").strip()
+    }
+
+    identidades = {
+        identidad
+        for identidad in identidades
+        if identidad.startswith("gen-")
+    }
+
+    if len(identidades) != 1:
+        return None
+
+    return next(iter(identidades))
 
 def _extraer_identidad_normativa(texto: str) -> str | None:
-    """Extrae solo la primera identidad jurídica del título/nombre, evitando normas citadas después."""
-    n=normalizar_norma(texto)
-    if not n: return None
-    especiales={
-        'constitucion espanola':'constitucion espanola',
-        'tratado de funcionamiento de la union europea':'tratado de funcionamiento de la union europea',
-        'tratado de la union europea':'tratado de la union europea',
-        'reglamento de les corts valencianes':'reglamento de les corts valencianes',
-    }
-    for prefijo,clave in especiales.items():
-        if n.startswith(prefijo): return clave
-    patrones=(
-        r'\b(ley organica\s+\d+/\d{4})\b', r'\b(ley\s+\d+/\d{4})\b',
-        r'\b(real decreto legislativo\s+\d+/\d{4})\b', r'\b(real decreto\s+\d+/\d{4})\b',
-        r'\b(decreto legislativo\s+\d+/\d{4})\b', r'\b(decreto ley\s+\d+/\d{4})\b',
-        r'\b(decreto\s+\d+/\d{4})\b', r'\b(orden\s+\d+/\d{4})\b',
-        r'\b(directiva(?: ue)?\s+\d{4}/\d+)\b',
-        r'\b(reglamento(?: ue euratom| ue)?\s+\d{4}/\d+)\b',
+    """Devuelve la identidad jur?dica normalizada completa de la primera norma reconocible."""
+    n = normalizar_norma(texto)
+    if not n:
+        return None
+
+    especiales = (
+        "constitucion espanola",
+        "tratado de funcionamiento de la union europea",
+        "tratado de la union europea",
+        "reglamento de les corts valencianes",
     )
-    hallados=[]
-    for patron in patrones:
-        m=re.search(patron,n)
-        if m: hallados.append((m.start(),m.group(1)))
-    return min(hallados,key=lambda x:x[0])[1] if hallados else None
+    if any(n.startswith(clave) for clave in especiales):
+        return n
+
+    patrones = (
+        r"^ley organica\s+\d+/\d{4}\b",
+        r"^ley\s+\d+/\d{4}\b",
+        r"^real decreto legislativo\s+\d+/\d{4}\b",
+        r"^real decreto\s+\d+/\d{4}\b",
+        r"^decreto legislativo\s+\d+/\d{4}\b",
+        r"^decreto ley\s+\d+/\d{4}\b",
+        r"^decreto\s+\d+/\d{4}\b",
+        r"^orden\s+\d+/\d{4}\b",
+        r"^directiva(?: ue)?\s+\d{4}/\d+\b",
+        r"^reglamento(?: ue euratom| ue)?\s+\d{4}/\d+\b",
+    )
+
+    return n if any(re.search(patron, n) for patron in patrones) else None
 
 
 def _clave_estructurada(nombre: str) -> bool:
@@ -141,11 +173,17 @@ def resolver_o_crear_fuente(con: sqlite3.Connection,id_fuente: str,nombres_refer
     nombres=[str(x).strip() for x in nombres_referencia if str(x or '').strip()]
     meta=obtener_metadatos_fuente(id_fuente)
     identidades=[]
+
     for texto in ([meta.titulo] if meta.titulo else [])+nombres:
         identidad=_extraer_identidad_normativa(texto)
         if identidad and identidad not in identidades: identidades.append(identidad)
 
+    identidad_gen = _extraer_identidad_gen(id_fuente, nombres)
+    if identidad_gen and identidad_gen not in identidades:
+        identidades.append(identidad_gen)
+
     candidatos={catalogo[i] for i in identidades if i in catalogo}
+
     if len(candidatos)>1: return None,'CONFLICTO'
     norma_id=next(iter(candidatos),None); estado='ENLAZADA_EXISTENTE'
 

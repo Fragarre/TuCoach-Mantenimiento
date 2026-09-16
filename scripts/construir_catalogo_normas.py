@@ -12,11 +12,9 @@ Es idempotente y no modifica lote_preguntas ni temario_referencias.
 from pathlib import Path
 import sqlite3
 
-from normalizador_normas import normalizar_norma
+from normalizador_normas import normalizar_norma, identidad_sin_fecha
 from norma_fuentes import (
     asegurar_esquema,
-    sembrar_desde_enlaces_existentes,
-    completar_fuentes_temario,
     obtener_metadatos_fuente,
 )
 
@@ -74,19 +72,13 @@ def main() -> None:
 
     with sqlite3.connect(RUTA_BD) as conexion:
         creada_tabla = asegurar_esquema(conexion)
-        sembradas, conflictos_semilla = sembrar_desde_enlaces_existentes(conexion)
-        if conflictos_semilla:
-            raise RuntimeError(
-                'Conflictos fuente->norma detectados al sembrar norma_fuentes:\n- '
-                + '\n- '.join(conflictos_semilla[:20])
-            )
-
         filas = conexion.execute(
             """
             SELECT DISTINCT nombre_norma_normalizado AS nombre
             FROM lote_preguntas
             WHERE nombre_norma_normalizado IS NOT NULL
               AND TRIM(nombre_norma_normalizado) <> ''
+              AND norma_id_normalizada IS NULL
 
             UNION ALL
 
@@ -94,7 +86,7 @@ def main() -> None:
             FROM temario_referencias tr
             WHERE tr.nombre_norma_normalizada IS NOT NULL
               AND TRIM(tr.nombre_norma_normalizada) <> ''
-              AND tr.articulo_fuente_id IS NULL
+              AND tr.norma_id IS NULL
             """
         ).fetchall()
 
@@ -104,8 +96,31 @@ def main() -> None:
             if clave and clave not in catalogo:
                 catalogo[clave] = nombre.strip()
 
+        claves_existentes = {
+            str(clave)
+            for (clave,) in conexion.execute(
+                'SELECT clave_normalizada FROM normas'
+            )
+        }
+        bases_fechadas_existentes = {
+            identidad_sin_fecha(clave)
+            for clave in claves_existentes
+            if identidad_sin_fecha(clave) != clave
+        }
+
         creadas_texto = 0
+        omitidas_por_identidad_fechada = 0
         for clave, nombre_canonico in sorted(catalogo.items()):
+            # No recrear una identidad antigua sin fecha cuando el catalogo
+            # ya contiene la misma norma con identidad fechada.
+            if (
+                clave == identidad_sin_fecha(clave)
+                and clave in bases_fechadas_existentes
+                and clave not in claves_existentes
+            ):
+                omitidas_por_identidad_fechada += 1
+                continue
+
             conexion.execute(
                 'INSERT OR IGNORE INTO normas(nombre_canonico,clave_normalizada) VALUES (?,?)',
                 (nombre_canonico, clave),
@@ -113,16 +128,10 @@ def main() -> None:
             if conexion.execute('SELECT changes()').fetchone()[0] == 1:
                 creadas_texto += 1
 
-        resumen_fuentes = completar_fuentes_temario(conexion)
-        if resumen_fuentes['conflictos'] or resumen_fuentes['pendientes']:
-            detalle = diagnosticar_fuentes_no_resueltas(conexion)
-            conexion.rollback()
-            raise RuntimeError(
-                'Identidad normativa documental no resuelta: '
-                f"conflictos={resumen_fuentes['conflictos']}, "
-                f"pendientes={resumen_fuentes['pendientes']}"
-                + ('\n- ' + '\n- '.join(detalle) if detalle else '')
-            )
+        # La fuente documental NO decide ni crea la identidad normativa.
+        # norma_fuentes se siembra exclusivamente desde norma_id ya resueltos
+        # en temario_referencias.
+        detalle = diagnosticar_fuentes_no_resueltas(conexion)
 
         conexion.commit()
         total = conexion.execute('SELECT COUNT(*) FROM normas').fetchone()[0]
@@ -130,14 +139,11 @@ def main() -> None:
 
     print('Catálogo de normas construido.')
     print(f"Tabla norma_fuentes creada: {'SI' if creada_tabla else 'NO'}")
-    print(f'Fuentes sembradas desde enlaces existentes: {sembradas}')
     print(f'Claves textuales detectadas: {len(catalogo)}')
     print(f'Normas nuevas por texto:     {creadas_texto}')
-    print(f"Fuentes analizadas:           {resumen_fuentes['fuentes']}")
-    print(f"Fuentes ya enlazadas:         {resumen_fuentes['ya_enlazadas']}")
-    print(f"Fuentes enlazadas a norma existente: {resumen_fuentes['enlazadas_existentes']}")
-    print(f"Normas nuevas desde fuente:   {resumen_fuentes['normas_creadas']}")
-    print(f"Fuentes pendientes:           {resumen_fuentes['pendientes']}")
+    print(f'Identidades cortas omitidas: {omitidas_por_identidad_fechada}')
+    print(f'Fuentes sin enlace normativo: {len(detalle)}')
+    print('Normas nuevas desde fuente:   0')
     print(f'Total en catálogo:            {total}')
     print(f'Total fuentes identificadas:  {total_fuentes}')
 

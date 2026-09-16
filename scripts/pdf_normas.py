@@ -327,6 +327,42 @@ def _compatibilidad(nombre_norma: str, pdf: PDFNorma) -> float:
     if cita_q is not None:
         if cita_d != cita_q:
             return 0.0
+
+        # Si la denominaci?n solicitada contiene fecha, esta forma parte de
+        # la identidad normativa. Un PDF con el mismo tipo/n?mero/a?o pero
+        # con una fecha distinta no puede considerarse la misma norma.
+        meses = (
+            "enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
+            "septiembre|setiembre|octubre|noviembre|diciembre"
+        )
+
+        def extraer_fecha_identidad(texto):
+            n = normalizar(texto)
+            m = re.search(
+                rf"\bde\s+(\d{{1,2}})\s+de\s+({meses})"
+                rf"(?:\s+de\s+(\d{{4}}))?\b",
+                n,
+            )
+            if not m:
+                return None
+            dia = str(int(m.group(1)))
+            mes = "septiembre" if m.group(2) == "setiembre" else m.group(2)
+            return dia, mes, m.group(3)
+
+        fecha_q = extraer_fecha_identidad(nombre_norma)
+        if fecha_q is not None:
+            fecha_d = extraer_fecha_identidad(pdf.titulo + " " + pdf.ruta.stem)
+            if fecha_d is None:
+                return 0.0
+
+            # El a?o puede estar omitido en una denominaci?n espa?ola
+            # ("Ley N/YYYY, de D de mes"). En ese caso n?mero/a?o ya ha
+            # sido validado por cita_q == cita_d.
+            if fecha_q[:2] != fecha_d[:2]:
+                return 0.0
+            if fecha_q[2] and fecha_d[2] and fecha_q[2] != fecha_d[2]:
+                return 0.0
+
         return 1.0
 
     tq = _tokens_significativos(nombre_norma)

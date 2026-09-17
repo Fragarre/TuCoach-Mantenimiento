@@ -2388,6 +2388,8 @@ def _tipo_norma_desde_nombre(nombre: str) -> tuple[str, str]:
         ("reglamento ", "Reglamento", "REGLAMENTO"),
         ("tratado ", "Tratado", "TRATADO_UE"),
         ("directiva ", "Directiva", "DIRECTIVA"),
+        ("gen-", "GEN", "GEN"),
+        ("carta de los derechos fundamentales de la unión europea", "Carta", "CARTA"),
     )
     for prefijo, original, normalizado in reglas:
         if bajo.startswith(prefijo):
@@ -2511,28 +2513,9 @@ def aprobar(
         referencia_cruda = str(
             pregunta["articulo_referencia"]
         ).strip()
-        referencia = extraer_referencia_articulo_precisa(
+        referencia_candidata = extraer_referencia_articulo_precisa(
             referencia_cruda
         )
-
-        articulo_base_ref = normalizar_articulo(referencia)
-        articulo_base_temario = normalizar_articulo(
-            ctx.articulo_solicitado
-        )
-
-        if (
-            articulo_base_ref is None
-            or articulo_base_temario is None
-        ):
-            raise RuntimeError(
-                "No se puede normalizar con seguridad el artículo."
-            )
-
-        if articulo_base_ref != articulo_base_temario:
-            raise RuntimeError(
-                "La referencia de la candidata no pertenece al artículo "
-                "principal utilizado para generarla."
-            )
 
         # La norma debe existir ya en el catálogo porque procede de
         # temario_referencias.norma_id.
@@ -2545,6 +2528,41 @@ def aprobar(
             raise RuntimeError(
                 "La norma del contexto no existe en el catálogo central."
             )
+
+        es_gen = str(norma_catalogo["nombre_canonico"] or "").strip().casefold().startswith("gen-")
+
+        if es_gen:
+            # En las fuentes GEN, las normas/artículos citados dentro del texto
+            # son contenido de la unidad documental, no su identidad de
+            # clasificación. La pregunta conserva siempre la referencia GEN
+            # seleccionada en el temario.
+            referencia = extraer_referencia_articulo_precisa(
+                str(ctx.articulo_solicitado).strip()
+            )
+            if normalizar_articulo(referencia) is None:
+                raise RuntimeError(
+                    "No se puede normalizar con seguridad la referencia GEN del temario."
+                )
+        else:
+            referencia = referencia_candidata
+            articulo_base_ref = normalizar_articulo(referencia)
+            articulo_base_temario = normalizar_articulo(
+                ctx.articulo_solicitado
+            )
+
+            if (
+                articulo_base_ref is None
+                or articulo_base_temario is None
+            ):
+                raise RuntimeError(
+                    "No se puede normalizar con seguridad el artículo."
+                )
+
+            if articulo_base_ref != articulo_base_temario:
+                raise RuntimeError(
+                    "La referencia de la candidata no pertenece al artículo "
+                    "principal utilizado para generarla."
+                )
 
         contenido = json.dumps(
             pregunta,

@@ -4,6 +4,7 @@ NetReto - menú de mantenimiento.
 El cuerpo estable del menú se conserva en menu_mantenimiento_core.py.
 Este punto de entrada añade extensiones controladas:
 - auditoría de fidelidad PDF ↔ temario.csv;
+- auditoría IA de simulacros ↔ PDF oficial del temario;
 - mantenimiento integral de temario por convocatoria;
 - corpus, normalización y reconciliación del banco.
 """
@@ -97,8 +98,6 @@ def mantener_temario_convocatoria_menu() -> None:
     print(f"Convocatoria: {codigo}")
     print(f"Temario CSV:  {ruta_csv}")
 
-    # Primera pasada: el orquestador comprueba convocatoria, CSV, BD y muestra
-    # exactamente la cadena que ejecutará sin escribir nada.
     if _base.ejecutar_script(
         "orquestar_mantenimiento_temario.py",
         "--codigo", codigo,
@@ -157,6 +156,23 @@ def auditar_fidelidad_temario_menu() -> None:
     _base.pausa()
 
 
+def auditar_simulacros_temario_oficial_menu() -> None:
+    _base.cabecera_submenu(
+        "AUDITAR SIMULACROS ↔ TEMARIO OFICIAL",
+        "[IA · SOLO LECTURA] Compara directamente las preguntas de uno o varios "
+        "simulacros PDF con el PDF oficial del temario. No usa temario.csv ni la "
+        "base de datos. Genera informes JSON y HTML en auditorias/.",
+    )
+    print("Criterio conservador:")
+    print("- OK: encaje razonable en un epígrafe oficial.")
+    print("- DUDOSA: existe una duda real de inclusión.")
+    print("- FUERA_TEMARIO: exclusión clara.")
+    print()
+    if _base.pedir_si_no("¿Iniciar la auditoría?"):
+        _base.ejecutar_script("auditar_simulacros_temario_oficial.py")
+    _base.pausa()
+
+
 def submenu_auditorias() -> None:
     while True:
         _base.cabecera_submenu(
@@ -175,6 +191,7 @@ def submenu_auditorias() -> None:
         print("10. Buscar norma por respuesta correcta               [IA · DIAGNÓSTICO]")
         print("11. Auditar materiales de estudio                     [SOLO LECTURA]")
         print("12. Auditar fidelidad PDF ↔ temario.csv               [IA · INFORME → BACKUP/APLICAR]")
+        print("13. Auditar simulacros ↔ temario oficial              [IA · SOLO LECTURA]")
         print("0. Volver")
         op = input("Opción: ").strip()
         if op == "0":
@@ -192,6 +209,7 @@ def submenu_auditorias() -> None:
             "10": _base.buscar_norma_respuesta_correcta_menu,
             "11": _base.auditar_materiales_estudio_menu,
             "12": auditar_fidelidad_temario_menu,
+            "13": auditar_simulacros_temario_oficial_menu,
         }
         fn = acciones.get(op)
         if fn:
@@ -204,6 +222,7 @@ _base.importar_temario_manual = importar_temario_manual
 _base.mantener_temario_convocatoria_menu = mantener_temario_convocatoria_menu
 _base.submenu_auditorias = submenu_auditorias
 _base.auditar_fidelidad_temario_menu = auditar_fidelidad_temario_menu
+_base.auditar_simulacros_temario_oficial_menu = auditar_simulacros_temario_oficial_menu
 
 
 def main() -> int:

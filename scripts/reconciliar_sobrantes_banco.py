@@ -39,7 +39,7 @@ def calcular_esperadas_juridicas(
         )
     temario_id = int(temarios[0]["id"])
 
-    refs, inv_refs, dup_refs = constructor.cargar_referencias_juridicas(con, temario_id)
+    refs, inv_refs, dup_refs, _ = constructor.cargar_referencias_juridicas(con, temario_id)
     if inv_refs or dup_refs:
         raise RuntimeError(
             "No se puede reconciliar: existen referencias jurídicas inválidas o ambiguas en el temario."

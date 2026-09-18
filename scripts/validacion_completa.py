@@ -12,6 +12,7 @@ Comprueba:
    - la opción marcada como correcta no puede estar duplicada en otra opción.
    Las duplicaciones sólo entre distractores se muestran como aviso, pero no bloquean.
 5. Las preguntas en REVISION se contabilizan como cuarentena y no invalidan por sí mismas.
+   Ninguna exclusión global puede conservar un vínculo INCLUIDA.
 6. Normalización jurídica: las incompletas pueden permanecer en lote_preguntas,
    pero nunca entre las preguntas INCLUIDAS del banco.
 7. Vigencia: ningún estado OBSOLETA* puede permanecer entre las preguntas INCLUIDAS.
@@ -267,6 +268,23 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
             revisiones_banco = conexion.execute(
                 "SELECT COUNT(*) FROM banco_preguntas WHERE UPPER(TRIM(COALESCE(estado, '')))='REVISION'"
             ).fetchone()[0]
+            exclusiones_total = conexion.execute(
+                """
+                SELECT COUNT(*)
+                FROM preguntas_exclusiones
+                WHERE estado IN ('CUARENTENA', 'RETIRADA')
+                """
+            ).fetchone()[0]
+            exclusiones_incluidas = conexion.execute(
+                """
+                SELECT COUNT(*)
+                FROM banco_preguntas AS bp
+                JOIN preguntas_exclusiones AS pe
+                  ON pe.pregunta_id = bp.pregunta_id
+                WHERE pe.estado IN ('CUARENTENA', 'RETIRADA')
+                  AND UPPER(TRIM(COALESCE(bp.estado, '')))='INCLUIDA'
+                """
+            ).fetchone()[0]
 
             convocatorias = conexion.execute(
                 "SELECT COUNT(*) FROM convocatorias"
@@ -352,6 +370,8 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
     datos["correcta_duplicada_incluida"] = int(correcta_duplicada_incluida)
     datos["distractores_duplicados_incluidos"] = int(distractores_duplicados_incluidos)
     datos["revisiones_banco"] = int(revisiones_banco)
+    datos["exclusiones_total"] = int(exclusiones_total)
+    datos["exclusiones_incluidas"] = int(exclusiones_incluidas)
     datos["convocatorias"] = int(convocatorias)
     datos["ia_total"] = int(ia[0] or 0)
     datos["ia_juridicas"] = int(ia[1] or 0)
@@ -372,6 +392,7 @@ def comprobar_sqlite() -> tuple[bool, dict[str, int | str]]:
         and int(partes_nulas) == 0
         and int(respuestas_invalidas_incluidas) == 0
         and int(correcta_duplicada_incluida) == 0
+        and int(exclusiones_incluidas) == 0
         and int(ia[4] or 0) == 0
         and int(prohibidas_banco[0] or 0) == 0
         and int(prohibidas_banco[1] or 0) == 0
@@ -465,6 +486,8 @@ def main() -> int:
     print(f"  Opción correcta duplicada............ {datos['correcta_duplicada_incluida']}")
     print(f"  Distractores duplicados (AVISO)...... {datos['distractores_duplicados_incluidos']}")
     print(f"  Vinculaciones en REVISION............ {datos['revisiones_banco']}")
+    print(f"  Exclusiones globales................. {datos['exclusiones_total']}")
+    print(f"  Exclusiones todavía INCLUIDA......... {datos['exclusiones_incluidas']}")
     print("\nNormalización/vigencia jurídica:")
     print(f"  Jurídicas totales................... {datos['juridicas_total']}")
     print(f"  Incompletas en lote (rechazadas).... {datos['juridicas_incompletas_lote']}")

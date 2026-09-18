@@ -305,6 +305,11 @@ def validar_estructura(conexion: sqlite3.Connection) -> None:
             "tema_id",
             "es_principal",
         },
+        "preguntas_exclusiones": {
+            "pregunta_id",
+            "clasificacion",
+            "estado",
+        },
     }
 
     errores: list[str] = []
@@ -862,6 +867,12 @@ def seleccionar_juridicas(
             estado_vigencia
         FROM lote_preguntas
         WHERE tipo_clasificacion = ?
+          AND NOT EXISTS (
+              SELECT 1
+              FROM preguntas_exclusiones AS pe
+              WHERE pe.pregunta_id = lote_preguntas.id
+                AND pe.estado IN ('CUARENTENA', 'RETIRADA')
+          )
         ORDER BY id
         """,
         (CLASIFICACION_JURIDICA,),
@@ -1025,6 +1036,12 @@ def detectar_juridicas_reasignables(
             tema_no_juridico
         FROM lote_preguntas
         WHERE tipo_clasificacion = ?
+          AND NOT EXISTS (
+              SELECT 1
+              FROM preguntas_exclusiones AS pe
+              WHERE pe.pregunta_id = lote_preguntas.id
+                AND pe.estado IN ('CUARENTENA', 'RETIRADA')
+          )
         ORDER BY id
         """,
         (CLASIFICACION_JURIDICA,),
@@ -1141,6 +1158,12 @@ def seleccionar_no_juridicas(
             teorica_practica
         FROM lote_preguntas
         WHERE tipo_clasificacion = ?
+          AND NOT EXISTS (
+              SELECT 1
+              FROM preguntas_exclusiones AS pe
+              WHERE pe.pregunta_id = lote_preguntas.id
+                AND pe.estado IN ('CUARENTENA', 'RETIRADA')
+          )
         ORDER BY id
         """,
         (CLASIFICACION_NO_JURIDICA,),

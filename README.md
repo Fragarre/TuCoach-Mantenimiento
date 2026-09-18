@@ -521,6 +521,36 @@ Copia a OpoCoach/db/oposiciones.sqlite3
 
 ------------------------------------------------------------------------
 
+## Cuarentena de preguntas auditadas
+
+Las preguntas con `ERROR_DEMOSTRADO` o `NO_DETERMINABLE` se retiran del
+uso mediante dos barreras: sus vínculos actuales pasan a `REVISION` y
+`preguntas_exclusiones` impide que el constructor las incorpore en bancos
+nuevos. La operación no elimina preguntas ni vínculos.
+
+El fichero de decisiones debe contener `decision_usuario: true`, un
+`origen_auditoria` y una lista `casos` con `pregunta_id`, `clasificacion`,
+`respuesta_almacenada`, `respuesta_demostrada` y `motivo`.
+
+Primero se ejecuta siempre la vista previa:
+
+``` powershell
+python scripts/gestionar_cuarentena_preguntas.py `
+  --casos ruta\decisiones.json `
+  --evidencia ruta\expediente.json
+```
+
+Solo después de revisar los recuentos se añade `--aplicar`. El script crea
+una copia de seguridad, trabaja en una transacción y exige integridad y
+claves foráneas correctas. La coherencia puede comprobarse en cualquier
+momento con:
+
+``` powershell
+python scripts/validar_exclusiones_preguntas.py
+```
+
+------------------------------------------------------------------------
+
 ## 11. Regla práctica
 
 Para el mantenimiento cotidiano basta con recordar:

@@ -824,7 +824,7 @@ def actualizar_bd_opocoach() -> None:
         OpoCoach/db/copias_seguridad/
     """
     origen = RAIZ / "db" / "oposiciones.sqlite3"
-    carpeta_opocoach = RAIZ.parent / "NetReto"
+    carpeta_opocoach = RAIZ.parent / "TuCoach"
     destino = carpeta_opocoach / "db" / "oposiciones.sqlite3"
     carpeta_copias = carpeta_opocoach / "db" / "copias_seguridad"
 
@@ -1006,7 +1006,7 @@ def desplegar_publicacion_web_local_menu() -> None:
 
     destino = (
         RAIZ.parent
-        / "NetReto-Web"
+        / "TuCoach-Web"
         / "backend"
         / "data"
         / "oposiciones.sqlite3"
@@ -1065,7 +1065,7 @@ def actualizar_publicacion_supabase_menu() -> None:
         pausa()
         return
 
-    ruta_env = RAIZ.parent / "NetReto-Web" / "backend" / ".env"
+    ruta_env = RAIZ.parent / "TuCoach-Web" / "backend" / ".env"
     if not ruta_env.is_file():
         print(f"\nERROR: no existe el fichero de entorno:\n{ruta_env}")
         pausa()

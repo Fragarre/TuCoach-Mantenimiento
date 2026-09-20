@@ -166,8 +166,8 @@ def candidatos_backups(
 ) -> list[Candidato]:
     carpetas = [
         RAIZ / "db" / "copias_seguridad",
-        RAIZ.parent / "NetReto" / "db" / "copias_seguridad",
-        RAIZ.parent / "NetReto-Web" / "backend" / "data" / "copias_seguridad",
+        RAIZ.parent / "TuCoach" / "db" / "copias_seguridad",
+        RAIZ.parent / "TuCoach-Web" / "backend" / "data" / "copias_seguridad",
     ]
     resultado: list[Candidato] = []
     for carpeta in carpetas:
@@ -247,7 +247,7 @@ def candidatos_registros(dias: int = 60) -> list[Candidato]:
 def candidatos_pycache() -> list[Candidato]:
     """Busca __pycache__ solo fuera de entornos/dependencias locales."""
     resultado: list[Candidato] = []
-    bases = (RAIZ, RAIZ.parent / "NetReto", RAIZ.parent / "NetReto-Web")
+    bases = (RAIZ, RAIZ.parent / "TuCoach", RAIZ.parent / "TuCoach-Web")
 
     def directorio_excluido(path: Path) -> bool:
         try:
@@ -270,7 +270,7 @@ def candidatos_pycache() -> list[Candidato]:
 
 def candidatos_temporales_rollback() -> list[Candidato]:
     resultado: list[Candidato] = []
-    for base in (RAIZ, RAIZ.parent / "NetReto", RAIZ.parent / "NetReto-Web"):
+    for base in (RAIZ, RAIZ.parent / "TuCoach", RAIZ.parent / "TuCoach-Web"):
         if not base.exists():
             continue
         try:

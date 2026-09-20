@@ -16,7 +16,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 
 DESTINO_PREDETERMINADO = (
     RAIZ.parent
-    / "NetReto-Web"
+    / "TuCoach-Web"
     / "backend"
     / "data"
     / "oposiciones.sqlite3"
@@ -24,7 +24,7 @@ DESTINO_PREDETERMINADO = (
 
 COPIAS_PREDETERMINADAS = (
     RAIZ.parent
-    / "NetReto-Web"
+    / "TuCoach-Web"
     / "backend"
     / "data"
     / "copias_seguridad"

@@ -816,7 +816,7 @@ def auditar_vigencia_preguntas() -> None:
     )
     pausa()
 
-def actualizar_bd_opocoach() -> None:
+def actualizar_bd_tucoach() -> None:
     """
     Copia la base de datos de TuCoach-Mantenimiento a TuCoach.
 
@@ -824,9 +824,9 @@ def actualizar_bd_opocoach() -> None:
         TuCoach/db/copias_seguridad/
     """
     origen = RAIZ / "db" / "oposiciones.sqlite3"
-    carpeta_opocoach = RAIZ.parent / "TuCoach"
-    destino = carpeta_opocoach / "db" / "oposiciones.sqlite3"
-    carpeta_copias = carpeta_opocoach / "db" / "copias_seguridad"
+    carpeta_tucoach = RAIZ.parent / "TuCoach"
+    destino = carpeta_tucoach / "db" / "oposiciones.sqlite3"
+    carpeta_copias = carpeta_tucoach / "db" / "copias_seguridad"
 
     print("\nACTUALIZAR BASE DE DATOS DE TUCOACH STREAMLIT")
     print("-" * 78)
@@ -847,8 +847,8 @@ def actualizar_bd_opocoach() -> None:
         pausa()
         return
 
-    if not carpeta_opocoach.is_dir():
-        print(f"\nERROR: no existe la carpeta del proyecto TuCoach:\n{carpeta_opocoach}")
+    if not carpeta_tucoach.is_dir():
+        print(f"\nERROR: no existe la carpeta del proyecto TuCoach:\n{carpeta_tucoach}")
         pausa()
         return
 
@@ -2134,7 +2134,7 @@ def submenu_administracion() -> None:
         op=input("Opción: ").strip()
         if op=="0": return
         acciones={
-            "1":actualizar_bd_opocoach,
+            "1":actualizar_bd_tucoach,
             "2":preparar_publicacion_web_menu,
             "3":desplegar_publicacion_web_local_menu,
             "4":actualizar_publicacion_supabase_menu,

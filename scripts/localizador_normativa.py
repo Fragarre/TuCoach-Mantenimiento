@@ -210,7 +210,7 @@ def cargar_boe_api():
         raise LocalizadorError(f"No existe el módulo: {RUTA_BOE_API}")
 
     spec = importlib.util.spec_from_file_location(
-        "opocoach_boe_api_localizador",
+        "tucoach_boe_api_localizador",
         RUTA_BOE_API,
     )
     if spec is None or spec.loader is None:

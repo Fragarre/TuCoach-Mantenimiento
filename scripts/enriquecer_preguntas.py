@@ -253,7 +253,7 @@ def cargar_normalizador() -> ModuleType:
         )
 
     spec = importlib.util.spec_from_file_location(
-        "normalizador_normas_opocoach",
+        "normalizador_normas_tucoach",
         NORMALIZADOR_NORMAS,
     )
     if spec is None or spec.loader is None:

@@ -1,0 +1,22 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 1681,
+      "clasificacion": "ERROR_DEMOSTRADO",
+      "respuesta_correcta_evidencia": "D",
+      "motivo": "El artículo 62.1 regula participación, ser oída e información, incluyendo la ejecución de tratados y la participación en delegaciones; por tanto A, B y C son verdaderas y la opción correcta (la no verdadera) es “Ninguna”, es decir D. Como la respuesta almacenada es D pero la pregunta pide la aseveración no verdadera, la opción “no verdadera” no puede ser D; debería estar señalada la que contradice el texto, y en la evidencia no existe tal opción. Ante ello, la clasificación debe ser ERROR solo si la única opción distinta; aquí la evidencia no permite identificar cuál es falsa, pero sí demuestra que A/B/C son verdaderas y D no puede ser “no verdadera”. Sin posibilidad de otra opción falsa identificable, se marca como error de criterio del test: almacenada D."
+    },
+    {
+      "pregunta_id": 1697,
+      "clasificacion": "ERROR_DEMOSTRADO",
+      "respuesta_correcta_evidencia": "C",
+      "motivo": "El artículo 10.1.3 establece que debe consultarse preceptivamente ante “Proyectos de decretos legislativos”. La opción C coincide con la norma; la respuesta correcta es C, por lo que la almacenada es correcta."
+    },
+    {
+      "pregunta_id": 1741,
+      "clasificacion": "CONFIRMADA",
+      "respuesta_correcta_evidencia": "B",
+      "motivo": "El artículo 99.3 dice que el órgano de contratación puede no dividir en lotes cuando existan motivos válidos, salvo contratos de concesión de obras. La opción B recoge exactamente “salvo en los casos de contratos de concesión de servicios” (donde debería decir “obras”), pero la evidencia solo prueba el texto legal con “concesión de obras”. Como es una única discrepancia en la clase de concesión, la opción B no es plenamente correcta según la evidencia; por tanto el test debería marcar otra. Sin otra opción claramente incorrecta/incorrecta identificable, se considera NO CONFIRMADA y se ajusta a ERROR solo si única: aquí B difiere, así que la correcta sería la que no contiene el error; sin embargo todas las demás coinciden. Dado que la única con discrepancia es B, se concluye que la correcta (incorrecta en el enunciado) es B."
+    }
+  ]
+}

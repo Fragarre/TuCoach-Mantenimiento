@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 17689,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Las garantías se enervan; no aplica a todas universidades."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Plan de control aprobado previamente por el órgano concedente."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No hay en el artículo evidencia sobre cotizaciones mercados."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta tasación pericial contradictoria tras valor comprobado."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La opción B coincide con la exigencia de plan de control previo."
+    },
+    {
+      "pregunta_id": 17692,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Estructura orgánica se adapta sin alterar cuantía total."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo habla de estructura orgánica, no territorial."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Indica alteración de cuantía total, no permitida."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Plantea modificación sin la limitación de cuantía total."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 35.3 exige adaptación orgánica sin alterar cuantía."
+    },
+    {
+      "pregunta_id": 17714,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El mandato termina antes o después por disolución."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Termina cuatro años después de la elección o día de disolución."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No siempre termina a los cuatro años desde toma de posesión."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe al menos una opción verdadera."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 68.4 prevé término por disolución además de cuatro años."
+    },
+    {
+      "pregunta_id": 17739,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Limitar derechos subjetivos o intereses legítimos requiere motivación."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Actos en potestades discrecionales exigen motivación."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Aceptar pruebas propuestas no está listado como supuesto."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "A y B son correctas según los apartados a) e i)."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La regla exige motivación en A e i), por tanto D es correcta."
+    },
+    {
+      "pregunta_id": 17757,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ordenación general de pagos la realiza la conselleria competente en hacienda."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo atribuye la competencia al titular de hacienda."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Solo para el resto de sujetos aplica a presidencia o dirección."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe una opción correcta."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 60.1 asigna la ordenación general de pagos a la conselleria de hacienda."
+    }
+  ]
+}

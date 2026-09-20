@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 6833,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No regula supuestos con firma obligatoria."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye solicitudes, declaraciones, recursos, desistimientos y renuncias."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No contempla declaraciones institucionales específicas."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No indica desistimientos pasivos como caso de firma obligatoria."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 5 exige acreditación para esos actos, incluyendo desistir de acciones y renunciar a derechos."
+    },
+    {
+      "pregunta_id": 6841,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "La audiencia se pone de manifiesto antes de redactar propuesta."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El informe jurídico/dictamen es posterior a la audiencia."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Permite alegar y aportar documentos en plazo de 10 a 15 días."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se puede prescindir si no se consideran otros hechos o pruebas."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Hay varias opciones verdaderas (A, C y D); no existe única respuesta."
+    },
+    {
+      "pregunta_id": 6861,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El enunciado INCORRECTA exige identificar la opción errónea."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La opción B afirma no se puede; la norma permite hasta 18 meses."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Coincide: a partir de 30 años son 26 días."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Coincide: los días se disfrutan desde el día siguiente."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La B contradice el art. 82: el periodo se puede disfrutar aunque termine el año, hasta 18 meses."
+    },
+    {
+      "pregunta_id": 6922,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El BCE no ejerce la función legislativa y presupuestaria."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El Consejo Europeo no ejerce conjuntamente con la Comisión."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El Consejo ejerce conjuntamente con el Parlamento la función legislativa y presupuestaria."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No es conjuntamente Consejo Europeo, Consejo y Parlamento."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 16.1 atribuye la función legislativa y presupuestaria al Consejo con el Parlamento."
+    },
+    {
+      "pregunta_id": 6923,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo citado no enumera formaciones obligatorias del Consejo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo citado no enumera formaciones obligatorias del Consejo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo citado no enumera formaciones obligatorias del Consejo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo citado no enumera formaciones obligatorias del Consejo."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Con la evidencia aportada solo se ve que el Consejo se reúne en diferentes formaciones, sin obligatorias."
+    }
+  ]
+}

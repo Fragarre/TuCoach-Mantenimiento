@@ -65,6 +65,8 @@ FUENTES_PDF = (
     Fuente("Orden 19/2013", "LOCAL-DOGV-ORDEN-19-2013",
            "ORDEN 192013, de 3 de diciembre.pdf", "es", True, "derecha"),
     Fuente("Ley 4/2026", "LOCAL-DOGV-LEY-4-2026",
+           "ley_4_2026_presupuestos_dogv.pdf", "es", False),
+    Fuente("Ley 4/2026", "DOGV-C-2026-25581",
            "ley_4_2026_presupuestos_dogv.pdf", "es", True),
 )
 

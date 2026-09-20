@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 17164,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se prevé en el artículo 92 para cesiones gratuitas."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No limita a plazo máximo de 30 años ni incluye esa condición."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye entidades sin ánimo de lucro para fines de utilidad pública."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Los consorcios no están entre los destinatarios del artículo 92."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 92 permite a entidades sin ánimo de lucro para utilidad pública o interés social."
+    },
+    {
+      "pregunta_id": 17210,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Excepción exige menos de 75 horas al año, no al mes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Excepción existe solo si no provienen de empleo o servicios."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No es una excepción prevista; rige incompatibilidad para actividad docente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Exceptuada la participación docente en exámenes o evaluaciones distintas."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 19.d) exceptúa la participación del personal docente en exámenes o evaluaciones."
+    },
+    {
+      "pregunta_id": 17212,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo exige breve, clara y sencilla."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No exige que sea detallada; solo breve, clara y sencilla."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No establece 'asequible'; exige 'sencilla'."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe una forma concreta de redacción: breve, clara y sencilla."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 16.1 dispone expresamente 'breve, clara y sencilla'."
+    },
+    {
+      "pregunta_id": 17230,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Las competencias pueden ser propias o delegadas, no solo impropias."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo indica que pueden ser propias o delegadas."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No son solo propias; también pueden ser delegadas."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Al menos la opción B es verdadera según el artículo 33.2."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 33.2: competencias propias o delegadas, según legislación básica y ley."
+    },
+    {
+      "pregunta_id": 17272,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo 42 no establece esa regla sobre incumplimiento total/parcial."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No versa sobre reintegro por difusión; el art. 42 trata procedimiento."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El procedimiento garantiza audiencia; no se menciona resolver sin audiencia."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "La resolución corresponde al órgano competente del procedimiento."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "El art. 42 regula procedimiento y audiencia, sin detallar el órgano concedente explícitamente."
+    }
+  ]
+}

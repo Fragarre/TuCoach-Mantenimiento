@@ -1,0 +1,32 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 22684,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Solo alzada exclusivamente: la norma admite también reposición."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye alzada y revisión, pero la norma cita reposición potestativa."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La norma permite alzada y potestativo de reposición."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye reposición extraordinaria, que no figura en la norma."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 112.1 permite recursos de alzada y potestativo de reposición."
+    }
+  ]
+}

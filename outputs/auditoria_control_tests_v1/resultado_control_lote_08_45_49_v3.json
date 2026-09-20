@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 13462,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Promueve actividades laborales favorables para mujeres en mundo rural"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Crea red de servicios sociales para conciliación en mundo rural"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye acciones para mejorar educación y formación laboral"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Garantiza presencia equilibrada en nombramientos de responsabilidad"
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "No se puede inferir opción incorrecta con la evidencia aportada."
+    },
+    {
+      "pregunta_id": 13480,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "La competencia corresponde al departamento u organismo adscrito al bien"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo máximo indicado es 75 años, no 10"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se permiten prórrogas hasta el límite total de 75 años"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Rescate implícito antes de vencimiento por interés público"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 64 fija 75 años; la opción B dice 10 años."
+    },
+    {
+      "pregunta_id": 13483,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Cabe alzada ante el Ministerio; interesados e informados"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo es diez días, no un mes"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Resolución en veinte días y efectos suspensivos; no contencioso"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Si B es falsa, no puede ser verdadera todas las anteriores"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 22.2 establece diez días; la opción B indica un mes."
+    },
+    {
+      "pregunta_id": 13486,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El plazo para actos lesivos de derechos fundamentales es diez días"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia aportada no respalda la regla sobre casación"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia aportada no respalda la prohibición indicada"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia aportada no respalda la limitación del objeto"
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 115.1 fija diez días para el recurso por lesión."
+    },
+    {
+      "pregunta_id": 13803,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia trata revisión contable, no la verificación legal descrita"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Auditoría operativa valora racionalidad y buena gestión"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Auditoría de cumplimiento verifica conformidad con normas aplicables"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "En la evidencia aparece como auditoría de cumplimiento, no legalidad genérica"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El texto define auditoría de cumplimiento como verificación conforme a normas."
+    }
+  ]
+}

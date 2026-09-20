@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 4756,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo exige funciones con efectos jurídicos o actuación preceptiva."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el art. 5.2 sobre delimitación de órganos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No permite dirigir cualquier órgano; el artículo no lo establece."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No dice que afecte por sí solo a la validez."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 5.2 atribuye a cada Administración delimitar órganos propios."
+    },
+    {
+      "pregunta_id": 4762,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Umbral de suministro/servicios en art. 118 es 15.000, no 18.000."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Obras: valor estimado inferior a 40.000 euros."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Suministro/servicios: umbral es inferior a 15.000, no 18.000."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Contrato mixto no altera umbrales; no prevé 40.000 para mixtos."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 118 fija para obras: <40.000 euros."
+    },
+    {
+      "pregunta_id": 4845,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Para <=5% corresponde conselleria; y A exige >=15%."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No todas las opciones lo son; la competencia depende de porcentajes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Si excede 5% y no alcanza 15% concede el Consell."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Corresponde a conselleria solo cuando no exceda del 5%."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 47: conselleria hasta 5%; Consell de >5% a <15%."
+    },
+    {
+      "pregunta_id": 4892,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La moción debe ser propuesta al menos por la quinta parte."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Cumple si es mínima, pero la opción contrasta con 'como máximo' restante."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 48 exige al menos la quinta parte de diputados."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No exige máximo; exige mínimo: quinta parte."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 48 establece: al menos 1/5 de los Diputados."
+    },
+    {
+      "pregunta_id": 4896,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Esa regla es para entrada en vigor, no para efectos tras notificación."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 297: surtirán efecto en virtud de la notificación, sin decir desde notificación."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El precepto no fija 'día siguiente'; solo 'en virtud de dicha notificación'."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las demás directivas se notifican y surten efecto en virtud de la notificación."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Las directivas/decisiones con destinatario surten efecto en virtud de la notificación."
+    }
+  ]
+}

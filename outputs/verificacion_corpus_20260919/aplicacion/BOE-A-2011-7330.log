@@ -1,0 +1,40 @@
+==============================================================================
+AMPLIAR CORPUS CHAT - FASE 2 - PLANIFICACIÓN E INCORPORACIÓN
+==============================================================================
+Base de datos: C:\Users\fraga\OneDrive\Desktop\NetExamenes\NetReto-Mantenimiento\db\oposiciones.sqlite3
+Ámbito: documentos BOE-A-* ya presentes en articulos_fuente
+Modo: APLICAR
+
+------------------------------------------------------------------------------
+[1/1] BOE-A-2011-7330 | filas actuales: 117
+  Estado: AMPLIABLE
+  Artículos guardados en BD: 117
+  Artículos actuales identificados: 118
+  Artículos realmente ausentes: 1
+  Artículos cubiertos con otro id_bloque: 0
+  Guardados sin artículo actual equivalente: 0
+  Incidencias de identidad no resueltas: 0
+  Recuperando y validando 1 textos faltantes...
+
+==============================================================================
+RESUMEN DE PLAN
+==============================================================================
+Documentos analizados:                  1
+AMPLIABLE:                              1
+REVISAR:                                0
+NO_AMPLIABLE:                           0
+SIN_INDICE_CONSOLIDADO_REQUIERE_FALLBACK: 0
+Errores de consulta:                    0
+Artículos realmente faltantes:          1
+Textos recuperados y validados:         1
+Errores al construir el plan:           0
+PLAN GLOBAL: OK
+
+==============================================================================
+APLICACIÓN
+==============================================================================
+Copia de seguridad: C:\Users\fraga\OneDrive\Desktop\NetExamenes\NetReto-Mantenimiento\db\oposiciones_antes_ampliar_corpus_chat_20260919_173002.sqlite3
+Artículos insertados: 1
+Filas preexistentes modificadas: 0
+PRAGMA foreign_key_check: OK
+APLICACIÓN: OK

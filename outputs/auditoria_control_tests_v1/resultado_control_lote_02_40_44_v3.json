@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3320,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "En cualquier momento antes del trámite de audiencia, según art. 76.1"
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta en la norma como límite temporal para alegar defectos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 76 fija límite antes de trámite de audiencia, no prueba."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 76 no autoriza alegar antes de la práctica de la prueba."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 76.1 permite alegaciones en cualquier momento antes del trámite de audiencia."
+    },
+    {
+      "pregunta_id": 3327,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 147.2.c exige denominación, organización y sede de instituciones."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 147.2.b exige la delimitación del territorio."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 147.2.d exige bases para traspaso de servicios."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Si A, B y C deben incluirse, entonces no son \"ninguno\" de los anteriores."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Según art. 147.2, A, B y C deben incluirse; por tanto ninguna es excluible."
+    },
+    {
+      "pregunta_id": 3328,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 102 atribuye la responsabilidad criminal a la Sala del Supremo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 102.1 dice que es exigible ante la Sala de lo Penal del Tribunal Supremo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 102 no prevé Tribunal Constitucional para esta responsabilidad."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 102 no prevé el CGPJ para exigir responsabilidad criminal."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 102.1 establece que se exige ante la Sala de lo Penal del Tribunal Supremo."
+    },
+    {
+      "pregunta_id": 3365,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no contiene regla sobre presupuestos y aumento del gasto."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no incluye el trámite descrito sobre proposición de ley."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no trata límites de déficit estructural ni deuda."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 147.3 regula reforma de Estatutos con ley orgánica."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 147.3 exige aprobación por Cortes Generales mediante ley orgánica."
+    },
+    {
+      "pregunta_id": 3381,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El silencio es desestimatorio en derecho de petición (art. 24.1)."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La norma indica silencio desestimatorio en estos supuestos (art. 24.1)."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "No figura como supuesto con silencio negativo; por tanto no implica silencio negativo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 24.1 declara silencio desestimatorio en responsabilidad patrimonial."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Art. 24.1 solo excepciona supuestos enumerados; licencias de actividad no constan."
+    }
+  ]
+}

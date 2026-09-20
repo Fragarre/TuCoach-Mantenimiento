@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 13248,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La garantía definitiva puede alcanzar 10% con garantía complementaria hasta 10."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Garantía definitiva 5% del precio final, IVA excluido."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "En concesiones se fija en cada caso por el órgano, no 5% fijo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Pliegos fijan si es estimativa o por contrato basado en adjudicación."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Hay dos verdaderas (B y D) y dos falsas (A y C); no hay única."
+    },
+    {
+      "pregunta_id": 13264,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La prórroga permite máximo dieciocho, pero base es seis meses."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Seis primeros meses; prórroga por tramos de tres hasta 18."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No son tres primeros meses; el artículo prevé seis primeros meses."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son incorrectas: la opción B es correcta."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Ley prevé seis primeros meses y prórrogas hasta un máximo de dieciocho."
+    },
+    {
+      "pregunta_id": 13276,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Prórroga hasta aprobación y publicación en Diari Oficial de la Comunitat Valenciana."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El Boletín indicado es el Diari Oficial de la Comunitat Valenciana."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Falta especificar aprobación y publicación del nuevo presupuesto."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No se prevé prórroga por meses; es hasta aprobación y publicación."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El artículo 35 establece prórroga hasta aprobación y publicación en el Diari Oficial."
+    },
+    {
+      "pregunta_id": 13282,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo habla de todas las personas, no todos los españoles."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La Constitución dice todas las personas, no residentes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo 24.2 dice: todos tienen derecho a no declarar..."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe una opción literalmente verdadera: la C."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 24.2 reconoce el derecho a todas las personas, literalmente en C."
+    },
+    {
+      "pregunta_id": 13287,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No exige autorización del Gobierno; exige comunicación previa al delegado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No exige comunicación previa al Gobierno, sino al Delegado del Gobierno."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Exige comunicación previa al Delegado del Gobierno."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe una opción verdadera: la C."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 44.2 establece comunicación previa al Delegado del Gobierno."
+    }
+  ]
+}

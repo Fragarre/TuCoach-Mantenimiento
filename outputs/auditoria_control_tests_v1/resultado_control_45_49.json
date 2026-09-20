@@ -1,0 +1,68 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 2597,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 72 establece el nivel administrativo en subdirecciones generales, servicios, secciones, unidades y negociados (coincide con C).",
+      "comprobaciones": [
+        {
+          "proposicion": "Subdirecciones generales, servicios, secciones, unidades y negociados",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 2605,
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia del art. 4 no contiene ninguna regla sobre informes de impacto por razón de género en el momento inicial del proceso (opción A) ni sobre las demás opciones.",
+      "comprobaciones": [
+        {
+          "proposicion": "Los proyectos normativos incorporarán un informe de impacto por razón de género que deberá acompañar la propuesta desde el inicio del proceso de tramitación",
+          "resultado": "NO_DETERMINABLE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 2606,
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia del art. 20 citada trata asistencia jurídica; no se menciona la bonificación del 100% ni los plazos de interinidad por movilidad/cambio de centro.",
+      "comprobaciones": [
+        {
+          "proposicion": "Bonificación del 100% de las cuotas empresariales a la Seguridad Social por contingencias comunes durante 6 meses en movilidad geográfica o cambio de centro de trabajo",
+          "resultado": "NO_DETERMINABLE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 2611,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 125.2 indica que para el supuesto de error de hecho (apdo. a) el plazo es de cuatro años.",
+      "comprobaciones": [
+        {
+          "proposicion": "Error de hecho (art. 125.1.a)",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "Plazo: cuatro años",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 2613,
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 14.2.e obliga a empleados públicos a relacionarse electrónicamente, por lo que no es la incorrecta; la incorrecta corresponde a un supuesto no obligado. D indica que se relacionan en la forma que se determine reglamentariamente, pero el texto exige obligación. Según la evidencia, D no es la INCORRECTA.",
+      "comprobaciones": [
+        {
+          "proposicion": "Los empleados de las Administraciones Públicas están obligados a relacionarse electrónicamente",
+          "resultado": "COINCIDE"
+        }
+      ]
+    }
+  ]
+}

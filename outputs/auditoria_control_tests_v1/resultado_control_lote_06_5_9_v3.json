@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 9260,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Las operaciones corrientes son una de las separaciones correctas."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las operaciones de capital se separan en la clasificación económica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El Fondo de Contingencia se separa expresamente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No incluye operaciones no financieras en la separación indicada."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La incorrecta es la opción D; la ley separa corrientes, capital, financieras y Fondo."
+    },
+    {
+      "pregunta_id": 9272,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La eficacia territorial admite excepciones por estatuto personal y extraterritorialidad."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El Derecho Foral Valenciano tiene eficacia territorial, no carece de ella."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No es incondicional: existen excepciones legalmente aplicables."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Tienen eficacia territorial salvo casos de estatuto personal o extraterritorialidad."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 7.2 establece eficacia territorial salvo estatuto personal y otras extraterritorialidades."
+    },
+    {
+      "pregunta_id": 9298,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las actuaciones complementarias se practican en plazo no superior a quince días."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El texto fija un máximo (no superior a quince días), no un mínimo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo máximo es quince días, no veinte."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La norma fija un máximo, no un rango de entre diez y veinte."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 87 indica plazo no superior a quince días para actuaciones complementarias."
+    },
+    {
+      "pregunta_id": 9321,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La remisión es antes del 1 de noviembre, no con tres meses."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No establece fecha 1 de octubre, sino 1 de noviembre."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No prevé dos meses de antelación; fija el 1 de noviembre."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se remite a Les Corts antes del 1 de noviembre de cada año."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 34.1 fija la remisión antes del 1 de noviembre para examen y aprobación."
+    },
+    {
+      "pregunta_id": 9389,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El Capítulo es extensivo a potestad disciplinaria, no lo excluye."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Se excluye solo para contratos del sector público (no como indica la opción)."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las disposiciones no se aplican a potestad sancionadora en relaciones patrimoniales."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe una opción correcta: la C."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 25.4 excluye sancionadora sobre relaciones patrimoniales; eso corresponde a la opción C."
+    }
+  ]
+}

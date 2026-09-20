@@ -1,0 +1,86 @@
+[
+  {
+    "pregunta_id": 2605,
+    "estado": "COINCIDENCIAS_MULTIPLES",
+    "coincidencias": [
+      {
+        "id_fuente": "BOE-A-2003-9334",
+        "id": 697,
+        "id_bloque": "a3",
+        "articulo_boe": "3",
+        "titulo_bloque": "Artículo 3. ambito de la ley",
+        "hash_texto": "6026788169225f3a659b83689539d97ffcc5e0a4efa0226d4433bc5c7f70a410",
+        "origenes": [
+          "opcion_c"
+        ],
+        "fragmentos": [
+          "asi como las que ya existen en materia de igualdad de oportunidades entre mujeres y",
+          "como las que ya existen en materia de igualdad de oportunidades entre mujeres y hombres",
+          "asi como las que ya existen en materia de igualdad de oportunidades entre mujeres",
+          "como las que ya existen en materia de igualdad de oportunidades entre mujeres y",
+          "las que ya existen en materia de igualdad de oportunidades entre mujeres y hombres"
+        ]
+      },
+      {
+        "id_fuente": "BOE-A-2003-9334",
+        "id": 698,
+        "id_bloque": "a4",
+        "articulo_boe": "4",
+        "titulo_bloque": "Artículo 4. principios rectores de la accion administrativa",
+        "hash_texto": "6463d2ae39fe53510d9b1b1f26e6096b457fa6ffda0dc5a23681901d83bae7f7",
+        "origenes": [
+          "opcion_b"
+        ],
+        "fragmentos": [
+          "a acelerar la igualdad de facto entre la mujer y el hombre no se considerara",
+          "acelerar la igualdad de facto entre la mujer y el hombre no se considerara discriminatoria",
+          "adopcion por el gobierno valenciano de medidas especiales de caracter temporal encaminadas a acelerar la",
+          "caracter temporal encaminadas a acelerar la igualdad de facto entre la mujer y el hombre",
+          "de caracter temporal encaminadas a acelerar la igualdad de facto entre la mujer y el"
+        ]
+      },
+      {
+        "id_fuente": "BOE-A-2003-9334",
+        "id": 2271,
+        "id_bloque": "a4-12",
+        "articulo_boe": "4 bis",
+        "titulo_bloque": "Artículo 4 bis",
+        "hash_texto": "1520ad678dd3ab8faeeb3a84129108f4facea8b024b1af21da75217bce236740",
+        "origenes": [
+          "opcion_a"
+        ],
+        "fragmentos": [
+          "los proyectos normativos incorporaran un informe de impacto por razon de genero que",
+          "los proyectos normativos incorporaran un informe de impacto por razon de genero",
+          "proyectos normativos incorporaran un informe de impacto por razon de genero que",
+          "debera acompanar la propuesta desde el inicio del proceso de tramitacion",
+          "los proyectos normativos incorporaran un informe de impacto por razon de"
+        ]
+      }
+    ]
+  },
+  {
+    "pregunta_id": 2606,
+    "estado": "COINCIDENCIA_LITERAL_UNICA",
+    "coincidencias": [
+      {
+        "id_fuente": "BOE-A-2004-21760",
+        "id": 6748,
+        "id_bloque": "a21",
+        "articulo_boe": "21",
+        "titulo_bloque": "Artículo 21. Derechos laborales y de Seguridad Social.",
+        "hash_texto": "4730da8257239ddee014e46096a94a2064da444b147d699f41621f05650b5454",
+        "origenes": [
+          "enunciado"
+        ],
+        "fragmentos": [
+          "100 por 100 de las cuotas empresariales a la seguridad social por contingencias comunes durante",
+          "a la movilidad geografica o al cambio de centro de trabajo tendran derecho a una",
+          "a trabajadoras victimas de violencia de genero que hayan suspendido su contrato de trabajo o",
+          "a una bonificacion del 100 por 100 de las cuotas empresariales a la seguridad social",
+          "al cambio de centro de trabajo tendran derecho a una bonificacion del 100 por 100"
+        ]
+      }
+    ]
+  }
+]

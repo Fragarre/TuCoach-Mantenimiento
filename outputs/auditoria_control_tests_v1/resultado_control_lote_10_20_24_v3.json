@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 16312,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No incluye informe Consell Jurídic Consultiu y Abogacía."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Resolución singular no puede vulnerar disposición general."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Entran al día siguiente, no el mismo día."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Copia remitida a Presidencia y consellerías; plazo máximo 10 días."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 43.1.b prevé remitir copia para informes en diez días."
+    },
+    {
+      "pregunta_id": 16328,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo puede superarse por norma con rango de ley."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No contempla fuerza mayor; solo rango de ley o Derecho UE."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La excepción no es por normativa autonómica; es por Ley o UE."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Excede seis meses si una ley lo permite o Derecho de la Unión."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Art. 21.2: seis meses salvo Ley mayor o previsión Derecho de la Unión."
+    },
+    {
+      "pregunta_id": 16329,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Personas físicas o jurídicas con capacidad de obrar civil."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Los menores incapacitados se exceptúan cuando afecta al ejercicio."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se exceptúan menores incapacitados si la incapacidad afecta."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se declara capacidad para grupos, uniones y entidades sin personalidad."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La opción B omite la excepción de menores incapacitados del art. 3.b."
+    },
+    {
+      "pregunta_id": 16354,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El mínimo legal es 40%, no 30%."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No es máximo; la norma fija un mínimo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Reserva promoción interna no inferior al 40%."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No es máximo; se establece mínimo del 40%."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Art. 135.2: porcentaje no inferior al 40% de vacantes."
+    },
+    {
+      "pregunta_id": 16396,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No impone dirigir para cumplimiento, sino se dirige expresamente."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se dirigen a conselleria de patrimonio para cumplir la ley."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No autoriza inscripción de oficio directamente sin trámite."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí actúan, dirigiéndose a la conselleria de patrimonio."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Art. 19.2: registradores se dirigen a la conselleria competente en patrimonio."
+    }
+  ]
+}

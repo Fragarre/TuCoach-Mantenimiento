@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 6394,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Excluye entidades locales y universidades, y no corresponde."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "La gestión está adscrita a la conselleria de función pública."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Remiten semestralmente la información agregada al órgano competente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Determina la información el Consell, no el titular de la conselleria."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Varias opciones son verdaderas respecto al enunciado; no es única."
+    },
+    {
+      "pregunta_id": 6410,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "La disolución y elecciones requieren refrendo del Presidente del Gobierno."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde refrendo del Ministro de Justicia."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El Gobierno no cesa automáticamente tras elecciones."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La propuesta es del Presidente, pero no menciona cada ministro."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "A es verdadera y el enunciado pide una opción; pero D no puede justificarse."
+    },
+    {
+      "pregunta_id": 6425,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se confiere de forma expresa a Les Corts y con plazo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La delegación se agota con Decreto legislativo, no decreto ley."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "No puede ser implícita ni por tiempo indeterminado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No se establece tal limitación sobre subdelegación."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "A y C coinciden como verdaderas; no hay única correcta."
+    },
+    {
+      "pregunta_id": 6426,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La opción A confunde delegación con actos no legislativos de alcance general."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Eso describe actos delegados tras delegación, no por el Parlamento."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Comisión puede adoptar actos delegados que modifiquen elementos no esenciales."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe una definición correcta en el artículo citado."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "No se identifica una única opción verdadera con la evidencia dada."
+    },
+    {
+      "pregunta_id": 6454,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 26 no incluye transparencia en sus criterios."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye eficacia como criterio de evaluación periódica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye control de resultados respecto a metas y objetivos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye eficiencia como criterio de evaluación periódica."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La respuesta incorrecta es la que no figura en los criterios del art. 26."
+    }
+  ]
+}

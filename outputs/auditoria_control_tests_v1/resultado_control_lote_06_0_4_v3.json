@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 9089,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El Gobierno no ejerce potestad legislativa según art. 66.2 CE"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El Gobierno no ejerce potestad legislativa según art. 66.2 CE"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las Cortes Generales ejercen la potestad legislativa del Estado"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Comunidades Autónomas no se incluyen en art. 66.2 CE"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 66.2 CE atribuye la potestad legislativa a las Cortes Generales."
+    },
+    {
+      "pregunta_id": 9092,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Defensor del Pueblo protege derechos del Título II según art. 54 CE"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Es alto comisionado para defensa de derechos del Título II"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No se designa para derechos del Título III en art. 54 CE"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe una opción verdadera según art. 54 CE"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 54 CE indica defensa de derechos comprendidos en este Título."
+    },
+    {
+      "pregunta_id": 9103,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye derecho a conocer y usar, y enseñanza en valenciano"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El precepto habla de derecho, no de deber de conocer"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No establece deber de usar; solo derechos"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La lengua propia es valenciano; el castellano no es propia"
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 6.2 del Estatuto reconoce derechos a conocer, usar y recibir enseñanza."
+    },
+    {
+      "pregunta_id": 9184,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Prefiere línea anterior a posterior, pero no misma preferencia"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La preferencia va más próximo a más remoto, no al revés"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "En el mismo grado, prefiere varón a mujer"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Hay una opción verdadera según art. 57 CE"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 57.1 CE establece preferencia del varón en el mismo grado."
+    },
+    {
+      "pregunta_id": 9210,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No exige informe del Consejo de Estado para rectificar errores"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Rectificar errores: en cualquier momento, de oficio o a instancia"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No limita a 4 años ni solo antes de 4 años"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No es solo de oficio; también a instancia de interesados"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 109.2 LPACAP permite rectificar errores en cualquier momento, de oficio o a instancia."
+    }
+  ]
+}

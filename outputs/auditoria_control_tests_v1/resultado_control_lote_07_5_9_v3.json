@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 10363,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye objetividad, independencia, imparcialidad, profesionalidad y sometimiento."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Sustituye imparcialidad por efectividad; no consta en el texto."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Sustituye imparcialidad por legalidad; no coincide con el texto."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No hay afirmación general; A coincide con el enunciado."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El artículo exige objetividad, independencia, imparcialidad, profesionalidad y sometimiento."
+    },
+    {
+      "pregunta_id": 10375,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El texto dice de acuerdo con la legislación del Estado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Requiere Constitución y leyes; el texto solo menciona legislación del Estado."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No indica que sea según sus propias competencias."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ninguna opción describe exactamente la regla: de acuerdo con legislación del Estado."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El enunciado exige explícitamente de acuerdo con la legislación del Estado."
+    },
+    {
+      "pregunta_id": 10392,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Permite recabar salvo oposición; no cabrá oposición en sanciones o inspección."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Restringe oposición solo a sanciones/inspección, pero el texto admite oposición general."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Trata informes preceptivos; no responde al derecho indicado en el enunciado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Suma opciones que no son ambas correctas."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Coincide literalmente con el artículo: derecho a no aportar y reglas de oposición."
+    },
+    {
+      "pregunta_id": 10423,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El texto habla de menos de cinco años, no dos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El texto condiciona por menos de cinco años para jubilación forzosa."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Establece reducción si faltan menos de cinco años para la jubilación forzosa."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe una opción correcta: C."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 79.5 reconoce reducción si faltan menos de cinco años."
+    },
+    {
+      "pregunta_id": 10498,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se menciona que sea igual; el texto aplicable fija un mínimo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no contiene el artículo 143.6 ni el 80%."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Habla de retribuciones complementarias; no se verifica en el texto aportado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No hay evidencia que niegue la garantía retributiva con los datos aportados."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia mostrada del artículo 143.1 no incluye la garantía concreta solicitada."
+    }
+  ]
+}

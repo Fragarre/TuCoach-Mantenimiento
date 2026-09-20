@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 10876,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta en Art. 19 regulación de fiestas locales ni horarios."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Art. 19 no contempla horario ampliado de registro."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Sin parte de baja, comunicar ausencia y motivo al responsable."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Art. 19 exige documentación, pero no regula riesgo embarazo/lactancia."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Regla pide opción incorrecta; solo C coincide con Art. 19, por tanto la incorrecta es otra."
+    },
+    {
+      "pregunta_id": 10925,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con límites por protección de datos personales, sin citar reglamento europeo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Cita reglamento europeo; la norma menciona legislación de protección de datos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Introduce competencias propias/delegación e interesados; la norma no lo dice."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Usa 'deberán' en lugar de 'podrán' según el artículo."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Solo A reproduce literalmente el apartado 2 del artículo 4."
+    },
+    {
+      "pregunta_id": 11022,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La regencia/tutela no se configura como uno, dos o tres personas."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El Rey es inviolable y no está sujeto a responsabilidad."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta en el Art. 56 sobre regencia y Reina consorte."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Las abdicaciones requieren ley orgánica, no comisión mixta acuerdo."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El Art. 56.3 establece que la persona del Rey no está sujeta a responsabilidad."
+    },
+    {
+      "pregunta_id": 11056,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El órgano competente decide mediante acuerdo motivado antes de resolución."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Los informes previos a la resolución no son actuaciones complementarias."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El acuerdo se notifica y alega siete días; la justificación temporal es correcta."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La suspensión del plazo hasta terminar complementarias sí existe."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "A coincide con el texto; D también coincide con suspensión, por existir dos correctas."
+    },
+    {
+      "pregunta_id": 11186,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 136.1: supremo órgano fiscalizador de cuentas y gestión económica."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No se dice 'censuradas'; el artículo habla de 'rendidas' y 'censuradas' sí."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Art. 136.3 dice independencia e inamovilidad, no 'movilidad'."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El Tribunal depende de las Cortes Generales, no del Gobierno."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Solo A reproduce fielmente el sentido del Art. 136.1 sobre su naturaleza fiscalizadora."
+    }
+  ]
+}

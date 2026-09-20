@@ -1,0 +1,16 @@
+{
+  "fecha": "2026-09-19",
+  "poblacion_total": 8180,
+  "seed": 20260919,
+  "tamano_muestra": 535,
+  "asignacion": {
+    "CORPUS_ACTIVO": 509,
+    "FUERA_CORPUS_O_SIN_NORMALIZAR": 26
+  },
+  "recuento_estratos": {
+    "CORPUS_ACTIVO": 7782,
+    "FUERA_CORPUS_O_SIN_NORMALIZAR": 398
+  },
+  "sha256_db": "e34c04fd2ac64572f86ab6701bffaef3f1316e7865ad5ba8b764322322c2dc7a",
+  "regla": "Aleatorio sin reemplazo por estrato; selección congelada antes de auditar."
+}

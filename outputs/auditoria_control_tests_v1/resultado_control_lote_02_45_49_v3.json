@@ -1,0 +1,184 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3433,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El umbral del dictamen es 50.000 euros, no 5.000.",
+          "motivo": "La Ley fija cuantía igual o superior a 50.000 euros.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "10.000 euros es inferior al umbral legal de 50.000.",
+          "motivo": "No alcanza la cuantía exigida para el dictamen.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "15.000 euros no llega al mínimo de 50.000 euros.",
+          "motivo": "No se supera el umbral legal para solicitar dictamen.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ninguna opción alcanza 50.000 euros.",
+          "motivo": "Solo procede dictamen desde 50.000 euros.",
+          "certeza": "UNICA"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Dictamen solo desde 50.000 euros; 5.000/10.000/15.000 no alcanzan el umbral."
+    },
+    {
+      "pregunta_id": 3454,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se calcula con referencia al precio del mercado.",
+          "motivo": "En precio provisional se usa coste real y beneficio acordado.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No se fija solo con referencia al precio provisional.",
+          "motivo": "Debe determinarse con costes efectivos y beneficio.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No se determina con referencia al precio máximo fijado.",
+          "motivo": "El cálculo se basa en costes reales y beneficio acordado.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se determina por costes reales del contratista y beneficio acordado.",
+          "motivo": "Art. 102.7: precio dentro del límite máximo, según costes y beneficio.",
+          "certeza": "UNICA"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 102.7 indica costes en que realmente incurra y beneficio acordado."
+    },
+    {
+      "pregunta_id": 3466,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No integra por sí sola la coordinación del sistema.",
+          "motivo": "El art. 35 integra tres órganos/unidades: a, b y c.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Las unidades coordinadoras no son la única parte integrante.",
+          "motivo": "La coordinación incluye además órgano competente y comisión técnica.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La comisión técnica no es el único elemento integrante.",
+          "motivo": "La organización incluye los tres elementos enumerados en el art. 35.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "No forman parte de la organización del sistema del art. 35.",
+          "motivo": "El art. 35 no menciona oficinas PROP adscritas a consellerias.",
+          "certeza": "UNICA"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 35 lista a), b) y c); no aparecen oficinas PROP."
+    },
+    {
+      "pregunta_id": 3502,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El derecho valenciano no es único aplicable en cualquier materia.",
+          "motivo": "Solo tiene preferencia en competencia exclusiva, según art. 45.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "En competencia exclusiva rige con preferencia, no como único.",
+          "motivo": "El art. 45 dice preferencia y, en defecto, derecho estatal supletorio.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "En competencia exclusiva, el Derecho Valenciano es aplicable con preferencia.",
+          "motivo": "Art. 45: Derecho Valenciano aplicable en competencia exclusiva y con preferencia.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe una opción correcta: la C.",
+          "motivo": "La competencia exclusiva se resuelve conforme al art. 45.",
+          "certeza": "UNICA"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Art. 45: en competencia exclusiva, el Derecho Valenciano es aplicable con preferencia."
+    },
+    {
+      "pregunta_id": 3504,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La inviolabilidad no se limita a no haber cesado en su mandato.",
+          "motivo": "El art. 23.3 indica inviolabilidad aun después de cesar.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El mandato finaliza cuatro años después o el día de la disolución.",
+          "motivo": "Art. 23.4: fija duración y que finalizará el día antes de elecciones.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe aforamiento en responsabilidad civil según el art. 23.3.",
+          "motivo": "El texto dice que gozarán de aforamiento civil por actos y opiniones.",
+          "certeza": "UNICA"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No pueden detenerse salvo flagrante delito, y decide el TSJ CV.",
+          "motivo": "Art. 23.3: detención solo en flagrante delito y competencia TSJ CV.",
+          "certeza": "UNICA"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 23.4 fija cuatro años y que finaliza el día antes de elecciones."
+    }
+  ]
+}

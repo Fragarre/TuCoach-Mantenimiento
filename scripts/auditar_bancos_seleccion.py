@@ -76,6 +76,17 @@ def main() -> int:
                 "SELECT id, codigo FROM convocatorias ORDER BY id"
             ).fetchall()
 
+        excluidas = {
+            int(fila[0])
+            for fila in con.execute(
+                """
+                SELECT pregunta_id
+                FROM preguntas_exclusiones
+                WHERE estado IN ('CUARENTENA', 'RETIRADA')
+                """
+            )
+        }
+
         total_incidencias = 0
         for conv in convocatorias:
             cid = int(conv["id"])
@@ -122,7 +133,12 @@ def main() -> int:
                 if filas
                 and filas[0]["tipo_vinculacion"] == "JURIDICA"
             }
-            sobran = reales_juridicas - set(esperadas)
+            sobran = reales_juridicas - set(esperadas) - excluidas
+            excluidas_estado_mal = [
+                pid
+                for pid in sorted(set(reales) & excluidas)
+                if any(fila["estado"] != "REVISION" for fila in reales[pid])
+            ]
             tema_mal = []
             tipo_mal = []
             metodo_mal = []
@@ -170,6 +186,7 @@ def main() -> int:
                 + len(faltan) + len(sobran) + len(tema_mal) + len(tipo_mal)
                 + len(metodo_mal) + len(estado_mal) + len(principal_mal)
                 + len(parte_mal) + len(sin_regla)
+                + len(excluidas_estado_mal)
             )
             # parte_nula se informa aparte: es la incidencia funcional detectada.
             incid += len(parte_nula)
@@ -189,6 +206,7 @@ def main() -> int:
             print(f"Parte existente incorrecta............ {len(parte_mal)}")
             print(f"Sin regla/ambigua de parte............. {len(sin_regla)}")
             print(f"Parte de convocatoria NULA............. {len(parte_nula)}")
+            print(f"Excluidas fuera de REVISION............ {len(excluidas_estado_mal)}")
 
         print()
         print("=" * 76)

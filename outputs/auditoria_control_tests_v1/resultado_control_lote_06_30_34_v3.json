@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 9895,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No contradice la Ley 4/2007 según la evidencia aportada"
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se menciona el procedimiento exacto en la evidencia"
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta en la evidencia el acuerdo por decreto del Consell"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El Consell acuerda; el Gobierno central no según la evidencia"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La evidencia atribuye al Consell acordar implantación/supresión y reconocimiento, no al Gobierno central"
+    },
+    {
+      "pregunta_id": 9923,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se evalúa condición completa con la evidencia aportada"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Cita “Secretario del Consell”; el texto dice Secretario entre Vicepresidentes/Consellers"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ausencias > un mes se comunican a Les Corts"
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Coincide el portavoz, pero no se verifica desde evidencia completa"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia no permite asegurar formalmente la incorrección con total precisión"
+    },
+    {
+      "pregunta_id": 10010,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia habla de número de diputados por circunscripción"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide: número de Diputados por circunscripción y otros extremos"
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia dice circunscripción, no provincia"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe una opción correcta según el artículo citado"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 23 menciona Diputados por circunscripción y duración y fecha de votación"
+    },
+    {
+      "pregunta_id": 10040,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia fija cuatro años y regula la audiencia"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Impugnar actos anulables requiere declaración de lesividad previa"
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia habla de caducidad, no desistimiento"
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El texto dice Pleno o órgano colegiado superior, no alcalde"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 107.1 indica impugnación contenciosa de actos favorables anulables con lesividad previa"
+    },
+    {
+      "pregunta_id": 10043,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye requerimiento de subsanación: suspende hasta cumplimiento"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Procedimiento no finalizado UE condiciona: suspende hasta resolución"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Pronunciamiento jurisdiccional previo indispensable: suspende hasta constancia"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia de art. 22.2 b) corresponde a artículo 87, no al 107"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La opción D no encaja con los supuestos del art. 22; la evidencia describe otra base"
+    }
+  ]
+}

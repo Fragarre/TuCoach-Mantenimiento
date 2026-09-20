@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 15899,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se establece designar portavoz entre miembros del Consell."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El President podrá nombrar uno o varios Consellers sin cartera."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Vicepresidentes ejercerán funciones que les encomiende o delegue el Consell."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No todas las afirmaciones A-C son verdaderas."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La regla pide la opción verdadera; B y C son verdaderas, no única."
+    },
+    {
+      "pregunta_id": 15924,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Tres meses es el plazo máximo para dictar y notificar."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El plazo máximo para dictar y notificar es de tres meses."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Existe plazo máximo legal: tres meses."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Una opción anterior es verdadera: B."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 122.2 fija tres meses para dictar y notificar."
+    },
+    {
+      "pregunta_id": 15930,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Restitución actualizada del justiprecio según IPC entre fechas."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Importe de la restitución se determina en el mismo acuerdo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Cambios calificación o mejoras: nueva valoración a la fecha ejercicio."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No es verdadera la opción que afirma que ninguna es falsa."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Todas A-C son verdaderas; la regla exige identificar la falsa."
+    },
+    {
+      "pregunta_id": 15947,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Incluye auditoría de sistemas; no aparece como modalidad en el artículo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Incluye auditoría integral; el artículo define operativa, no integral."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Modalidades: regularidad contable, cumplimiento y operativa."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Incluye auditoría analítica; no consta como modalidad en el artículo."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 119 enumera exactamente esas tres modalidades en C."
+    },
+    {
+      "pregunta_id": 15985,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde al Congreso distribuir el Fondo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde al Senado distribuir el Fondo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no contiene el precepto de distribución."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no indica qué órgano distribuye el Fondo."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia del artículo 156 no menciona la distribución del Fondo de Compensación."
+    }
+  ]
+}

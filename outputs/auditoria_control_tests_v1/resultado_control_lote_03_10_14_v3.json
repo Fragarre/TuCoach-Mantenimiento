@@ -1,0 +1,164 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3639,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Marca órgano competente si valor estimado supera 10% recursos ordinarios",
+          "evidencia": null
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No atribuye al Pleno solo según ámbito y valor sin umbral",
+          "evidencia": null
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Cita Alcaldía para valor no superior, pero contradice regla",
+          "evidencia": null
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No es siempre Alcaldía en todo tipo de contratos",
+          "evidencia": null
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La evidencia proporcionada no contiene la regla sobre órgano competente; no determinable."
+    },
+    {
+      "pregunta_id": 3640,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Prohíbe referencias a marcas, origen o fabricación si no se justifica",
+          "evidencia": null
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Trata índices de precios; no aparece en la evidencia",
+          "evidencia": null
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Medidas para evitar influencia en licitación; no está en evidencia",
+          "evidencia": null
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Plazo de devolución de garantía definitiva; no se menciona",
+          "evidencia": null
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Coincide con el artículo 126.6 sobre prohibición salvo justificación."
+    },
+    {
+      "pregunta_id": 3657,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Condiciona retribuciones complementarias iguales o inferiores, no iguales o superiores",
+          "evidencia": null
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No prevé resolución asignando tareas solo por informe de PRL",
+          "evidencia": null
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No existe supuesto de “dictará la resolución correspondiente” solo con informe PRL",
+          "evidencia": null
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No establece adscripción definitiva tras un año; regula adscripción condicionada",
+          "evidencia": null
+        }
+      ],
+      "opcion_evidencia": "null",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Ninguna opción coincide literalmente con el artículo 123; falta correspondencia clara."
+    },
+    {
+      "pregunta_id": 3667,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se menciona concesión directa como excepción del artículo 40.7",
+          "evidencia": null
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No se establece como supuestos de subvención del 168.1A",
+          "evidencia": null
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece en la evidencia como excepción a prohibición de compromisos",
+          "evidencia": null
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "“Debidamente acreditadas” encaja en subvenciones del 168.1A citadas",
+          "evidencia": null
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia solo cita 168.1A; no se aportan condiciones concretas para decidir."
+    },
+    {
+      "pregunta_id": 3690,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Presidente responsable políticamente ante Corts, según norma orgánica",
+          "evidencia": null
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Excepción es Diputado de Les Corts, no cualquier otro excepto sin Corts Generales",
+          "evidencia": null
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye excepción Diputado de Cortes Generales; la evidencia solo permite Les Corts",
+          "evidencia": null
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Si A fuese verdadera, B o C deben ser falsas; no todas pueden serlo",
+          "evidencia": null
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 6 permite excepción solo Diputado de Les Corts."
+    }
+  ]
+}

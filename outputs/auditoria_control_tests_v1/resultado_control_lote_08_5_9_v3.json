@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 12037,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Aprobación por Gobierno Valenciano, propuesta conselleria y a iniciativa integrada."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Ingresos son Tesorería General o de organismos, no Hacienda Pública genérica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Representación de conselleria en organismos dependientes que usen patrimonio."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Recuperación posesoria del dominio público con requerimiento previo de desalojo."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La incorrecta es B: la ley dice Tesorería General/organismos, no Hacienda Pública genérica."
+    },
+    {
+      "pregunta_id": 12040,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Gastos se acreditan con facturas u otros documentos de valor equivalente."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Facturas electrónicas válidas si cumplen requisitos de aceptación mercantil/administrativa."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Si cofinancia, la normativa puede exigir justificar importe, procedencia y aplicación."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí requiere justificación de situación, sin que sea automática sin controles."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La falsa es D: la ley exige acreditación y prevé controles para verificar existencia."
+    },
+    {
+      "pregunta_id": 12047,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Efectos generales desde publicación del fallo y preceptos anulados en el mismo BO."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Confunde: debe ser desde publicación del fallo, no desde dictado."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se publican sentencias firmes que anulen actos que afecten a pluralidad indeterminada."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son verdaderas: la opción B no coincide con la ley."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "B es la incorrecta: los efectos generales son desde publicación del fallo."
+    },
+    {
+      "pregunta_id": 12054,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No es diez hábiles: son quince hábiles en los restantes casos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No son quince días naturales: deben ser quince días hábiles."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "En restantes casos, formalización no más tarde de quince días hábiles."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No son diez días: la regla general fija quince días hábiles."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Según la ley, si no hay recurso especial, es quince días hábiles."
+    },
+    {
+      "pregunta_id": 12130,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Expropiación forzosa no aparece como competencia exclusiva en el artículo citado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Ordenación de crédito no figura como competencia exclusiva en el precepto."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Ordenación del sector pesquero no se recoge literalmente como exclusiva."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ordenación del territorio y del litoral es competencia exclusiva de la Generalitat."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "D coincide con el artículo 49: competencia exclusiva en ordenación del territorio y del litoral."
+    }
+  ]
+}

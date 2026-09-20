@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 10081,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye personal funcionario de carrera o laboral fijo y ajeno"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Añade interinos y no los permite"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Prohíbe ajeno, pero la norma lo permite"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Permite eventual, pero solo admite funcionario de carrera y laboral fijo"
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 23.2 permite funcionario de carrera o laboral fijo y personal ajeno."
+    },
+    {
+      "pregunta_id": 10082,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Define libre designación como apreciación discrecional"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Resuelve quien ostenta la presidencia o conselleria adscrita"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Limita a la conselleria competente en función pública"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Plazo de diez días hábiles tras la convocatoria"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 115.1 fija que resuelve presidencia o conselleria a la que está adscrito."
+    },
+    {
+      "pregunta_id": 10083,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Exige autorización verbal, y la norma exige previa y expresa"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Falta que sea previa y expresa autorización"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Exige previa y expresa autorización de compatibilidad"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Limita a profesor asociado; la norma permite varios supuestos"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 3.1 exige previa y expresa autorización de compatibilidad para la segunda actividad."
+    },
+    {
+      "pregunta_id": 10099,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se refleja en el art. 66; no es su materia"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde al art. 66 sobre Diputaciones Provinciales"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Recoge la coordinación de funciones de interés general por la Generalitat"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No regula convenios con regiones europeas en el art. 66"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 66.3 establece que la Generalitat coordina funciones de interés general de Diputaciones."
+    },
+    {
+      "pregunta_id": 10132,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Usa días naturales, pero la norma señala prueba sin tipo de días"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Usa días hábiles, pero la norma indica 'treinta' y 'diez' sin calificar"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Periodo de prueba entre diez y treinta días"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Se refiere a informes de diez días, no a periodo de prueba"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 77.2 fija periodo de prueba no superior a treinta ni inferior a diez."
+    }
+  ]
+}

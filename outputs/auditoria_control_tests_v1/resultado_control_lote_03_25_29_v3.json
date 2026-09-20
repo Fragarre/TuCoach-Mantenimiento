@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3835,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo exige acompañante, no ausencias por citas sin más."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Permite ausencias para tutorías si dentro horario y acreditado impedimento."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Son seis días naturales, no seis hábiles."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No hay evidencia sobre días por fallecimiento en ART-33."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La opción B coincide con el apartado 3 del artículo 33."
+    },
+    {
+      "pregunta_id": 3836,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo exige comunicación previa; salvo previsto en artículo 40."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Hechos causantes: inicio el primer día laborable tras el hecho."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Requiere comunicación al órgano competente, no solo notificación."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Contradice el artículo: se inicia el primer día laborable."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 20 indica comunicación previa y primer día laborable."
+    },
+    {
+      "pregunta_id": 3860,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Les Corts funcionarán en Pleno o en Comisiones."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo indica sesiones ordinarias y extraordinarias, no el funcionamiento."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No hay evidencia sobre funcionamiento en comisiones o delegaciones."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Si A es verdadera, no pueden ser todas incorrectas."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El artículo 25.2 establece expresamente Pleno o Comisiones."
+    },
+    {
+      "pregunta_id": 3958,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo dice que ponen fin a la vía administrativa."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No indica recurso únicamente contencioso; hay reclamación potestativa previa."
+        },
+        {
+          "leta": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Cita reposición, pero el artículo menciona reclamación ante Consejo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ponen fin a vía administrativa; reclamación potestativa previa ante Consejo."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 34.6 prevé reclamación ante Consejo Valenciano de Transparencia."
+    },
+    {
+      "pregunta_id": 3966,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Vincula hechos probados por resoluciones penales firmes, no cualesquiera."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Dice 'en algunos procedimientos'; el artículo lo afirma con carácter general."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Niega el carácter de firmeza vinculante de resoluciones penales firmes."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Hechos penales firmes vinculan a las Administraciones en sancionadores."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 77.4 establece vinculación por resoluciones penales firmes."
+    }
+  ]
+}

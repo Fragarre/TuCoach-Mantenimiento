@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3609,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el artículo 16 sobre composición de la comisión."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye entidades locales; el artículo solo menciona Comunidades Autónomas."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye Administración General del Estado; el artículo solo menciona Comunidades Autónomas."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Hay una opción correcta: A."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La Comisión estará compuesta por representantes de todas las Comunidades Autónomas."
+    },
+    {
+      "pregunta_id": 3613,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No indica elección por Consell en el artículo citado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde: el artículo no establece esa mayoría."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No coincide: el artículo establece otra mayoría de elección."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo exige mayoría absoluta en la elección por Les Corts."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La elección de miembros del Consejo se hace por mayoría absoluta del Pleno."
+    },
+    {
+      "pregunta_id": 3620,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El error de calificación no impide tramitar si se deduce el verdadero carácter."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo dice que no pueden alegar vicios quienes los causaron."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El enunciado sobre suspensión no está en el artículo 115 aportado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La prohibición de recurso a disposiciones generales no consta aquí."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La opción B contradice el artículo 115.3 sobre alegación por causantes."
+    },
+    {
+      "pregunta_id": 3627,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo prevé alzada ante el órgano superior jerárquico o delegante."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El órgano indicado no es el superior jerárquico frente a un Director General."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La alzada en vía administrativa es procedente; contencioso no es el primer paso."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Procede reposición potestativa contra actos que ponen fin a la vía administrativa."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia del artículo 9 trata delegación, no el recurso contra el acto."
+    },
+    {
+      "pregunta_id": 3631,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Falta el término 'jurídica' presente en el artículo 10."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye exactamente 'jurídica' y el resto de circunstancias enumeradas."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Omite 'material' y 'mercantil' presentes en la opción correcta."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye 'mercantil' sin que el artículo lo contemple en la enumeración."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 10 enumera técnica, económica, social, jurídica o territorial."
+    }
+  ]
+}

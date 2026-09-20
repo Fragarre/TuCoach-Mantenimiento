@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 14018,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Excedencia es una situación administrativa distinta a servicio en org. int."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No es servicio en otras administraciones públicas."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Acceder a org. internacional deriva en servicios especiales."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Suspensión de funciones es otra situación administrativa diferente."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 85 incluye servicios especiales; el funcionario en org. internacional encaja allí."
+    },
+    {
+      "pregunta_id": 14062,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se deduce de la evidencia sobre régimen presupuestario."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No consta en evidencia del art. 108."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece en la evidencia citada."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Si alguna es incorrecta, no puede ser 'todas'."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia aportada (art. 108) no respalda las opciones sobre selección de personal."
+    },
+    {
+      "pregunta_id": 14167,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Lanzarote no elige 3 senadores según el art. 69 CE."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Tenerife no elige 3 senadores; corresponde a islas mayores."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No verificado con la evidencia del art. 69."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas las anteriores son verdaderas."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Art. 69 CE: Lanzarote recibe 1 senador, no 3."
+    },
+    {
+      "pregunta_id": 14185,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 64 crea Comisión Mixta deliberante y consultiva."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "La Comisión Mixta informa preceptivamente a Les Corts."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La descentralización va acompañada de suficientes recursos económicos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Todas las anteriores son verdaderas."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "No hay opción falsa: A, B y C coinciden con el art. 64."
+    },
+    {
+      "pregunta_id": 14216,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con 'información o actuaciones previas' del art. 55."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La iniciación comienza con el inicio del procedimiento, no antes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No es el término legal usado en el art. 55."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "'Período voluntario' no corresponde a la definición del art. 55."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 55 define el periodo previo como información o actuaciones previas."
+    }
+  ]
+}

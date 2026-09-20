@@ -1,5 +1,5 @@
 """
-OpoCoach - Construcción del catálogo de normas.
+TuCoach - Construcción del catálogo de normas.
 
 Construye el catálogo desde:
 - lote_preguntas: por clave textual normalizada;

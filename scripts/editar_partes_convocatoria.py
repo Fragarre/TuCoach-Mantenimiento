@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Edición segura de partes de una convocatoria.
+TuCoach-Mantenimiento - Edición segura de partes de una convocatoria.
 
 Modifica exclusivamente convocatoria_partes.nombre, numero_preguntas y orden.
 Conserva convocatoria_partes.id, por lo que no recrea partes ni rompe sus FK.

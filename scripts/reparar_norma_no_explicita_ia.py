@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Reparación conservadora de preguntas IA con norma no explícita.
+TuCoach-Mantenimiento - Reparación conservadora de preguntas IA con norma no explícita.
 
 Por defecto SOLO LECTURA.
 

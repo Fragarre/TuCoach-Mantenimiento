@@ -249,7 +249,7 @@ def escribir_informe_txt(informe: dict[str, Any], ruta: Path) -> None:
     lineas.extend(
         [
             sep,
-            "PUBLICACIÓN DE CONTENIDOS OPOCOACH-WEB",
+            "PUBLICACIÓN DE CONTENIDOS TUCOACH-WEB",
             sep,
             f"Versión:                  {informe['version']}",
             f"Fecha:                    {informe['fecha']}",
@@ -294,7 +294,7 @@ def escribir_informe_txt(informe: dict[str, Any], ruta: Path) -> None:
         [
             "",
             sep,
-            "SNAPSHOT PREPARADO Y VALIDADO. NO SE HA DESPLEGADO EN OPOCOACH-WEB.",
+            "SNAPSHOT PREPARADO Y VALIDADO. NO SE HA DESPLEGADO EN TUCOACH-WEB.",
             sep,
             "",
         ]
@@ -383,8 +383,8 @@ def preparar_publicacion(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Valida la base maestra de OpoCoach-Mantenimiento y genera un "
-            "snapshot íntegro, consistente y versionado para OpoCoach-Web. "
+            "Valida la base maestra de TuCoach-Mantenimiento y genera un "
+            "snapshot íntegro, consistente y versionado para TuCoach-Web. "
             "No despliega ni modifica la Web."
         )
     )
@@ -407,7 +407,7 @@ def main() -> int:
     args = parse_args()
 
     print("=" * 78)
-    print("PREPARAR PUBLICACIÓN DE CONTENIDOS OPOCOACH-WEB")
+    print("PREPARAR PUBLICACIÓN DE CONTENIDOS TUCOACH-WEB")
     print("=" * 78)
     print(f"Base maestra: {args.db.resolve()}")
     print(f"Salida:       {args.salida.resolve()}")
@@ -429,7 +429,7 @@ def main() -> int:
     print(f"Snapshot:     {snapshot}")
     print(f"Informe JSON: {informe_json}")
     print(f"Informe TXT:  {informe_txt}")
-    print("\nNo se ha desplegado ningún archivo en OpoCoach-Web.")
+    print("\nNo se ha desplegado ningún archivo en TuCoach-Web.")
     return 0
 
 

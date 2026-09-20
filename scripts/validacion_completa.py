@@ -1,5 +1,5 @@
 """
-Validación completa de solo lectura de OpoCoach-Mantenimiento.
+Validación completa de solo lectura de TuCoach-Mantenimiento.
 
 Comprueba:
 1. Integridad SQLite y claves foráneas.
@@ -455,7 +455,7 @@ def main() -> int:
     registrar("#" * 78)
 
     print("=" * 78)
-    print("VALIDACIÓN COMPLETA OPOCOACH-MANTENIMIENTO")
+    print("VALIDACIÓN COMPLETA TUCOACH-MANTENIMIENTO")
     print("=" * 78)
     print("Modo: SOLO LECTURA")
     print(f"Base: {RUTA_DB}")

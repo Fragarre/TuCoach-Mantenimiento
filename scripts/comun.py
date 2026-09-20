@@ -1,6 +1,6 @@
 """
 ==============================================================================
-Proyecto : OpoCoach-Mantenimiento
+Proyecto : TuCoach-Mantenimiento
 Archivo  : scripts/comun.py
 
 Objetivo:
@@ -31,7 +31,7 @@ from pathlib import Path
 
 def raiz_proyecto() -> Path:
     """
-    Devuelve la raíz de OpoCoach-Mantenimiento (la carpeta que contiene
+    Devuelve la raíz de TuCoach-Mantenimiento (la carpeta que contiene
     'scripts/', 'db/', etc.), a partir de la ubicación de este fichero.
     """
     return Path(__file__).resolve().parent.parent

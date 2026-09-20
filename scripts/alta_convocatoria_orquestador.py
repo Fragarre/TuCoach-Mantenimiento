@@ -1,5 +1,5 @@
 r"""
-OpoCoach - Orquestador seguro para alta de convocatorias.
+TuCoach - Orquestador seguro para alta de convocatorias.
 
 Flujo:
 1. Valida la configuración, la base de datos y el CSV del temario.

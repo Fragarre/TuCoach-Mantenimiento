@@ -1,5 +1,5 @@
 """
-Sincronización común de todos los bancos de OpoCoach.
+Sincronización común de todos los bancos de TuCoach.
 
 No contiene reglas propias de selección. La única fuente de verdad es
 scripts/mantener_banco_preguntas.py.

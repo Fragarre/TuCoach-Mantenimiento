@@ -332,7 +332,7 @@ def _prompt_sintesis_desde_hechos(
         )
 
     return f"""
-Actúas como editor de materiales de estudio de OpoCoach.
+Actúas como editor de materiales de estudio de TuCoach.
 
 NORMA
 {norma}
@@ -607,7 +607,7 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
     def footer(canvas, doc):
         canvas.saveState()
         canvas.setFont("Helvetica", 8)
-        canvas.drawString(17*mm, 9*mm, "OpoCoach · Resumen para estudiar")
+        canvas.drawString(17*mm, 9*mm, "TuCoach · Resumen para estudiar")
         canvas.drawRightString(A4[0]-17*mm, 9*mm, f"Página {doc.page}")
         canvas.restoreState()
 
@@ -618,12 +618,12 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
     )
 
     story = [
-        Paragraph("OPOCOACH", titulo),
+        Paragraph("TUCOACH", titulo),
         Paragraph("RESUMEN PARA ESTUDIAR", h1),
         Paragraph(_p(norma), titulo),
         Paragraph(
             "Resumen temático elaborado exclusivamente a partir del texto "
-            "completo almacenado en el corpus OpoCoach.",
+            "completo almacenado en el corpus TuCoach.",
             pequeno,
         ),
         Spacer(1, 3*mm),
@@ -713,7 +713,7 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
     story.append(Paragraph(_p(r.get("cierre")), cuerpo))
     story.append(Paragraph(
         "Para preguntas de literalidad debe acudirse al texto completo "
-        "disponible en OpoCoach.",
+        "disponible en TuCoach.",
         pequeno,
     ))
 

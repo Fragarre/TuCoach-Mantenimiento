@@ -365,7 +365,7 @@ def cargar(snapshot: Path, informe_salida: Path, ruta_env: Path) -> None:
         print(f"Filas cargadas: {sum(recuentos_pg.values())}")
         print(f"Informe: {informe_salida.resolve()}")
         print()
-        print("OpoCoach-Web NO ha sido modificada para leer desde Supabase.")
+        print("TuCoach-Web NO ha sido modificada para leer desde Supabase.")
 
     finally:
         con_sqlite.close()
@@ -389,7 +389,7 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help=(
             "Ruta al fichero .env que contiene DATABASE_URL "
-            "(por ejemplo OpoCoach-Web/backend/.env)."
+            "(por ejemplo TuCoach-Web/backend/.env)."
         ),
     )
     parser.add_argument(

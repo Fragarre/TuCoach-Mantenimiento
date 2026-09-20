@@ -1,7 +1,7 @@
 """
 
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Orquestador de mantenimiento con resumen final
 Archivo  : mantenimiento_preguntas.py
 Ubicación:
@@ -379,7 +379,7 @@ def main() -> int:
     sesion_id = crear_sesion_coste(inicio)
 
     print("=" * 78)
-    print("MANTENIMIENTO OPOCOACH")
+    print("MANTENIMIENTO TUCOACH")
     print("=" * 78)
 
     try:

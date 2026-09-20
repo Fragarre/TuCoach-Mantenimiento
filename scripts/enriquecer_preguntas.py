@@ -1,5 +1,5 @@
 """
-OpoCoach — orquestador seguro de enriquecimiento de preguntas.
+TuCoach — orquestador seguro de enriquecimiento de preguntas.
 
 RESPONSABILIDAD
 ---------------

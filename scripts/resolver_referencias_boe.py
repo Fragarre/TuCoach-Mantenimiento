@@ -1,5 +1,5 @@
 """
-OpoCoach - Resolución de referencias jurídicas del temario mediante el BOE.
+TuCoach - Resolución de referencias jurídicas del temario mediante el BOE.
 
 Responsabilidades:
 - recorrer referencias jurídicas pendientes;

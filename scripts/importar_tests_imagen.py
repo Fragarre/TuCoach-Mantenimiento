@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Importación de preguntas desde PDF-imagen
 Archivo  : importar_tests_imagen.py
 Ubicación:

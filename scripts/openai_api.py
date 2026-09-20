@@ -1,6 +1,6 @@
 """
 ==============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Estado   : OK
 
 Archivo : openai_api.py
@@ -114,7 +114,7 @@ def _registrar_coste_mantenimiento(
 ) -> None:
     if not RUTA_DB.is_file():
         raise RuntimeError(
-            f"No existe la base de datos de OpoCoach: {RUTA_DB}"
+            f"No existe la base de datos de TuCoach: {RUTA_DB}"
         )
 
     with sqlite3.connect(RUTA_DB, timeout=30) as conexion:

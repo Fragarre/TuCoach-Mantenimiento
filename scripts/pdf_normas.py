@@ -1,5 +1,5 @@
 """
-OpoCoach - Proveedor local de artículos normativos desde PDF.
+TuCoach - Proveedor local de artículos normativos desde PDF.
 
 Fallback conservador para fuentes_normativas/.
 

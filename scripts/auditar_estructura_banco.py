@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Auditoría previa a la generación del banco de preguntas
 Archivo  : auditar_estructura_banco.py
 Ubicación:

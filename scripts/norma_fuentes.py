@@ -1,5 +1,5 @@
 """
-Identidad documental de normas para OpoCoach.
+Identidad documental de normas para TuCoach.
 
 Mantiene la relaciÃ³n persistente entre un documento normativo real
 (BOE/DOGV/DOUE/PDF local) y la norma canÃ³nica del catÃ¡logo `normas`.

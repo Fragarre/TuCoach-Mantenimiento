@@ -1,5 +1,5 @@
 """
-NetReto - menú de mantenimiento.
+TuCoach - menú de mantenimiento.
 
 El cuerpo estable del menú se conserva en menu_mantenimiento_core.py.
 Este punto de entrada añade extensiones controladas:

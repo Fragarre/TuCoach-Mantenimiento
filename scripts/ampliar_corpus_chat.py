@@ -1,5 +1,5 @@
 """
-OpoCoach - Ampliación del corpus del Chat.
+TuCoach - Ampliación del corpus del Chat.
 FASE 1: SOLO VALIDACIÓN (V4).
 
 Principios:

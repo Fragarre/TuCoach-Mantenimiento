@@ -1,6 +1,6 @@
 """
 ==============================================================================
-Proyecto : OpoCoach-Mantenimiento
+Proyecto : TuCoach-Mantenimiento
 Archivo  : scripts/generar_preguntas_informatica.py
 
 Objetivo:

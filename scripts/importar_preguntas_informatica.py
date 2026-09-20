@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Importación de preguntas de informática sin solucionario
 Archivo  : importar_preguntas_informatica.py
 Ubicación:

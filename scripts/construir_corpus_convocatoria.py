@@ -1,5 +1,5 @@
 """
-OpoCoach - Orquestador de construcción del corpus jurídico de una convocatoria.
+TuCoach - Orquestador de construcción del corpus jurídico de una convocatoria.
 
 Este script NO modifica los scripts existentes.
 

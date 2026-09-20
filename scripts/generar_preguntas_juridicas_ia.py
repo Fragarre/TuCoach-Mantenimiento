@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Generación experimental de preguntas jurídicas con IA.
+TuCoach-Mantenimiento - Generación experimental de preguntas jurídicas con IA.
 
 OBJETIVO
 --------

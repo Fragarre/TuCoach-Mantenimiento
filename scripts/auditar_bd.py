@@ -1,5 +1,5 @@
 """
-Auditoría breve y relevante de la base de datos de OpoCoach.
+Auditoría breve y relevante de la base de datos de TuCoach.
 
 Uso:
     python scripts/auditar_bd.py
@@ -89,7 +89,7 @@ def auditar(db: Path) -> int:
 
     try:
         print("=" * 64)
-        print("AUDITORÍA BASE DE DATOS OPOCOACH")
+        print("AUDITORÍA BASE DE DATOS TUCOACH")
         print("=" * 64)
         print(f"Base de datos: {db.resolve()}")
 
@@ -537,7 +537,7 @@ def auditar(db: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Auditoría breve, de solo lectura, de la base de datos de OpoCoach."
+        description="Auditoría breve, de solo lectura, de la base de datos de TuCoach."
     )
     parser.add_argument(
         "--db",

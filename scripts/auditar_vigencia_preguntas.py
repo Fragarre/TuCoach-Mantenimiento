@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Auditoría conservadora de vigencia jurídica.
+TuCoach-Mantenimiento - Auditoría conservadora de vigencia jurídica.
 
 Comprueba exclusivamente:
     1. Si una norma identificada de forma inequívoca figura expresamente

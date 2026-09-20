@@ -1,5 +1,5 @@
 """
-OpoCoach - Inventario de denominaciones jurídicas en lote_preguntas.
+TuCoach - Inventario de denominaciones jurídicas en lote_preguntas.
 
 No usa IA.
 No modifica la base de datos.

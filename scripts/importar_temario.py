@@ -1,5 +1,5 @@
 """
-OpoCoach - Importación idempotente del temario de una convocatoria.
+TuCoach - Importación idempotente del temario de una convocatoria.
 
 Este script:
 - importa el CSV del temario;

@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento
+TuCoach-Mantenimiento
 Ampliación controlada del corpus DOGV/Generalitat.
 
 Por defecto: SOLO PLAN.

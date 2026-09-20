@@ -1,5 +1,5 @@
 """
-OpoCoach — reglas deterministas de normalización de normas jurídicas.
+TuCoach — reglas deterministas de normalización de normas jurídicas.
 
 Este archivo es exclusivamente un módulo de reglas. No abre la base de datos,
 no modifica registros, no crea copias de seguridad y no elimina preguntas.

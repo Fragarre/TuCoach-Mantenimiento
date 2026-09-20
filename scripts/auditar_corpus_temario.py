@@ -1,5 +1,5 @@
 """
-OpoCoach - Auditoría exhaustiva del corpus jurídico del temario.
+TuCoach - Auditoría exhaustiva del corpus jurídico del temario.
 
 Este script NO modifica la base de datos.
 

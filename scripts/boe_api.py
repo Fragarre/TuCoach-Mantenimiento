@@ -1,5 +1,5 @@
 """
-OpoCoach - Cliente nuevo para legislación consolidada del BOE.
+TuCoach - Cliente nuevo para legislación consolidada del BOE.
 
 Principio de seguridad:
 - una norma solo se acepta cuando su tipo, número y año coinciden exactamente;
@@ -598,7 +598,7 @@ def resolver_ambiguedad(
 
     Orden de prioridad:
     1. Fecha completa de la disposición, cuando figura en la referencia.
-    2. Ámbito valenciano, como regla general del proyecto OpoCoach.
+    2. Ámbito valenciano, como regla general del proyecto TuCoach.
     3. Jefatura del Estado, solo si no existe candidato valenciano.
 
     Si aún quedan varias coincidencias, no se elige arbitrariamente.

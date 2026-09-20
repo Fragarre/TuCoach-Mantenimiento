@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Configuración explícita de reglas de partes.
+TuCoach-Mantenimiento - Configuración explícita de reglas de partes.
 
 Permite mantener convocatoria_parte_reglas desde menú, sin editar SQLite a mano.
 No infiere reglas por el nombre de las partes. Toda escritura crea backup.

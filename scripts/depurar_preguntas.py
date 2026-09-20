@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Eliminación idempotente de preguntas duplicadas
 Archivo  : depurar_preguntas.py
 Ubicación:

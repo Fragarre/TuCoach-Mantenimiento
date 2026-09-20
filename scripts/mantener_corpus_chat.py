@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento
+TuCoach-Mantenimiento
 Mantenimiento conjunto del corpus normativo del Chat.
 
 Coordina los proveedores ya validados:

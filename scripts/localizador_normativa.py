@@ -1,5 +1,5 @@
 """
-OpoCoach - Localizador especializado de normas e índices del BOE.
+TuCoach - Localizador especializado de normas e índices del BOE.
 
 Ubicación:
     scripts/localizador_normativa.py

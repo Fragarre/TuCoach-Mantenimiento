@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Depuración estricta de calidad de lote_preguntas.
+TuCoach-Mantenimiento - Depuración estricta de calidad de lote_preguntas.
 
 Por defecto SOLO LECTURA. Con --aplicar:
 - elimina TODA pregunta señalada por la auditoría de autosuficiencia;

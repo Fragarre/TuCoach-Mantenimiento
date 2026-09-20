@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento - Configuración del modelo normativo de simulacro.
+TuCoach-Mantenimiento - Configuración del modelo normativo de simulacro.
 
 OBJETIVO
 --------

@@ -1,5 +1,5 @@
 """
-OpoCoach — revisión independiente de importaciones problemáticas.
+TuCoach — revisión independiente de importaciones problemáticas.
 
 RESPONSABILIDAD
 ---------------
@@ -416,7 +416,7 @@ def escribir_resumen_txt(
 
     lineas: list[str] = []
     lineas.append("=" * 78)
-    lineas.append("REVISIÓN DE IMPORTACIONES OPOCOACH")
+    lineas.append("REVISIÓN DE IMPORTACIONES TUCOACH")
     lineas.append("=" * 78)
     lineas.append(f"Base de datos: {db}")
     lineas.append(f"Generado: {datetime.now().astimezone().isoformat(timespec='seconds')}")
@@ -478,7 +478,7 @@ def escribir_resumen_txt(
 
 def mostrar_resumen(analisis: list[dict], carpeta: Path) -> None:
     print("=" * 78)
-    print("REVISIÓN DE IMPORTACIONES OPOCOACH")
+    print("REVISIÓN DE IMPORTACIONES TUCOACH")
     print("=" * 78)
     print(f"Importaciones revisadas: {len(analisis)}")
     print()

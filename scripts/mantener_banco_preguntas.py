@@ -1,5 +1,5 @@
 """
-OpoCoach - Crear o actualizar el banco de preguntas de una convocatoria.
+TuCoach - Crear o actualizar el banco de preguntas de una convocatoria.
 
 Este mantenimiento sirve para las dos operaciones:
 

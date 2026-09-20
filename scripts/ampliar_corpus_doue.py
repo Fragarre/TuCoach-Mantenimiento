@@ -1,5 +1,5 @@
 """
-OpoCoach-Mantenimiento
+TuCoach-Mantenimiento
 Ampliación controlada del corpus DOUE: TUE y TFUE.
 
 Por defecto: SOLO PLAN.

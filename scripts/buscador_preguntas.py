@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Buscador reutilizable de preguntas jurídicas
 Archivo  : buscador_preguntas.py
 Ubicación:

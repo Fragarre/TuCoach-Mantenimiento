@@ -1,6 +1,6 @@
 """
 ===============================================================================
-Proyecto : OpoCoach
+Proyecto : TuCoach
 Tipo     : Importación de tests de academia desde PDF estructurado
 Archivo  : importar_tests_academia.py
 Ubicación:

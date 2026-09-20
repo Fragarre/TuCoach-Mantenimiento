@@ -1,7 +1,7 @@
 """Funciones comunes para publicar importaciones de preguntas.
 
 Este módulo utiliza exclusivamente las tablas y columnas ya existentes en la
-base de datos de OpoCoach. El criterio de duplicado es único: igualdad exacta
+base de datos de TuCoach. El criterio de duplicado es único: igualdad exacta
 de enunciado y de las cuatro opciones. No interviene ningún otro campo.
 """
 

@@ -64,7 +64,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Audita posibles objetos obsoletos sin modificar la BD.")
     p.add_argument("--db", default="db/oposiciones.sqlite3", help="Ruta a oposiciones.sqlite3")
     p.add_argument("--raiz-mantenimiento", default=None,
-                   help="Raíz OpoCoach-Mantenimiento. Por defecto se deduce desde el script.")
+                   help="Raíz TuCoach-Mantenimiento. Por defecto se deduce desde el script.")
     p.add_argument("--raiz-tucoach", default=None,
                    help="Raíz del proyecto TuCoach. Si se omite, intenta ../TuCoach.")
     p.add_argument("--raiz-opocoach", default=None,
@@ -306,9 +306,9 @@ def clasificar(nombre: str, filas: int, fk_in: int, refs: list[RefCodigo]) -> tu
     if mant_act or opo_master:
         return "ACTIVO", "Referenciado por código operativo contra la base maestra."
     if opo_ind:
-        return "REVISAR_DEPENDENCIA", "OpoCoach lo referencia, pero el análisis estático no determina con seguridad qué conexión utiliza."
+        return "REVISAR_DEPENDENCIA", "TuCoach lo referencia, pero el análisis estático no determina con seguridad qué conexión utiliza."
     if opo_user and not (mant_act or opo_master):
-        base = "Las referencias operativas de OpoCoach parecen dirigirse a la base de usuario/Turso, no a la base maestra."
+        base = "Las referencias operativas de TuCoach parecen dirigirse a la base de usuario/Turso, no a la base maestra."
         if filas:
             return "CANDIDATO_HISTORICO_CON_DATOS", base + f" La tabla maestra conserva {filas} filas."
         return "CANDIDATO_OBSOLETO", base + " La tabla maestra está vacía."
@@ -336,7 +336,7 @@ def main() -> int:
     print("Modo: SOLO LECTURA")
     print(f"Base: {db}")
     print(f"Mantenimiento: {raiz_mant}")
-    print(f"OpoCoach: {raiz_opo if raiz_opo else '(no localizado)'}")
+    print(f"TuCoach: {raiz_opo if raiz_opo else '(no localizado)'}")
 
     if not db.is_file():
         print(f"ERROR: no existe la base: {db}")
@@ -520,7 +520,7 @@ def main() -> int:
                "- **HISTORICO_***: no aparece en el flujo operativo, pero contiene datos o evidencia histórica.",
                "- **CANDIDATO_OBSOLETO**: candidato a pruebas de retirada en una copia; **no significa que pueda borrarse directamente**.", "",
                "## Siguiente paso recomendado", "",
-               "Crear una copia experimental de la base y retirar **un solo grupo candidato cada vez**, ejecutando después la validación completa de Mantenimiento y las pruebas funcionales de OpoCoach."
+               "Crear una copia experimental de la base y retirar **un solo grupo candidato cada vez**, ejecutando después la validación completa de Mantenimiento y las pruebas funcionales de TuCoach."
               ]
         (salida / "INFORME.md").write_text("\n".join(md)+"\n", encoding="utf-8")
 

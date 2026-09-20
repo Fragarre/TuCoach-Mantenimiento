@@ -53,9 +53,9 @@ class ObjetoAuditado:
     triggers_asociados: int
     refs_activas_mantenimiento: int
     refs_historicas_mantenimiento: int
-    refs_opocoach_maestra: int
-    refs_opocoach_usuario: int
-    refs_opocoach_indeterminadas: int
+    refs_tucoach_maestra: int
+    refs_tucoach_usuario: int
+    refs_tucoach_indeterminadas: int
     clasificacion: str
     motivo: str
 
@@ -82,20 +82,20 @@ def resolver_rutas(args: argparse.Namespace) -> tuple[Path, Path, Path | None, P
     db = Path(args.db).expanduser()
     if not db.is_absolute():
         db = (raiz_mant / db).resolve()
-    raiz_opo: Path | None
+    raiz_tucoach: Path | None
     if args.raiz_tucoach:
-        raiz_opo = Path(args.raiz_tucoach).expanduser().resolve()
+        raiz_tucoach = Path(args.raiz_tucoach).expanduser().resolve()
     elif args.raiz_opocoach:
-        raiz_opo = Path(args.raiz_opocoach).expanduser().resolve()
+        raiz_tucoach = Path(args.raiz_opocoach).expanduser().resolve()
     else:
         candidato_tucoach = (raiz_mant.parent / "TuCoach").resolve()
         candidato_opocoach = (raiz_mant.parent / "OpoCoach").resolve()
         if candidato_tucoach.is_dir():
-            raiz_opo = candidato_tucoach
+            raiz_tucoach = candidato_tucoach
         elif candidato_opocoach.is_dir():
-            raiz_opo = candidato_opocoach
+            raiz_tucoach = candidato_opocoach
         else:
-            raiz_opo = None
+            raiz_tucoach = None
     menu = Path(args.menu).expanduser().resolve() if args.menu else (raiz_mant / "menu_mantenimiento.py").resolve()
     if args.salida:
         salida = Path(args.salida).expanduser()
@@ -105,7 +105,7 @@ def resolver_rutas(args: argparse.Namespace) -> tuple[Path, Path, Path | None, P
         salida = raiz_mant / "auditorias" / "esquema_obsoleto"
         if salida.exists():
             shutil.rmtree(salida)
-    return raiz_mant, db, raiz_opo, menu, salida
+    return raiz_mant, db, raiz_tucoach, menu, salida
 
 
 def leer_texto(path: Path) -> str:
@@ -187,7 +187,7 @@ def archivos_py(raiz: Path | None) -> list[Path]:
     return out
 
 
-def contexto_bd_opocoach(path: Path, texto: str, linea: int) -> str:
+def contexto_bd_tucoach(path: Path, texto: str, linea: int) -> str:
     """Intenta identificar la conexión usada por la función que contiene la referencia."""
     lineas = texto.splitlines()
     bloque = ""
@@ -276,7 +276,7 @@ def escanear_referencias(tablas: Iterable[str], raiz: Path | None, proyecto: str
                 # falsos positivos por documentación, variables o textos de interfaz.
                 if sqlish and pat.search(literal) and (t, linea) not in encontrados:
                     encontrados.add((t, linea))
-                    ctx = "maestra" if proyecto == "mantenimiento" else contexto_bd_opocoach(p, txt, linea)
+                    ctx = "maestra" if proyecto == "mantenimiento" else contexto_bd_tucoach(p, txt, linea)
                     try:
                         rel = str(p.relative_to(raiz))
                     except ValueError:
@@ -299,15 +299,15 @@ def clasificar(nombre: str, filas: int, fk_in: int, refs: list[RefCodigo]) -> tu
     mant_act = [r for r in refs if r.proyecto == "mantenimiento" and r.ambito == "activo"]
     mant_aux = [r for r in refs if r.proyecto == "mantenimiento" and r.ambito == "auxiliar"]
     mant_hist = [r for r in refs if r.proyecto == "mantenimiento" and r.ambito == "historico"]
-    opo_master = [r for r in refs if r.proyecto == "opocoach" and r.ambito == "activo" and r.contexto_bd == "maestra"]
-    opo_user = [r for r in refs if r.proyecto == "opocoach" and r.ambito == "activo" and r.contexto_bd == "usuario"]
-    opo_ind = [r for r in refs if r.proyecto == "opocoach" and r.ambito == "activo" and r.contexto_bd == "indeterminado"]
+    tucoach_master = [r for r in refs if r.proyecto == "tucoach" and r.ambito == "activo" and r.contexto_bd == "maestra"]
+    tucoach_user = [r for r in refs if r.proyecto == "tucoach" and r.ambito == "activo" and r.contexto_bd == "usuario"]
+    tucoach_ind = [r for r in refs if r.proyecto == "tucoach" and r.ambito == "activo" and r.contexto_bd == "indeterminado"]
 
-    if mant_act or opo_master:
+    if mant_act or tucoach_master:
         return "ACTIVO", "Referenciado por código operativo contra la base maestra."
-    if opo_ind:
+    if tucoach_ind:
         return "REVISAR_DEPENDENCIA", "TuCoach lo referencia, pero el análisis estático no determina con seguridad qué conexión utiliza."
-    if opo_user and not (mant_act or opo_master):
+    if tucoach_user and not (mant_act or tucoach_master):
         base = "Las referencias operativas de TuCoach parecen dirigirse a la base de usuario/Turso, no a la base maestra."
         if filas:
             return "CANDIDATO_HISTORICO_CON_DATOS", base + f" La tabla maestra conserva {filas} filas."
@@ -327,7 +327,7 @@ def clasificar(nombre: str, filas: int, fk_in: int, refs: list[RefCodigo]) -> tu
 
 def main() -> int:
     args = parse_args()
-    raiz_mant, db, raiz_opo, menu, salida = resolver_rutas(args)
+    raiz_mant, db, raiz_tucoach, menu, salida = resolver_rutas(args)
     scripts_dir = raiz_mant / "scripts"
 
     print("=" * 78)
@@ -336,7 +336,7 @@ def main() -> int:
     print("Modo: SOLO LECTURA")
     print(f"Base: {db}")
     print(f"Mantenimiento: {raiz_mant}")
-    print(f"TuCoach: {raiz_opo if raiz_opo else '(no localizado)'}")
+    print(f"TuCoach: {raiz_tucoach if raiz_tucoach else '(no localizado)'}")
 
     if not db.is_file():
         print(f"ERROR: no existe la base: {db}")
@@ -367,7 +367,7 @@ def main() -> int:
         activos_mant = construir_scripts_activos(menu, scripts_dir) if scripts_dir.is_dir() else set()
         refs_m = escanear_referencias(tablas, scripts_dir if scripts_dir.is_dir() else raiz_mant,
                                       "mantenimiento", activos_mant)
-        refs_o = escanear_referencias(tablas, raiz_opo, "opocoach")
+        refs_tucoach = escanear_referencias(tablas, raiz_tucoach, "tucoach")
 
         indices_por_tabla = defaultdict(list)
         triggers_por_tabla = defaultdict(list)
@@ -381,7 +381,7 @@ def main() -> int:
         refs_todas: dict[str, list[RefCodigo]] = {}
         for t in tablas:
             filas = int(con.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0])
-            refs = list(refs_m.get(t, [])) + list(refs_o.get(t, []))
+            refs = list(refs_m.get(t, [])) + list(refs_tucoach.get(t, []))
             refs_todas[t] = refs
             clas, motivo = clasificar(t, filas, len(fk_in.get(t, [])), refs)
             auditados.append(ObjetoAuditado(
@@ -392,9 +392,9 @@ def main() -> int:
                 triggers_asociados=len(triggers_por_tabla.get(t, [])),
                 refs_activas_mantenimiento=sum(r.proyecto=="mantenimiento" and r.ambito=="activo" for r in refs),
                 refs_historicas_mantenimiento=sum(r.proyecto=="mantenimiento" and r.ambito=="historico" for r in refs),
-                refs_opocoach_maestra=sum(r.proyecto=="opocoach" and r.ambito=="activo" and r.contexto_bd=="maestra" for r in refs),
-                refs_opocoach_usuario=sum(r.proyecto=="opocoach" and r.ambito=="activo" and r.contexto_bd=="usuario" for r in refs),
-                refs_opocoach_indeterminadas=sum(r.proyecto=="opocoach" and r.ambito=="activo" and r.contexto_bd=="indeterminado" for r in refs),
+                refs_tucoach_maestra=sum(r.proyecto=="tucoach" and r.ambito=="activo" and r.contexto_bd=="maestra" for r in refs),
+                refs_tucoach_usuario=sum(r.proyecto=="tucoach" and r.ambito=="activo" and r.contexto_bd=="usuario" for r in refs),
+                refs_tucoach_indeterminadas=sum(r.proyecto=="tucoach" and r.ambito=="activo" and r.contexto_bd=="indeterminado" for r in refs),
                 clasificacion=clas, motivo=motivo,
             ))
 
@@ -450,7 +450,7 @@ def main() -> int:
             "integrity_check": integrity,
             "foreign_key_errors": [list(r) for r in fk_errors],
             "raiz_mantenimiento": str(raiz_mant),
-            "raiz_opocoach": str(raiz_opo) if raiz_opo else None,
+            "raiz_tucoach": str(raiz_tucoach) if raiz_tucoach else None,
             "menu": str(menu),
             "scripts_activos_mantenimiento": sorted(str(p) for p in activos_mant),
             "objetos": [asdict(a) for a in auditados],

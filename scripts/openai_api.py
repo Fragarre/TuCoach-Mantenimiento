@@ -24,7 +24,7 @@ Tablas afectadas:
     - sesiones_coste_mantenimiento.
 
 Utiliza:
-    - Variable de entorno OPOCOACH_MANTENIMIENTO_SESION_ID.
+    - Variable de entorno TUCOACH_MANTENIMIENTO_SESION_ID (con OPOCOACH_MANTENIMIENTO_SESION_ID como compatibilidad legacy).
 
 Flujo:
     1. Carga credenciales.

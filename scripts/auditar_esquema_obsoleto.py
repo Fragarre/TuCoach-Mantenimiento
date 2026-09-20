@@ -67,7 +67,7 @@ def parse_args() -> argparse.Namespace:
                    help="Raíz TuCoach-Mantenimiento. Por defecto se deduce desde el script.")
     p.add_argument("--raiz-tucoach", default=None,
                    help="Raíz del proyecto TuCoach. Si se omite, intenta ../TuCoach.")
-    p.add_argument("--raiz-opocoach", default=None,
+    p.add_argument("--raiz-opocoach", dest="raiz_legacy", default=None,
                    help="Alias compatible del argumento anterior --raiz-tucoach.")
     p.add_argument("--menu", default=None,
                    help="Ruta a menu_mantenimiento.py; por defecto <raiz-mantenimiento>/menu_mantenimiento.py")
@@ -85,15 +85,15 @@ def resolver_rutas(args: argparse.Namespace) -> tuple[Path, Path, Path | None, P
     raiz_tucoach: Path | None
     if args.raiz_tucoach:
         raiz_tucoach = Path(args.raiz_tucoach).expanduser().resolve()
-    elif args.raiz_opocoach:
-        raiz_tucoach = Path(args.raiz_opocoach).expanduser().resolve()
+    elif args.raiz_legacy:
+        raiz_tucoach = Path(args.raiz_legacy).expanduser().resolve()
     else:
         candidato_tucoach = (raiz_mant.parent / "TuCoach").resolve()
-        candidato_opocoach = (raiz_mant.parent / "OpoCoach").resolve()
+        candidato_legacy = (raiz_mant.parent / "OpoCoach").resolve()
         if candidato_tucoach.is_dir():
             raiz_tucoach = candidato_tucoach
-        elif candidato_opocoach.is_dir():
-            raiz_tucoach = candidato_opocoach
+        elif candidato_legacy.is_dir():
+            raiz_tucoach = candidato_legacy
         else:
             raiz_tucoach = None
     menu = Path(args.menu).expanduser().resolve() if args.menu else (raiz_mant / "menu_mantenimiento.py").resolve()

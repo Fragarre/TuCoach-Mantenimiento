@@ -38,7 +38,7 @@ from pdf_normas import obtener_articulo as obtener_articulo_pdf
 TIMEOUT = 40
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 Chrome/120 Safari/537.36 OpoCoach/1.0"
+    "AppleWebKit/537.36 Chrome/120 Safari/537.36 TuCoach/1.0"
 )
 
 

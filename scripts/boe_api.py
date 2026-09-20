@@ -318,7 +318,7 @@ def descargar_xml(url: str, ruta: Path | None = None) -> ET.Element:
             timeout=TIMEOUT,
             headers={
                 "Accept": "application/xml",
-                "User-Agent": "OpoCoach/2.0",
+                "User-Agent": "TuCoach/2.0",
             },
             allow_redirects=True,
         )
@@ -507,7 +507,7 @@ def consultar_candidatos(cita: CitaNormativa) -> list[NormaBOE]:
             timeout=TIMEOUT,
             headers={
                 "Accept": "application/xml",
-                "User-Agent": "OpoCoach/2.0",
+                "User-Agent": "TuCoach/2.0",
             },
             allow_redirects=True,
         )
@@ -880,7 +880,7 @@ def obtener_texto_consolidado_html(id_boe: str) -> str:
             timeout=TIMEOUT,
             headers={
                 "Accept": "text/html,application/xhtml+xml",
-                "User-Agent": "OpoCoach/2.0",
+                "User-Agent": "TuCoach/2.0",
             },
             allow_redirects=True,
         )
@@ -921,7 +921,7 @@ def obtener_documento_original_html(id_boe: str) -> str:
             timeout=TIMEOUT,
             headers={
                 "Accept": "text/html,application/xhtml+xml",
-                "User-Agent": "OpoCoach/2.0",
+                "User-Agent": "TuCoach/2.0",
             },
             allow_redirects=True,
         )

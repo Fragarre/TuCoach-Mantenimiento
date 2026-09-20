@@ -47,7 +47,7 @@ URL_BUSCADOR = "https://www.boe.es/buscar/legislacion.php"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 Chrome/120 Safari/537.36 "
-    "OpoCoach/1.0"
+    "TuCoach/1.0"
 )
 
 # Alias verificados. Son referencias cuyo nombre usual no contiene

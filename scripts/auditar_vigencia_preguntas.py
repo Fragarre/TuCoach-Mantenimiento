@@ -387,7 +387,7 @@ def descargar_texto(url: str) -> str:
     respuesta = requests.get(
         url,
         timeout=TIMEOUT,
-        headers={"User-Agent": "OpoCoach-Mantenimiento/2.0"},
+        headers={"User-Agent": "TuCoach-Mantenimiento/2.0"},
         allow_redirects=True,
     )
     respuesta.raise_for_status()
@@ -783,7 +783,7 @@ def disposicion_dogv_por_busqueda(cita) -> int | None:
         timeout=TIMEOUT,
         headers={
             "Accept": "application/json",
-            "User-Agent": "OpoCoach-Mantenimiento/2.0",
+            "User-Agent": "TuCoach-Mantenimiento/2.0",
         },
     )
     respuesta.raise_for_status()
@@ -826,7 +826,7 @@ def obtener_datos_dogv(
 
     cabeceras = {
         "Accept": "application/json",
-        "User-Agent": "OpoCoach-Mantenimiento/2.0",
+        "User-Agent": "TuCoach-Mantenimiento/2.0",
     }
 
     if url_publica:
@@ -1027,7 +1027,7 @@ def obtener_reglamento_corts() -> tuple[str, str]:
         return _CACHE_REGLAMENTO_CORTS
 
     pagina = "https://www.cortsvalencianes.es/es/composicion/normas/reglamento"
-    cabeceras = {"User-Agent": "OpoCoach-Mantenimiento/2.0"}
+    cabeceras = {"User-Agent": "TuCoach-Mantenimiento/2.0"}
     respuesta = requests.get(pagina, timeout=TIMEOUT, headers=cabeceras)
     respuesta.raise_for_status()
     enlaces = re.findall(

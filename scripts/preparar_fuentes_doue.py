@@ -34,7 +34,7 @@ def descargar(url: str) -> bytes:
     r = requests.get(
         url,
         timeout=120,
-        headers={"User-Agent": "OpoCoach-Mantenimiento/1.0"},
+        headers={"User-Agent": "TuCoach-Mantenimiento/1.0"},
     )
     r.raise_for_status()
     if not r.content.startswith(b"%PDF"):

@@ -65,8 +65,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--db", default="db/oposiciones.sqlite3", help="Ruta a oposiciones.sqlite3")
     p.add_argument("--raiz-mantenimiento", default=None,
                    help="Raíz OpoCoach-Mantenimiento. Por defecto se deduce desde el script.")
+    p.add_argument("--raiz-tucoach", default=None,
+                   help="Raíz del proyecto TuCoach. Si se omite, intenta ../TuCoach.")
     p.add_argument("--raiz-opocoach", default=None,
-                   help="Raíz del proyecto OpoCoach. Si se omite, intenta ../OpoCoach.")
+                   help="Alias compatible del argumento anterior --raiz-tucoach.")
     p.add_argument("--menu", default=None,
                    help="Ruta a menu_mantenimiento.py; por defecto <raiz-mantenimiento>/menu_mantenimiento.py")
     p.add_argument("--salida", default=None,
@@ -81,11 +83,19 @@ def resolver_rutas(args: argparse.Namespace) -> tuple[Path, Path, Path | None, P
     if not db.is_absolute():
         db = (raiz_mant / db).resolve()
     raiz_opo: Path | None
-    if args.raiz_opocoach:
+    if args.raiz_tucoach:
+        raiz_opo = Path(args.raiz_tucoach).expanduser().resolve()
+    elif args.raiz_opocoach:
         raiz_opo = Path(args.raiz_opocoach).expanduser().resolve()
     else:
-        candidato = (raiz_mant.parent / "OpoCoach").resolve()
-        raiz_opo = candidato if candidato.is_dir() else None
+        candidato_tucoach = (raiz_mant.parent / "TuCoach").resolve()
+        candidato_opocoach = (raiz_mant.parent / "OpoCoach").resolve()
+        if candidato_tucoach.is_dir():
+            raiz_opo = candidato_tucoach
+        elif candidato_opocoach.is_dir():
+            raiz_opo = candidato_opocoach
+        else:
+            raiz_opo = None
     menu = Path(args.menu).expanduser().resolve() if args.menu else (raiz_mant / "menu_mantenimiento.py").resolve()
     if args.salida:
         salida = Path(args.salida).expanduser()

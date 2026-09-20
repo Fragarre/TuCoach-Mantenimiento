@@ -1,18 +1,18 @@
-# OpoCoach --- Mantenimiento y actualización de preguntas
+# TuCoach --- Mantenimiento y actualización de preguntas
 
 Este documento describe el procedimiento operativo para incorporar
-nuevas preguntas a **OpoCoach**, generar preguntas mediante IA, mantener
+nuevas preguntas a **TuCoach**, generar preguntas mediante IA, mantener
 los bancos por convocatoria, realizar comprobaciones y actualizar la
-base de datos utilizada por la aplicación **OpoCoach (Streamlit)**.
+base de datos utilizada por la aplicación **TuCoach (Streamlit)**.
 
-> **Principio general:** `OpoCoach-Mantenimiento` es la base maestra. La
+> **Principio general:** `TuCoach-Mantenimiento` es la base maestra. La
 > aplicación Streamlit **no realiza tareas de mantenimiento**: consume
 > una copia ya validada de `db/oposiciones.sqlite3`.
 
 ## 1. Proyectos
 
 ``` text
-OpoCoach-Mantenimiento/
+TuCoach-Mantenimiento/
     db/oposiciones.sqlite3      ← base maestra
     menu_mantenimiento.py
     scripts/
@@ -25,7 +25,7 @@ OpoCoach-Mantenimiento/
     auditorias/
     registros/
 
-OpoCoach/
+TuCoach/
     db/oposiciones.sqlite3      ← copia utilizada por Streamlit
     ...
 ```
@@ -368,20 +368,20 @@ Estas herramientas son útiles para **diagnóstico y reparación**.
 
 ------------------------------------------------------------------------
 
-## 8. Actualizar la base de la aplicación OpoCoach (Streamlit)
+## 8. Actualizar la base de la aplicación TuCoach (Streamlit)
 
 Una vez terminado el mantenimiento y con la base maestra correcta:
 
 ``` text
 1. FLUJO HABITUAL
-   └─ 6. Actualizar BD de OpoCoach
+   └─ 6. Actualizar BD de TuCoach
 ```
 
 La misma operación está disponible en:
 
 ``` text
 6. ADMINISTRACIÓN
-   └─ 1. Actualizar BD de OpoCoach
+   └─ 1. Actualizar BD de TuCoach
 ```
 
 El proceso realiza:
@@ -389,30 +389,30 @@ El proceso realiza:
 ``` text
 VALIDACIÓN COMPLETA OBLIGATORIA
         ↓
-BACKUP DE LA BASE ACTUAL DE OpoCoach
+BACKUP DE LA BASE ACTUAL DE TuCoach
         ↓
 COPIA DE LA BASE MAESTRA
         ↓
-OpoCoach/db/oposiciones.sqlite3
+TuCoach/db/oposiciones.sqlite3
 ```
 
 Origen:
 
 ``` text
-OpoCoach-Mantenimiento/db/oposiciones.sqlite3
+TuCoach-Mantenimiento/db/oposiciones.sqlite3
 ```
 
 Destino:
 
 ``` text
-OpoCoach/db/oposiciones.sqlite3
+TuCoach/db/oposiciones.sqlite3
 ```
 
 Antes de sustituir una base existente se crea automáticamente una copia
 en:
 
 ``` text
-OpoCoach/db/copias_seguridad/
+TuCoach/db/copias_seguridad/
 ```
 
 con un nombre del tipo:
@@ -421,7 +421,7 @@ con un nombre del tipo:
 oposiciones_antes_actualizacion_AAAAMMDD_HHMMSS.sqlite3
 ```
 
-La copia **no se realiza** si `OpoCoach-Mantenimiento` no supera
+La copia **no se realiza** si `TuCoach-Mantenimiento` no supera
 previamente `validacion_completa.py`.
 
 Al terminar también se comprueba que el fichero de destino existe y que
@@ -429,9 +429,9 @@ su tamaño coincide con el origen.
 
 ### Regla importante
 
-**OpoCoach (Streamlit) utiliza datos ya preparados.**\
+**TuCoach (Streamlit) utiliza datos ya preparados.**\
 La importación, normalización, BOE, generación IA, corpus, auditorías y
-construcción de bancos pertenecen a `OpoCoach-Mantenimiento`.
+construcción de bancos pertenecen a `TuCoach-Mantenimiento`.
 
 ------------------------------------------------------------------------
 
@@ -510,13 +510,13 @@ Validación completa
 ``` text
 Base maestra validada
         ↓
-Actualizar BD de OpoCoach
+Actualizar BD de TuCoach
         ↓
 Validación obligatoria
         ↓
 Backup de la BD anterior
         ↓
-Copia a OpoCoach/db/oposiciones.sqlite3
+Copia a TuCoach/db/oposiciones.sqlite3
 ```
 
 ------------------------------------------------------------------------
@@ -563,7 +563,7 @@ Para el mantenimiento cotidiano basta con recordar:
 4.  **Recuperar pendientes** →
     `Flujo habitual → Recuperar preguntas PENDIENTE`.
 5.  **Publicar en Streamlit** →
-    `Flujo habitual → Actualizar BD de OpoCoach`.
+    `Flujo habitual → Actualizar BD de TuCoach`.
 
 Los cuatro primeros procesos dejan los bancos sincronizados y terminan
 con la validación correspondiente. Las auditorías específicas se
@@ -587,9 +587,9 @@ RESULTADO FINAL....................... CORRECTO
 ```
 
 Si no ocurre, debe revisarse la incidencia antes de copiar la base a
-`OpoCoach`.
+`TuCoach`.
 
 ------------------------------------------------------------------------
 
 **Estado de referencia:** versión estable consolidada de
-`OpoCoach-Mantenimiento`, agosto de 2026.
+`TuCoach-Mantenimiento`, agosto de 2026.

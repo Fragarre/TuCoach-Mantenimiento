@@ -3,7 +3,7 @@ PRUEBA AISLADA DE ACTUALIZACIÓN DE MATERIALES
 Copiar:
   scripts/probar_actualizacion_materiales_estudio.py
 
-Ejecutar desde la raíz de OpoCoach-Mantenimiento:
+Ejecutar desde la raíz de TuCoach-Mantenimiento:
   python scripts\probar_actualizacion_materiales_estudio.py
 
 La prueba usa por defecto LEY 53/1984 (norma_id=51), porque es una norma

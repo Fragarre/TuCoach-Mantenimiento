@@ -54,7 +54,7 @@ from sincronizar_bancos import sincronizar_todos_bancos
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_DEFECTO = ROOT / "db" / "oposiciones.sqlite3"
-DB_AUX = Path(tempfile.gettempdir()) / "opocoach_generacion_preguntas_ia.sqlite3"
+DB_AUX = Path(tempfile.gettempdir()) / "tucoach_generacion_preguntas_ia.sqlite3"
 REGISTROS = ROOT / "registros"
 
 TIPO_FUENTE = "ia_generada"

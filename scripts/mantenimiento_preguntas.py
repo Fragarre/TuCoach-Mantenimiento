@@ -65,7 +65,8 @@ CARPETA_SCRIPTS = RAIZ / "scripts"
 RUTA_DB = RAIZ / "db" / "oposiciones.sqlite3"
 RUTA_LOG_MANTENIMIENTO = RAIZ / "logs" / "mantenimiento_preguntas.log"
 SALDO_INICIAL_PRIMERA_SESION = 12.06
-VARIABLE_SESION_MANTENIMIENTO = "OPOCOACH_MANTENIMIENTO_SESION_ID"
+VARIABLE_SESION_MANTENIMIENTO = "TUCOACH_MANTENIMIENTO_SESION_ID"
+VARIABLE_SESION_MANTENIMIENTO_LEGACY = "OPOCOACH_MANTENIMIENTO_SESION_ID"
 
 
 def asegurar_tabla_sesiones_coste() -> None:
@@ -241,6 +242,7 @@ def ejecutar_paso(
 
     entorno = os.environ.copy()
     entorno[VARIABLE_SESION_MANTENIMIENTO] = str(sesion_id)
+    entorno[VARIABLE_SESION_MANTENIMIENTO_LEGACY] = str(sesion_id)
     # Contrato de codificación entre el orquestador y todos los scripts hijos.
     # Evita mojibake en Windows cuando stdout se captura mediante PIPE.
     entorno["PYTHONIOENCODING"] = "utf-8"

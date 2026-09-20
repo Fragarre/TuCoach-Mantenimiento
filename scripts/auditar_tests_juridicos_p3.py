@@ -35,14 +35,14 @@ from openai_api import seleccionar_fragmento_json
 # ----------------------------------------------------------------------
 
 def comprobar_seguridad():
-    sesion = os.getenv(
-        "OPOCOACH_MANTENIMIENTO_SESION_ID",
-        "",
-    ).strip()
+    sesion = (
+        os.getenv("TUCOACH_MANTENIMIENTO_SESION_ID", "").strip()
+        or os.getenv("OPOCOACH_MANTENIMIENTO_SESION_ID", "").strip()
+    )
 
     if sesion:
         raise SystemExit(
-            "ABORTADO: existe OPOCOACH_MANTENIMIENTO_SESION_ID. "
+            "ABORTADO: existe una variable de sesion de mantenimiento. "
             "openai_api.py podria registrar costes en la BD."
         )
 

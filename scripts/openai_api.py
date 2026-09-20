@@ -48,10 +48,13 @@ from openai import OpenAI
 
 load_dotenv()
 
-clave = os.getenv("OPENAI_API_KEY_OPOCOACH")
+clave = (
+    os.getenv("TUCOACH_OPENAI_API_KEY")
+    or os.getenv("OPENAI_API_KEY_OPOCOACH")
+)
 
 cliente = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY_OPOCOACH")
+    api_key=clave
 )
 
 
@@ -76,11 +79,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 LOG_COSTES = ROOT / "logs" / "costes_ia.csv"
 RUTA_DB = ROOT / "db" / "oposiciones.sqlite3"
-VARIABLE_SESION_MANTENIMIENTO = "OPOCOACH_MANTENIMIENTO_SESION_ID"
+VARIABLE_SESION_MANTENIMIENTO = "TUCOACH_MANTENIMIENTO_SESION_ID"
+VARIABLE_SESION_MANTENIMIENTO_LEGACY = "OPOCOACH_MANTENIMIENTO_SESION_ID"
 
 
 def _obtener_sesion_mantenimiento() -> int | None:
-    valor = os.getenv(VARIABLE_SESION_MANTENIMIENTO, "").strip()
+    valor = (
+        os.getenv(VARIABLE_SESION_MANTENIMIENTO, "").strip()
+        or os.getenv(VARIABLE_SESION_MANTENIMIENTO_LEGACY, "").strip()
+    )
 
     if not valor:
         return None

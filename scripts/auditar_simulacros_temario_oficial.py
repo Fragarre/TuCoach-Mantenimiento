@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 AUDITORIAS = ROOT / "auditorias"
 
 # Esta auditoría no forma parte de una sesión que pueda acumular coste en BD.
+os.environ.pop("TUCOACH_MANTENIMIENTO_SESION_ID", None)
 os.environ.pop("OPOCOACH_MANTENIMIENTO_SESION_ID", None)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from openai_api import seleccionar_fragmento_json  # noqa: E402

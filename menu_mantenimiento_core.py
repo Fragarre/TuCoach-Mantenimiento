@@ -1,5 +1,5 @@
 """
-OpoCoach - Menú de mantenimiento
+TuCoach - Menú de mantenimiento
 
 Este menú no modifica la estructura del proyecto ni las rutas de los scripts.
 Se limita a ejecutar los scripts existentes desde la raíz del proyecto.
@@ -818,17 +818,17 @@ def auditar_vigencia_preguntas() -> None:
 
 def actualizar_bd_opocoach() -> None:
     """
-    Copia la base de datos de NetReto-Mantenimiento a NetReto.
+    Copia la base de datos de TuCoach-Mantenimiento a TuCoach.
 
     Antes de sustituir la base de destino, crea una copia de seguridad en:
-        OpoCoach/db/copias_seguridad/
+        TuCoach/db/copias_seguridad/
     """
     origen = RAIZ / "db" / "oposiciones.sqlite3"
     carpeta_opocoach = RAIZ.parent / "TuCoach"
     destino = carpeta_opocoach / "db" / "oposiciones.sqlite3"
     carpeta_copias = carpeta_opocoach / "db" / "copias_seguridad"
 
-    print("\nACTUALIZAR BASE DE DATOS DE NETRETO STREAMLIT")
+    print("\nACTUALIZAR BASE DE DATOS DE TUCOACH STREAMLIT")
     print("-" * 78)
     print(f"Origen:  {origen}")
     print(f"Destino: {destino}")
@@ -837,7 +837,7 @@ def actualizar_bd_opocoach() -> None:
     if ejecutar_script("validacion_completa.py") != 0:
         print(
             "\nERROR: la base de mantenimiento no supera la validación completa. "
-            "No se copia a NetReto."
+            "No se copia a TuCoach."
         )
         pausa()
         return
@@ -848,7 +848,7 @@ def actualizar_bd_opocoach() -> None:
         return
 
     if not carpeta_opocoach.is_dir():
-        print(f"\nERROR: no existe la carpeta del proyecto NetReto:\n{carpeta_opocoach}")
+        print(f"\nERROR: no existe la carpeta del proyecto TuCoach:\n{carpeta_opocoach}")
         pausa()
         return
 
@@ -858,8 +858,8 @@ def actualizar_bd_opocoach() -> None:
         return
 
     print(
-        "\nSe sustituirá la base de datos de NetReto por la versión "
-        "actual de NetReto-Mantenimiento."
+        "\nSe sustituirá la base de datos de TuCoach por la versión "
+        "actual de TuCoach-Mantenimiento."
     )
 
     if not pedir_si_no("¿Continuar?"):
@@ -911,10 +911,10 @@ def actualizar_bd_opocoach() -> None:
 def preparar_publicacion_web_menu() -> None:
     """
     Genera una versión íntegra, validada y versionada de la base maestra
-    para OpoCoach-Web. NO modifica la Web.
+    para TuCoach-Web. NO modifica la Web.
     """
     cabecera_submenu(
-        "PREPARAR PUBLICACIÓN DE CONTENIDOS NETRETO-WEB",
+        "PREPARAR PUBLICACIÓN DE CONTENIDOS TUCOACH-WEB",
         "[VALIDA → SNAPSHOT] Ejecuta la validación completa y genera una copia "
         "íntegra/versionada de db/oposiciones.sqlite3. No despliega nada.",
     )
@@ -926,9 +926,9 @@ def preparar_publicacion_web_menu() -> None:
     print("4. informes JSON/TXT y SHA256")
     print()
     print("Destino previsto: publicaciones_web/<version>/")
-    print("NetReto-Web NO se modificará.")
+    print("TuCoach-Web NO se modificará.")
 
-    if pedir_si_no("¿Preparar una nueva publicación para NetReto-Web?"):
+    if pedir_si_no("¿Preparar una nueva publicación para TuCoach-Web?"):
         ejecutar_script("publicar_contenidos_web.py")
 
     pausa()
@@ -966,20 +966,20 @@ def _listar_publicaciones_web() -> list[tuple[Path, Path, str]]:
 
 def desplegar_publicacion_web_local_menu() -> None:
     """
-    Despliega en OpoCoach-Web LOCAL un snapshot previamente preparado.
+    Despliega en TuCoach-Web LOCAL un snapshot previamente preparado.
     No publica en Internet ni modifica Supabase.
     """
     cabecera_submenu(
-        "DESPLEGAR CONTENIDOS EN NETRETO-WEB LOCAL",
+        "DESPLEGAR CONTENIDOS EN TUCOACH-WEB LOCAL",
         "[BACKUP → VALIDAR → SUSTITUIR] Usa únicamente una publicación preparada "
-        "y validada. Afecta sólo al proyecto local NetReto-Web.",
+        "y validada. Afecta sólo al proyecto local TuCoach-Web.",
     )
 
     publicaciones = _listar_publicaciones_web()
     if not publicaciones:
         print(
             "\nNo hay publicaciones preparadas en publicaciones_web/.\n"
-            "Ejecuta primero 'Preparar publicación de contenidos NetReto-Web'."
+            "Ejecuta primero 'Preparar publicación de contenidos TuCoach-Web'."
         )
         pausa()
         return
@@ -1020,14 +1020,14 @@ def desplegar_publicacion_web_local_menu() -> None:
     print(f"Destino:  {destino}")
     print()
     print("Este proceso:")
-    print("- NO modifica NetReto Streamlit.")
+    print("- NO modifica TuCoach Streamlit.")
     print("- NO publica en Internet.")
     print("- NO modifica Supabase.")
     print("- crea backup de la SQLite Web local antes de sustituirla.")
     print()
     print(
         "IMPORTANTE: si Windows mantiene la SQLite abierta, detén primero "
-        "el backend/Uvicorn de NetReto-Web."
+        "el backend/Uvicorn de TuCoach-Web."
     )
 
     if not pedir_si_no("¿Continuar con el despliegue LOCAL de esta versión?"):
@@ -1051,7 +1051,7 @@ def actualizar_publicacion_supabase_menu() -> None:
     Sustituye exclusivamente las tablas del esquema contenidos.*.
     """
     cabecera_submenu(
-        "ACTUALIZAR CONTENIDOS NETRETO-WEB EN SUPABASE",
+        "ACTUALIZAR CONTENIDOS TUCOACH-WEB EN SUPABASE",
         "[VALIDAR → TRANSACCIÓN → VERIFICAR] Sustituye contenidos.* por una "
         "publicación preparada. No modifica usuarios ni datos personales.",
     )
@@ -1060,7 +1060,7 @@ def actualizar_publicacion_supabase_menu() -> None:
     if not publicaciones:
         print(
             "\nNo hay publicaciones preparadas en publicaciones_web/.\n"
-            "Ejecuta primero 'Preparar publicación de contenidos NetReto-Web'."
+            "Ejecuta primero 'Preparar publicación de contenidos TuCoach-Web'."
         )
         pausa()
         return
@@ -1118,7 +1118,7 @@ def actualizar_publicacion_supabase_menu() -> None:
     )
 
     if not pedir_si_no(
-        "¿Actualizar AHORA los contenidos de NetReto-Web en Supabase?"
+        "¿Actualizar AHORA los contenidos de TuCoach-Web en Supabase?"
     ):
         print("Operación cancelada.")
         pausa()
@@ -2120,12 +2120,12 @@ def submenu_administracion() -> None:
     while True:
         cabecera_submenu(
             "6. ADMINISTRACIÓN",
-            "Despliegues separados para NetReto Streamlit, NetReto-Web local "
+            "Despliegues separados para TuCoach Streamlit, TuCoach-Web local "
             "y contenidos de producción en Supabase.",
         )
-        print("1. Actualizar BD de NetReto Streamlit                 [VALIDA → BACKUP → COPIA]")
-        print("2. Preparar publicación NetReto-Web                  [VALIDA → SNAPSHOT]")
-        print("3. Desplegar publicación en NetReto-Web LOCAL        [BACKUP → VALIDAR → COPIA]")
+        print("1. Actualizar BD de TuCoach Streamlit                 [VALIDA → BACKUP → COPIA]")
+        print("2. Preparar publicación TuCoach-Web                  [VALIDA → SNAPSHOT]")
+        print("3. Desplegar publicación en TuCoach-Web LOCAL        [BACKUP → VALIDAR → COPIA]")
         print("4. Actualizar contenidos Web en Supabase              [VALIDAR → TRANSACCIÓN → VERIFICAR]")
         print("5. Limpiar logs/auditorías temporales                 [VISTA PREVIA → APLICAR]")
         print("6. Mostrar componentes internos                       [INFORMATIVO]")
@@ -2150,7 +2150,7 @@ def submenu_administracion() -> None:
 def mostrar_menu() -> None:
     limpiar_pantalla()
     print("=" * 78)
-    print("NETRETO - MANTENIMIENTO ESTABLE")
+    print("TUCOACH - MANTENIMIENTO ESTABLE")
     print("=" * 78)
     print("Las operaciones normales completas están en 'Flujo habitual'.")
     print("Las operaciones parciales o de reparación están separadas como avanzadas.")

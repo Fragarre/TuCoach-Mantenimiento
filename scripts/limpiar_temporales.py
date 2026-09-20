@@ -1,5 +1,5 @@
 """
-Limpieza consolidada de archivos auxiliares de NetReto/OpoCoach.
+Limpieza consolidada de archivos auxiliares de TuCoach.
 
 Por defecto SOLO muestra una propuesta de limpieza. Para ejecutar borrados o
 recortes se exige --aplicar.
@@ -9,7 +9,7 @@ Principios:
 - conserva los registros acumulativos de valor operativo (por ejemplo coste_ia.csv);
 - conserva un pequeño conjunto de auditorías, backups y publicaciones recientes;
 - elimina historiales de trabajo antiguos y artefactos regenerables;
-- actúa también sobre las copias locales de NetReto y NetReto-Web cuando existen.
+- actúa también sobre las copias locales de TuCoach y TuCoach-Web cuando existen.
 
 La finalidad es sustituir varias limpiezas parciales por una única revisión
 controlada y trazable desde el menú de mantenimiento.
@@ -317,7 +317,7 @@ def _recortar_log(ruta: Path, conservar_bytes: int) -> None:
     if salto >= 0:
         datos = datos[salto + 1 :]
     cabecera = (
-        b"[NetReto] Log recortado por limpieza de mantenimiento; "
+        b"[TuCoach] Log recortado por limpieza de mantenimiento; "
         b"se conserva la parte mas reciente.\n"
     )
     temporal = ruta.with_suffix(ruta.suffix + ".tmp_limpieza")

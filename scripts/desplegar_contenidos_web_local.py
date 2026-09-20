@@ -98,7 +98,7 @@ def validar_sqlite(ruta: Path) -> dict[str, Any]:
         faltantes = sorted(TABLAS_WEB_OBLIGATORIAS - tablas)
         if faltantes:
             raise RuntimeError(
-                "Faltan tablas obligatorias para NetReto-Web: "
+                "Faltan tablas obligatorias para TuCoach-Web: "
                 + ", ".join(faltantes)
             )
 
@@ -264,14 +264,14 @@ def desplegar(
     print(f"Normas:       {resumen_snapshot['recuentos']['normas']}")
     print(f"Artículos:    {resumen_snapshot['recuentos']['articulos_fuente']}")
 
-    print("\nDestino local NetReto-Web:")
+    print("\nDestino local TuCoach-Web:")
     print(destino)
 
     respuesta = input(
-        "\n¿Desplegar ESTE snapshot en NetReto-Web local? [s/N]: "
+        "\n¿Desplegar ESTE snapshot en TuCoach-Web local? [s/N]: "
     ).strip().lower()
     if respuesta not in {"s", "si", "sí"}:
-        print("Operación cancelada. No se ha modificado NetReto-Web.")
+        print("Operación cancelada. No se ha modificado TuCoach-Web.")
         return
 
     print("\nCreando backup de la versión Web actual...")
@@ -315,7 +315,7 @@ def desplegar(
         print(
             f"Convocatorias:{resumen_destino['recuentos']['convocatorias']}"
         )
-        print("\nReinicia el backend de NetReto-Web y realiza la prueba funcional.")
+        print("\nReinicia el backend de TuCoach-Web y realiza la prueba funcional.")
 
     except Exception:
         temporal.unlink(missing_ok=True)
@@ -337,7 +337,7 @@ def desplegar(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Despliega LOCALMENTE en NetReto-Web un snapshot previamente "
+            "Despliega LOCALMENTE en TuCoach-Web un snapshot previamente "
             "preparado por publicar_contenidos_web.py. "
             "No sirve como despliegue de producción."
         )
@@ -375,10 +375,10 @@ def main() -> int:
     args = parse_args()
 
     print("=" * 78)
-    print("DESPLEGAR CONTENIDOS EN NetReto-Web LOCAL")
+    print("DESPLEGAR CONTENIDOS EN TuCoach-Web LOCAL")
     print("=" * 78)
     print("Este script NO publica en Internet.")
-    print("Sólo sustituye la SQLite del proyecto NetReto-Web local.")
+    print("Sólo sustituye la SQLite del proyecto TuCoach-Web local.")
 
     try:
         desplegar(

@@ -1,0 +1,72 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 1681,
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El enunciado pide la aseveración no verdadera; el artículo 62 contiene todas las afirmaciones recogidas en A, B y C, por lo que la opción que las niega (D) es la falsa.",
+      "comprobaciones": [
+        {
+          "proposicion": "Ninguna. Todas las anteriores aseveraciones son verdaderas",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1694,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 1 establece como objeto: funciones, composición y organización conforme al art. 25 EA; coincide exactamente con C (incluye el punto final).",
+      "comprobaciones": [
+        {
+          "proposicion": "establecer las funciones, composición y organización del Consejo Valenciano de Cultura",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "de acuerdo con lo dispuesto en el artículo 25 del Estatuto de Autonomía de la Comunidad Valenciana",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1697,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Según el art. 10, deben ser consultados preceptivamente los proyectos de decretos legislativos; eso corresponde a C.",
+      "comprobaciones": [
+        {
+          "proposicion": "Proyectos de decretos legislativos",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1703,
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 20 reconoce a los ciudadanos el derecho a dirigirse a las instituciones y órganos consultivos en una de las lenguas de los Tratados y recibir contestación en esa misma lengua; D afirma “cualquiera” de las lenguas de los Tratados y órganos consultivos de la Unión.",
+      "comprobaciones": [
+        {
+          "proposicion": "dirigirse y recibir contestación en cualquiera de las lenguas de los Tratados",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "a instituciones y órganos consultivos de la Unión",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1724,
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 67 indica que en daños físicos o psíquicos a las personas el plazo se computa desde la curación o la determinación del alcance de las secuelas; coincide con B.",
+      "comprobaciones": [
+        {
+          "proposicion": "Desde la curación o la determinación del alcance de las secuelas.",
+          "resultado": "COINCIDE"
+        }
+      ]
+    }
+  ]
+}

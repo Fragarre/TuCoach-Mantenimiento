@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 9404,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Convalidación de actos anulables subsanando vicios."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La convalidación produce efecto desde su fecha, salvo art. 39.3."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incompetencia no determinante de nulidad: convalidación por órgano competente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Falta de autorización: la convalidación es con otorgamiento por órgano competente."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Enunciado pide convalidación del art.52; B y D contradicen texto, A y C coinciden parcialmente."
+    },
+    {
+      "pregunta_id": 9421,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Art. 193: opciones son resolución o penalidades; sin citar multa."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Penalidades diarias: 0,60 euros por 1.000 euros, IVA excluido."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No consta vigilancia ni custodia en art. 193."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Con cualquiera de a,b,c: falta evidencia de literales a,b,c completos."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 193 prevé penalidades de 0,60 euros por 1.000 euros."
+    },
+    {
+      "pregunta_id": 9431,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El límite lo acuerda el Consell; no la conselleria a propuesta."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Consell, a propuesta de la conselleria con competencias en hacienda."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No interviene el President; lo acuerda el Consell."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No lo propone el titular de conselleria al Rey."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 33.1 indica Consell a propuesta de la conselleria de hacienda."
+    },
+    {
+      "pregunta_id": 9472,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No dependiente del Ministerio de Justicia; autoridad con plena independencia."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La Presidencia la nombran Gobierno/Consejo de Ministros, no Congreso."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Presidencia auxiliada por un Adjunto nombrado por el Gobierno."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí se publican convocatorias y resoluciones según el artículo."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 48.2 y 3 prevén Adjunto auxiliador nombrado por el Gobierno."
+    },
+    {
+      "pregunta_id": 9494,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No le corresponde crear Secretarías de Estado; solo órganos directivos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Consejo de Ministros: crear, modificar y suprimir órganos directivos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Interponer recurso de inconstitucionalidad no es atribución literal citada."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La convocatoria de referéndum consultivo no corresponde al Consejo de Ministros."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 5.1.i atribuye crear, modificar y suprimir órganos directivos."
+    }
+  ]
+}

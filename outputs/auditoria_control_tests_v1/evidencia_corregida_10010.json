@@ -1,0 +1,11 @@
+{
+  "pregunta_id": 10010,
+  "evidencia_corregida": {
+    "id_fuente": "BOE-A-1984-3460",
+    "articulo": "59",
+    "titulo": "Artículo 59",
+    "texto": "Art. 59. De acuerdo con lo establecido en el artículo 23 del Estatut d’Autonomia de la Comunitat Valenciana, el President de la Generalitat declarará disueltas Les Corts y convocará elecciones. En el decreto de convocatoria se especificará el número de diputados a elegir en cada circunscripción, de forma que el número total de diputados a elegir sea 99 o el superior que, en su caso, establezca la Ley Electoral Valenciana, duración de la campaña electoral, día de la votación, así como el lugar, día y hora de constitución de Les Corts; todo ello de acuerdo con la Ley Electoral Valenciana.",
+    "hash": "a25e3ecd7397d809c97afdf519167cbb8fe32540f0de0b7e9442f8cc0046b01f"
+  },
+  "conclusion_previa": "La opción B reproduce el artículo 59; la respuesta almacenada D es candidata a ERROR DEMOSTRADO y requiere segunda verificación independiente."
+}

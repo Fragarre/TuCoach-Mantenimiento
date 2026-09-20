@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 12590,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye transparencia como base, con supletoria protección de datos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Orden correcto, pero la opción añade carácter supletoria protección datos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Menciona dos veces protección de datos; orden incongruente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Invierte el orden: protección de datos primero y luego transparencia."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 9.5 indica transparencia, sin perjuicio del régimen general de protección de datos."
+    },
+    {
+      "pregunta_id": 12605,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Falta el ámbito subjetivo del título."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye ámbito subjetivo, publicidad activa y derecho de acceso."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Añade Buen Gobierno, que corresponde a otros elementos del título."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Omite el ámbito subjetivo."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El Título I abarca ámbito subjetivo, publicidad activa y derecho de acceso."
+    },
+    {
+      "pregunta_id": 12627,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se aporta en evidencia el supuesto completo de exoneración."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia citada no trata el plan de control previo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no contempla comprobación de valor de mercado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia no indica tasación pericial contradictoria."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia incluida es de garantías y pagos; no respalda A-D sobre gestión y concesión."
+    },
+    {
+      "pregunta_id": 12676,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Menciona artículo 30 EAPV y delegación; no consta en evidencia."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se presenta ante Mesa con escrito motivado y certificado del Consell."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia fija 24 horas, no cinco días."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Requiere mayoría cualificada, no mayoría simple."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 51.2 exige escrito motivado ante Mesa y certificado del Consell."
+    },
+    {
+      "pregunta_id": 12719,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia aportada no menciona pérdida por nacionalidad o jubilación."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El art. 74 prevé rehabilitación en supuestos específicos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia muestra otros supuestos; falta renuncia y separación."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se deduce de la evidencia que un decreto lo permita."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "El art. 74 evidencia rehabilitación por pérdida por nacionalidad o inhabilitación; no renuncia/separación."
+    }
+  ]
+}

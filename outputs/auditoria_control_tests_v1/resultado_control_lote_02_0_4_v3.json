@@ -1,0 +1,164 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 2615,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Sí reconocido en el art. 13, letra a).",
+          "elegido": false
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece como derecho en art. 13.",
+          "elegido": false
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Sí reconocido en el art. 13, letra c).",
+          "elegido": false
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con art. 13, letra d).",
+          "elegido": false
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "D coincide con el derecho del art. 13; por tanto no es el que no corresponde."
+    },
+    {
+      "pregunta_id": 2621,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se indica en art. 24 de recusación.",
+          "elegido": false
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 24 permite recusación en cualquier momento.",
+          "elegido": false
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Reclamación de cantidad no es recusación.",
+          "elegido": false
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 24 no limita a fase de instrucción.",
+          "elegido": false
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 24.1 fija que puede promoverse recusación en cualquier momento."
+    },
+    {
+      "pregunta_id": 2626,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 12.2 dice que no altera competencia.",
+          "elegido": false
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 12.2: no altera competencia y no requiere publicación.",
+          "elegido": false
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 12.2 dice que no altera competencia.",
+          "elegido": false
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 12.2 no exige publicación para validez.",
+          "elegido": false
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La delegación de firma no altera competencia y no requiere publicación."
+    },
+    {
+      "pregunta_id": 2635,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 18.1.a: se atiende al carácter de prestación principal.",
+          "elegido": false
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Esa regla aplica a otro supuesto de no separabilidad.",
+          "elegido": false
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No se elige por separabilidad para suministros/servicios aquí.",
+          "elegido": false
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No se elige por separabilidad aplicando solo servicios.",
+          "elegido": false
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Para contratos mixtos con suministros y servicios rige la prestación principal en todo caso."
+    },
+    {
+      "pregunta_id": 2651,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La renuncia debe formalizarse por escrito y aceptarse expresamente.",
+          "elegido": false
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 70.1: no se acepta con expediente disciplinario.",
+          "elegido": false
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 70.1 también incluye auto de procesamiento, pero como impedimento.",
+          "elegido": false
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Hay supuestos donde no puede aceptarse renuncia.",
+          "elegido": false
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "No puede aceptarse si está sujeto a expediente disciplinario, según art. 70.1."
+    }
+  ]
+}

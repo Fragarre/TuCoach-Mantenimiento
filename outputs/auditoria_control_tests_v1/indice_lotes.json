@@ -1,0 +1,224 @@
+{
+  "listos": 501,
+  "diferidos": 34,
+  "tamano_lote": 50,
+  "lotes": [
+    "lote_01.json",
+    "lote_02.json",
+    "lote_03.json",
+    "lote_04.json",
+    "lote_05.json",
+    "lote_06.json",
+    "lote_07.json",
+    "lote_08.json",
+    "lote_09.json",
+    "lote_10.json",
+    "lote_11.json"
+  ],
+  "diferidos_detalle": [
+    {
+      "pregunta_id": 1775,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Decreto 3/2017 Selección y Provisión",
+      "articulo": "72"
+    },
+    {
+      "pregunta_id": 1794,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 7/2011, de 1 de abril, de los Servicios de Prevención, Extinción de Incendios y Salvamento de la Comunitat Valenciana",
+      "articulo": "4"
+    },
+    {
+      "pregunta_id": 1894,
+      "estado_evidencia": "EVIDENCIA_DIRECTA_MULTIPLE",
+      "norma": "30/2025 Atención Ciudadanía",
+      "articulo": "9"
+    },
+    {
+      "pregunta_id": 2394,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "8/2023 Presupuestos GVA 2024 de Otras normas Gestión Presupuestaria",
+      "articulo": "25"
+    },
+    {
+      "pregunta_id": 2433,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 6/1991, de 27 de marzo, de carreteras de la Comunitat Valenciana de Territorio y Vivienda",
+      "articulo": "49"
+    },
+    {
+      "pregunta_id": 2547,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 8/2023 Presupuestos GVA 2024",
+      "articulo": "24"
+    },
+    {
+      "pregunta_id": 3584,
+      "estado_evidencia": "EVIDENCIA_DIRECTA_MULTIPLE",
+      "norma": "Decreto 77/2019",
+      "articulo": "16"
+    },
+    {
+      "pregunta_id": 7003,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "3/2017 Selección y Provisión",
+      "articulo": "Artículo 45 de Título 3"
+    },
+    {
+      "pregunta_id": 8997,
+      "estado_evidencia": "EVIDENCIA_NO_DIRECTA",
+      "norma": "39/2015",
+      "articulo": "Artículo 0 de Disposiciones Transitorias"
+    },
+    {
+      "pregunta_id": 9081,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Decreto Legislativo 2/2015, de 15 de mayo, del Consell, por el que aprueba el texto refundido de la Ley de Cooperativas de la Comunitat Valenciana",
+      "articulo": "Artículo 4"
+    },
+    {
+      "pregunta_id": 9728,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 8/2023, de 27 de diciembre, de presupuestos de la Generalitat para el ejercicio 2024",
+      "articulo": "Artículo 23"
+    },
+    {
+      "pregunta_id": 9729,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "47/2003 General Presupuestaria",
+      "articulo": "41"
+    },
+    {
+      "pregunta_id": 9863,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "6/2021",
+      "articulo": "Artículo 18"
+    },
+    {
+      "pregunta_id": 9880,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "2/2015 Estatuto Trabajadores",
+      "articulo": "Artículo 11 de Título 1"
+    },
+    {
+      "pregunta_id": 9881,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "TR 2/2015 Estatuto Trabajadores",
+      "articulo": "Artículo 45"
+    },
+    {
+      "pregunta_id": 11267,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Orden de 12 de diciembre de 1994",
+      "articulo": "Artículo 0"
+    },
+    {
+      "pregunta_id": 11494,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Historia de la UE",
+      "articulo": "0 de Título 0"
+    },
+    {
+      "pregunta_id": 12464,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 8/2023 Presupuestos GVA 2024 de Otras normas Gestión Presupuestaria",
+      "articulo": "Artículo 22"
+    },
+    {
+      "pregunta_id": 12924,
+      "estado_evidencia": "EVIDENCIA_DIRECTA_MULTIPLE",
+      "norma": "Decreto 77/2019",
+      "articulo": "Artículo 15"
+    },
+    {
+      "pregunta_id": 13277,
+      "estado_evidencia": "EVIDENCIA_DIRECTA_MULTIPLE",
+      "norma": "77/2019",
+      "articulo": "Artículo 3"
+    },
+    {
+      "pregunta_id": 14145,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "3/2017 Selección y Provisión",
+      "articulo": "Artículo 31"
+    },
+    {
+      "pregunta_id": 15153,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "8/2023 Presupuestos GVA 2024 de Otras normas Gestión Presupuestaria",
+      "articulo": "Artículo 22"
+    },
+    {
+      "pregunta_id": 15282,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "TR 2/2015 Estatuto Trabajadores",
+      "articulo": "53"
+    },
+    {
+      "pregunta_id": 15287,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Planificación Estratégica",
+      "articulo": "0"
+    },
+    {
+      "pregunta_id": 15324,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Historia de la UE",
+      "articulo": "0"
+    },
+    {
+      "pregunta_id": 15644,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "TR 2/2015 Estatuto Trabajadores",
+      "articulo": "43 de Título 1"
+    },
+    {
+      "pregunta_id": 15654,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "los Servicios de Prevención, Extinción de Incendios y Salvamento de la Comunitat Valenciana de Justicia, Interior y Administración Pública",
+      "articulo": "Artículo 5"
+    },
+    {
+      "pregunta_id": 15971,
+      "estado_evidencia": "EVIDENCIA_NO_DIRECTA",
+      "norma": "de Disposiciones Finales de L.O. 3/2018 Protección Datos",
+      "articulo": "Artículo 0"
+    },
+    {
+      "pregunta_id": 16647,
+      "estado_evidencia": "EVIDENCIA_NO_DIRECTA",
+      "norma": "Ley 5/1983 del Consell",
+      "articulo": "Título 1"
+    },
+    {
+      "pregunta_id": 16910,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 8/2023, de 27 de diciembre, de Presupuestos de la Generalitat para el ejercicio 2024",
+      "articulo": "Artículo 8"
+    },
+    {
+      "pregunta_id": 17157,
+      "estado_evidencia": "EVIDENCIA_NO_DIRECTA",
+      "norma": "Ley 39/2015",
+      "articulo": "Título 1"
+    },
+    {
+      "pregunta_id": 17325,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": "Ley 10/2005, de 9 de diciembre, de asistencia jurídica a la Generalitat",
+      "articulo": "Artículo 5"
+    },
+    {
+      "pregunta_id": 22776,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": null,
+      "articulo": null
+    },
+    {
+      "pregunta_id": 22779,
+      "estado_evidencia": "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION",
+      "norma": null,
+      "articulo": null
+    }
+  ]
+}

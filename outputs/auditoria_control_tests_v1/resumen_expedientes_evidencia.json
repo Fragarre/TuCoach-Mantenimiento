@@ -1,0 +1,10 @@
+{
+  "total": 535,
+  "estados": {
+    "EVIDENCIA_DIRECTA_UNICA": 464,
+    "REQUIERE_FUENTE_EXTERNA_O_NORMALIZACION": 26,
+    "EVIDENCIA_DIRECTA_MULTIPLE": 7,
+    "SIN_COINCIDENCIA_ARTICULO": 38
+  },
+  "regla": "Coincidencia de norma normalizada y artículo normalizado; no es clasificación jurídica."
+}

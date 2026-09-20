@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 2976,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Los reglamentos jerárquicamente están por encima de directivas y decisiones."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El ordinario se adopta a propuesta de la Comisión, no del Consejo Europeo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El procedimiento legislativo especial no exige participación del Consejo Europeo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Se definen como actos legislativos, no como actos mediante procedimiento."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Evidencia solo del artículo 289; no prueba la jerarquía A."
+    },
+    {
+      "pregunta_id": 3022,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "A incluye austeridad, pero el art. 2.3 lista honradez y no austeridad."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "B incluye confidencialidad y honradez; falta evidencia exacta de 'imparcialidad'."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "C omite honradez y 'honradez' aparece en el art. 2.3."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "D coincide con los principios: imparcialidad, confidencialidad, honradez, etc."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 2.3 recoge exactamente esos principios y coinciden con D."
+    },
+    {
+      "pregunta_id": 3026,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "A no figura como principio en la lista del art. 2.1."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Ética profesional en el desempeño del servicio público aparece en art. 2.1."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Sometimiento pleno a la ley y al derecho aparece en art. 2.1."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son correctas: A no es principio."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "A no es principio/fundamento de art. 2.1, sí lo son B y C."
+    },
+    {
+      "pregunta_id": 3030,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 42.2.i permite exigir titulaciones concretas excepcionalmente."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece en la evidencia del art. 42 el supuesto de clasificación laboral."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No consta en la evidencia del art. 42 ninguna cooperación sobre RPT."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La evidencia del art. 42 trata clasificación, no aprobación anual web CIR."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Coincide literalmente con el inciso excepcional del art. 42.2.i."
+    },
+    {
+      "pregunta_id": 3031,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No se indican concursos voluntarios o forzosos en el art. 111."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 111 solo distingue ordinarios o específicos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 111.3: podrán ser ordinarios o específicos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No se mencionan concursos voluntarios ni extraordinarios."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 111.3 establece que son ordinarios o específicos."
+    }
+  ]
+}

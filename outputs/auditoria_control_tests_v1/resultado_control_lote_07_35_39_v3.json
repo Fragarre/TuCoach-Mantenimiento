@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 11380,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el art. 35.1 sobre prórroga presupuestaria."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El Consell puede establecer condiciones específicas de la prórroga."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La estructura orgánica se adapta sin alterar cuantía total."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 35.2 dice que no afecta a créditos citados."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La opción D contradice el art. 35.2; la prórroga sí afecta según el tenor legal."
+    },
+    {
+      "pregunta_id": 11393,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No consta como función ejecutiva de secretarios autonómicos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se ajusta a competencias inherentes a la actividad de su sector."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Impulsar y coordinar programas y ejecución de centros dependientes."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Atribuye elaboración de planes a los secretarios autonómicos sin base."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia citada es de subsecretarios, no de secretarios autonómicos."
+    },
+    {
+      "pregunta_id": 11418,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Obligación de someterse a actuaciones de comprobación y control."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Fija 15 días hábiles; la ley exige tan pronto como se conozca."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Conservar documentos justificativos hasta comprobación y control."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Disponer libros contables y documentos auditados según normativa."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 14.d exige comunicación tan pronto como se conozca, sin plazo 15 días."
+    },
+    {
+      "pregunta_id": 11440,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye clasificación profesional en grupos/subgrupos y equivalentes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las retribuciones asignadas al mismo se incluyen en el contenido."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La titulación requerida no aparece como contenido en la lista."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas las anteriores, porque C no se incluye expresamente."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 48 lista requisitos como cuerpo/escala/categoría, no titulación requerida."
+    },
+    {
+      "pregunta_id": 11461,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No exige español, mayor de edad; la ley exige ambos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "No estar inhabilitado por sentencia judicial firme es requisito."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Disfrutar de derechos de sufragio activo y pasivo es requisito."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Reunir el resto de requisitos de la Ley 3/2015."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Según el art. 11, A es verdadero; por tanto no es la falsa solicitada."
+    }
+  ]
+}

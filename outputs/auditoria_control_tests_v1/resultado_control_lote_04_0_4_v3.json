@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 4451,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye arts. 143 y 151, ambos contemplan vías de acceso."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 152 no corresponde a vías de acceso del enunciado."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 153 no es una de las vías indicadas con 151."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 144 no se recoge como vía junto a 151."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La opción A coincide con los artículos que recogen las vías indicadas."
+    },
+    {
+      "pregunta_id": 4458,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El órgano para censura son Les Corts, no el Consell."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No son los partidos quienes adoptan la moción de censura."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La moción de censura la adoptan Les Corts, no grupos parlamentarios."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Les Corts pueden exigir responsabilidad mediante moción de censura."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo citado atribuye la moción de censura a Les Corts."
+    },
+    {
+      "pregunta_id": 4462,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No figura como función del President en el artículo 10."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se indica expresamente la designación de representante en el Patronato."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Dictar decretos legislativos no se atribuye al President en el 10."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La potestad reglamentaria no aparece atribuida al President en el 10."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 10. h) atribuye al President la designación del representante."
+    },
+    {
+      "pregunta_id": 4475,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Carecer manifiestamente de fundamento sí es causa de inadmisión."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "La ausencia de calificación no está prevista como causa de inadmisión."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Carecer de legitimación del recurrente sí es causa de inadmisión."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Tratarse de acto no susceptible de recurso es causa de inadmisión."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 116 lista causas; la calificación ausente no aparece."
+    },
+    {
+      "pregunta_id": 4478,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Plazo máximo: el fijado, sin exceder seis meses, salvo ley UE."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No es necesariamente seis meses; depende de la norma del procedimiento."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El límite general es seis meses, no tres, salvo normas."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Puede superar tres meses si la norma reguladora lo permite."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Coincide con el art. 21.2: máximo seis meses salvo ley o UE."
+    }
+  ]
+}

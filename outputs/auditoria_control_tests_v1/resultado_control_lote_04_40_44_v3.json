@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 6642,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No coincide exactamente con el artículo citado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el Tribunal Supremo como superior en todos los órdenes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se deduce del artículo 123 aportado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se corresponde con el artículo 123 mostrado."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 123 CE define al Tribunal Supremo como superior salvo garantías constitucionales."
+    },
+    {
+      "pregunta_id": 6699,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El plazo del plan de acción no es 4 meses."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El cómputo no es desde el día siguiente."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El plan se elabora en 3 meses desde recibir el informe."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El plazo correcto no es 4 meses desde el día siguiente."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 112.2 fija 3 meses desde que el titular reciba el informe anual."
+    },
+    {
+      "pregunta_id": 6700,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El sector público administrativo es limitativo y vinculante."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No coincide: debería ser limitativo por importe global y vinculante."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Incorrecta: el sector empresarial/fundacional no es limitativo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide: limitativo global, estimativo para distribución, con excepciones."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 4.1 establece la regla para sector administrativo con excepciones."
+    },
+    {
+      "pregunta_id": 6708,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No incluye especificación de 'pública' ni coincide el enunciado completo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Cambia 'sanidad' por 'sanidad pública' y altera 'educación'."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Modifica 'educación' por 'educación obligatoria' y altera servicios."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide exactamente con 'educación, sanidad y servicios sociales esenciales'."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 15.2 LOFCA define esos tres como servicios públicos fundamentales."
+    },
+    {
+      "pregunta_id": 6723,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La transparencia es uno de los ejes de la Ley 19/2013."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Las incompatibilidades no se consideran eje según el enunciado."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Las normas de buen gobierno encajan como eje de la ley."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El acceso a la información pública es eje de la ley."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El enunciado pide identificar el incorrecto; corresponde a 'Las incompatibilidades'."
+    }
+  ]
+}

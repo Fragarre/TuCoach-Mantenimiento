@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3132,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El Estado tiene competencia exclusiva para autorizar consultas populares por referéndum."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La competencia es exclusiva del Estado, sin atribución autonómica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La Constitución atribuye la autorización al Estado, no a la Comunidad Autónoma."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La Constitución sí prevé la autorización de consultas por referéndum."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El artículo 149.1.32 atribuye al Estado la autorización de referéndums."
+    },
+    {
+      "pregunta_id": 3161,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Define productos agrícolas incluyendo tierra, ganadería, pesca y transformaciones."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La política agrícola común acompaña el funcionamiento del mercado, no se establece en general."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El término agrícola abarca también pesca según características del sector."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Salvo disposición contraria, las normas del mercado interior aplican a productos agrícolas."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "A y C son verdaderas; no hay una única opción correcta."
+    },
+    {
+      "pregunta_id": 3168,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La ley no condiciona a estar o no inscritas en el Plan de Empleo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Con responsabilidades familiares y minusvalía ≥33%, ayuda hasta 24 meses."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La concurrencia se acredita según artículo 23, incluye resoluciones e informe fiscal."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La legitimación citada no corresponde con el contenido de este artículo 27."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "B es verdadera y C también; no hay una única opción correcta."
+    },
+    {
+      "pregunta_id": 3206,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El máximo es seis meses, no seis años."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El máximo no es 2 meses; la ley fija seis meses."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La suspensión provisional no excede seis meses salvo paralización imputable."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No puede exceder de doce meses; el límite es seis meses."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 164.2 fija el límite en seis meses."
+    },
+    {
+      "pregunta_id": 3290,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La conselleria con hacienda propone, pero no acuerda el límite."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Corresponde al Consell; no al Ministerio con competencias en hacienda."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El Consell, a propuesta de hacienda, acuerda el límite máximo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No lo aprueba el Consejo de Ministros según la ley citada."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 33 indica que el Consell acuerda el límite máximo."
+    }
+  ]
+}

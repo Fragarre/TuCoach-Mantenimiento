@@ -59,7 +59,7 @@ REGISTROS = ROOT / "registros"
 
 TIPO_FUENTE = "ia_generada"
 DIFICULTAD_OBJETIVO = "ALTA_MUY_ALTA"
-PROMPT_VERSION = "juridicas-v3-practicas-limpio"
+PROMPT_VERSION = "juridicas-v4-evidencia-opciones"
 MODELO_DEFECTO = "gpt-5.4-nano"
 MAX_EJEMPLOS_DEFECTO = 25
 
@@ -376,6 +376,9 @@ def conectar_auxiliar() -> sqlite3.Connection:
         "similitud_maxima": "REAL",
         "similitud_pregunta_id": "INTEGER",
         "dictamen_auditoria": "TEXT",
+        "auditoria2_json": "TEXT",
+        "clasificacion_final": "TEXT",
+        "evidencia_json": "TEXT",
     }
     for columna, tipo in nuevas.items():
         if columna not in existentes:
@@ -1432,20 +1435,19 @@ def comprobar_originalidad_masiva(
 def construir_prompt_auditoria_ciega(
     ctx: ContextoReferencia,
     pregunta: dict[str, Any],
+    numero_revision: int = 1,
 ) -> str:
-    """Auditor posterior. No recibe la respuesta marcada por el generador."""
+    """Auditor jurídico ciego con evidencia por opción."""
     candidata = {
         "enunciado": pregunta.get("enunciado"),
-        "A": pregunta.get("opcion_a"),
-        "B": pregunta.get("opcion_b"),
-        "C": pregunta.get("opcion_c"),
-        "D": pregunta.get("opcion_d"),
+        "A": pregunta.get("opcion_a"), "B": pregunta.get("opcion_b"),
+        "C": pregunta.get("opcion_c"), "D": pregunta.get("opcion_d"),
         "tipo_pregunta": pregunta.get("tipo_pregunta"),
         "articulo_referencia": pregunta.get("articulo_referencia"),
     }
     return f"""
-Actúas como AUDITOR JURÍDICO CIEGO de una pregunta de oposición.
-No conoces la respuesta que marcó el generador. Debes resolverla desde cero.
+Actúas como AUDITOR JURÍDICO CIEGO e independiente de una pregunta de oposición.
+Revisión {numero_revision}. No conoces la respuesta que marcó el generador.
 
 FUENTE OFICIAL ÚNICA
 Norma: {ctx.nombre_norma_csv}
@@ -1458,73 +1460,95 @@ CANDIDATA
 {json.dumps(candidata, ensure_ascii=False, indent=2)}
 
 AUDITORÍA OBLIGATORIA
-1. Elige por ti mismo la única respuesta correcta A/B/C/D.
-2. Dictamina cada opción A/B/C/D como CORRECTA o FALSA según la fuente.
-3. Indica si existe exactamente una respuesta correcta.
-4. Indica si para resolverla hace falta información jurídica externa a la fuente.
-5. Comprueba si la referencia propuesta corresponde al artículo suministrado.
-   REGLA DE GRANULARIDAD DE REFERENCIA:
-   - Si la fuente suministrada es, por ejemplo, el artículo 16 completo, una
-     referencia más precisa al 16.6, 16.2.a), etc. se considera CORRECTA si
-     ese apartado/subapartado pertenece realmente al mismo artículo y el
-     contenido usado por la pregunta puede comprobarse en el texto suministrado.
-   - También puede ser CORRECTA una referencia a varios apartados del MISMO
-     artículo (por ejemplo 22.1.a) y 22.1.b)) si todos ellos son pertinentes
-     para justificar la respuesta o descartar distractores y están contenidos
-     en la fuente suministrada.
-   - NO marques referencia_correcta=true si cambia el artículo principal, si
-     cita un apartado/subapartado que no puede comprobarse en el texto, si
-     añade otra norma/artículo no suministrado o si la referencia es materialmente
-     incorrecta.
-   - La mera diferencia entre citar el artículo completo y citar con mayor
-     precisión uno de sus apartados NO es motivo de rechazo.
-6. Valora la dificultad como ALTA, MUY_ALTA o INSUFICIENTE.
-7. No rechaces una PRACTICA por aplicar directamente una regla a hechos concretos.
-8. No corrijas ni reescribas la candidata.
+1. Lee con especial cuidado si el enunciado pide la opción CORRECTA,
+   INCORRECTA, FALSA, EXCEPTO o contiene una negación.
+2. Clasifica cada opción como CORRECTA, FALSA o NO_DECIDIBLE. Esta última se
+   usa si no puede decidirse solo con la fuente, sin otra norma, artículo,
+   definición externa o interpretación discutible.
+3. Para CADA opción aporta evidencia_literal: el fragmento mínimo exacto de la
+   fuente que la demuestra, o indica expresamente por qué falta evidencia.
+4. Indica si existe exactamente una opción correcta. No fuerces una respuesta:
+   ante dos opciones defendibles, ninguna o evidencia insuficiente, marca
+   respuesta_unica=false.
+5. Comprueba condiciones acumulativas (Y), alternativas (O), plazos, sujetos,
+   excepciones y consecuencias. No simplifiques un párrafo con varias condiciones.
+6. Comprueba si la referencia propuesta pertenece al artículo suministrado.
+7. No uses memoria, conocimiento general ni fuentes externas. No corrijas ni
+   reescribas la candidata.
 
 Devuelve SOLO JSON:
 {{
-  "respuesta_elegida": "A|B|C|D",
-  "opcion_a": "CORRECTA|FALSA",
-  "opcion_b": "CORRECTA|FALSA",
-  "opcion_c": "CORRECTA|FALSA",
-  "opcion_d": "CORRECTA|FALSA",
+  "respuesta_elegida": "A|B|C|D|null",
+  "opcion_a": "CORRECTA|FALSA|NO_DECIDIBLE",
+  "evidencia_opcion_a": "...",
+  "opcion_b": "CORRECTA|FALSA|NO_DECIDIBLE",
+  "evidencia_opcion_b": "...",
+  "opcion_c": "CORRECTA|FALSA|NO_DECIDIBLE",
+  "evidencia_opcion_c": "...",
+  "opcion_d": "CORRECTA|FALSA|NO_DECIDIBLE",
+  "evidencia_opcion_d": "...",
   "respuesta_unica": true,
   "usa_informacion_externa": false,
   "referencia_correcta": true,
   "dificultad": "ALTA|MUY_ALTA|INSUFICIENTE",
+  "motivo_no_determinable": "",
   "observaciones": ["..."]
 }}
 """.strip()
 
 
-def auditoria_ciega_superada(
-    auditoria: dict[str, Any],
-    respuesta_generador: str,
-) -> bool:
-    """
-    Control MATERIAL de la auditoría ciega.
-
-    La dificultad se evalúa aparte por consenso; un único auditor no puede
-    rechazar por sí solo una pregunta jurídicamente correcta únicamente por
-    considerarla de dificultad insuficiente.
-    """
+def clasificar_auditoria(auditoria: dict[str, Any], respuesta_almacenada: str) -> tuple[str, str | None, str]:
+    """Criterio determinista y conservador sobre la matriz del auditor."""
+    correcta = str(respuesta_almacenada or "").strip().upper()
+    estados = {letra: str(auditoria.get(f"opcion_{letra.lower()}") or "").strip().upper() for letra in "ABCD"}
     elegida = str(auditoria.get("respuesta_elegida") or "").strip().upper()
-    correcta = str(respuesta_generador or "").strip().upper()
-    if elegida != correcta or correcta not in {"A", "B", "C", "D"}:
-        return False
-    if not bool(auditoria.get("respuesta_unica")):
-        return False
+    if elegida == "NULL":
+        elegida = ""
+    if any(v not in {"CORRECTA", "FALSA", "NO_DECIDIBLE"} for v in estados.values()):
+        return "NO_DETERMINABLE", None, "La auditoría no devolvió un dictamen válido para las cuatro opciones."
+    if any(v == "NO_DECIDIBLE" for v in estados.values()):
+        return "NO_DETERMINABLE", None, str(auditoria.get("motivo_no_determinable") or "Alguna opción no puede decidirse solo con la fuente.")
     if bool(auditoria.get("usa_informacion_externa")):
-        return False
+        return "NO_DETERMINABLE", None, "La resolución exige información externa al artículo suministrado."
     if not bool(auditoria.get("referencia_correcta")):
-        return False
-    for letra in "ABCD":
-        valor = str(auditoria.get(f"opcion_{letra.lower()}") or "").upper()
-        esperado = "CORRECTA" if letra == correcta else "FALSA"
-        if valor != esperado:
-            return False
-    return True
+        return "NO_DETERMINABLE", None, "La referencia propuesta no puede acreditarse con el artículo suministrado."
+    opciones_correctas = [letra for letra, valor in estados.items() if valor == "CORRECTA"]
+    if not bool(auditoria.get("respuesta_unica")) or len(opciones_correctas) != 1:
+        return "NO_DETERMINABLE", None, str(auditoria.get("motivo_no_determinable") or "No hay una única respuesta demostrable.")
+    if elegida != opciones_correctas[0]:
+        return "NO_DETERMINABLE", None, "La letra elegida por el auditor no coincide con su propia matriz de opciones."
+    if opciones_correctas[0] == correcta:
+        return "CONFIRMADA", opciones_correctas[0], "La respuesta almacenada es la única demostrable."
+    return "ERROR_DEMOSTRADO", opciones_correctas[0], "Otra opción es la única demostrable según la fuente."
+
+
+def resolver_clasificacion_auditoria(
+    ctx: ContextoReferencia, pregunta: dict[str, Any], modelo_validacion: str,
+) -> tuple[dict[str, Any], dict[str, Any] | None, str, str | None, str]:
+    """La segunda revisión solo se usa ante conflicto o duda."""
+    from openai_api import seleccionar_fragmento_json
+    primera = seleccionar_fragmento_json(
+        prompt=construir_prompt_auditoria_ciega(ctx, pregunta, 1),
+        modelo=modelo_validacion,
+        operacion="auditar_pregunta_juridica_ia_evidencia_1",
+    )
+    c1, r1, m1 = clasificar_auditoria(primera, pregunta["respuesta_correcta"])
+    if c1 == "CONFIRMADA":
+        return primera, None, c1, r1, m1
+
+    segunda = seleccionar_fragmento_json(
+        prompt=construir_prompt_auditoria_ciega(ctx, pregunta, 2),
+        modelo=modelo_validacion,
+        operacion="auditar_pregunta_juridica_ia_evidencia_2",
+    )
+    c2, r2, m2 = clasificar_auditoria(segunda, pregunta["respuesta_correcta"])
+    if c1 == "ERROR_DEMOSTRADO" and c2 == "ERROR_DEMOSTRADO" and r1 == r2:
+        return primera, segunda, "ERROR_DEMOSTRADO", r1, m1
+    return primera, segunda, "NO_DETERMINABLE", None, (m1 if c1 == "NO_DETERMINABLE" else m2)
+
+
+def auditoria_ciega_superada(auditoria: dict[str, Any], respuesta_generador: str) -> bool:
+    return clasificar_auditoria(auditoria, respuesta_generador)[0] == "CONFIRMADA"
 
 
 def evaluar_dificultad_por_consenso(
@@ -1807,21 +1831,36 @@ def exportar_informe_ultima_ejecucion(
             )
         except Exception:
             auditoria = {}
+        try:
+            auditoria2 = json.loads(
+                (f["auditoria2_json"] if "auditoria2_json" in f.keys() else None) or "{}"
+            )
+        except Exception:
+            auditoria2 = {}
+        try:
+            evidencia = json.loads(
+                (f["evidencia_json"] if "evidencia_json" in f.keys() else None) or "{}"
+            )
+        except Exception:
+            evidencia = {}
 
         ok1 = validacion_superada(v1)
         ok2 = validacion_superada(v2)
 
         # El resultado final es el dictamen ya resuelto por 2 checks o,
         # cuando hubo discrepancia, por el tercer check de desempate.
-        dictamen_final = str(f["dictamen_ia"] or "").strip().upper()
-        validada = dictamen_final.startswith("VALIDADA")
+        clasificacion = str(
+            (f["clasificacion_final"] if "clasificacion_final" in f.keys() else None)
+            or f["dictamen_ia"] or "NO_DETERMINABLE"
+        ).strip().upper()
+        validada = clasificacion == "CONFIRMADA" and str(f["estado"]).upper() == "APROBADA"
 
-        if validada:
+        if clasificacion == "CONFIRMADA":
             n_validadas += 1
         else:
             n_rechazadas += 1
 
-        estado = "VALIDADA" if validada else "RECHAZADA"
+        estado = clasificacion + (" · PUBLICADA" if validada else " · NO PUBLICADA")
         clase = "ok" if validada else "ko"
 
         opciones = "".join(
@@ -1858,6 +1897,29 @@ def exportar_informe_ultima_ejecucion(
                 auditoria,
                 pregunta.get("respuesta_correcta"),
             )
+            filas_evidencia = "".join(
+                "<tr><td><b>{}</b></td><td>{}</td><td>{}</td></tr>".format(
+                    letra,
+                    html.escape(str(auditoria.get(f"opcion_{letra.lower()}", ""))),
+                    html.escape(str(auditoria.get(f"evidencia_opcion_{letra.lower()}", ""))),
+                )
+                for letra in "ABCD"
+            )
+            segunda_html = ""
+            if auditoria2:
+                filas_segunda = "".join(
+                    "<tr><td><b>{}</b></td><td>{}</td><td>{}</td></tr>".format(
+                        letra,
+                        html.escape(str(auditoria2.get(f"opcion_{letra.lower()}", ""))),
+                        html.escape(str(auditoria2.get(f"evidencia_opcion_{letra.lower()}", ""))),
+                    )
+                    for letra in "ABCD"
+                )
+                segunda_html = (
+                    "<p><b>Segunda revisión:</b> ejecutada por conflicto o duda.</p>"
+                    "<table><tr><th>Opción</th><th>Dictamen 2</th><th>Evidencia literal 2</th></tr>"
+                    + filas_segunda + "</table>"
+                )
             dificultad_ok_html, dificultad_discutida_html, votos_html = (
                 evaluar_dificultad_por_consenso(v1, v2, auditoria)
             )
@@ -1873,12 +1935,15 @@ def exportar_informe_ultima_ejecucion(
             )
             bloque_auditoria = f"""
   <div class="check {clase_auditoria}">
-    <h3>Auditoría ciega · {estado_auditoria}</h3>
+    <h3>Clasificación probatoria · {html.escape(clasificacion)}</h3>
     <p><b>Respuesta independiente:</b> {html.escape(str(auditoria.get('respuesta_elegida', '')))}
        · <b>Única:</b> {html.escape(str(auditoria.get('respuesta_unica', '')))}
        · <b>Información externa:</b> {html.escape(str(auditoria.get('usa_informacion_externa', '')))}
        · <b>Referencia:</b> {html.escape(str(auditoria.get('referencia_correcta', '')))}
        · <b>Dificultad auditor:</b> {html.escape(str(auditoria.get('dificultad', '')))}</p>
+    <p><b>Resultado:</b> {html.escape(str(evidencia.get('motivo', '')))}</p>
+    <table><tr><th>Opción</th><th>Dictamen</th><th>Evidencia literal</th></tr>{filas_evidencia}</table>
+    {segunda_html}
     <p><b>Votos de dificultad:</b> Check 1 = {html.escape(votos_html[0])} · Check 2 = {html.escape(votos_html[1])} · Auditor = {html.escape(votos_html[2])} · <b>Resultado:</b> {'ALTA/MUY ALTA por mayoría' if dificultad_ok_html else 'INSUFICIENTE por mayoría'}</p>
     <p>{html.escape(_texto_observaciones(auditoria))}</p>
   </div>
@@ -1975,6 +2040,7 @@ li{{margin:6px 0}}
 .kobox{{background:#fce8e6}}
 .desempate{{background:#e8f0fe;border:1px solid #aecbfa}}
 h3{{margin:0 0 7px}}
+table{{border-collapse:collapse;width:100%;margin:10px 0}}th,td{{border:1px solid #c6c6c6;padding:7px;text-align:left;vertical-align:top}}
 </style>
 </head>
 <body><main>
@@ -2049,55 +2115,35 @@ def generar(
         modelo_validacion=modelo_validacion,
     )
 
-    # Capa posterior: no modifica el generador ni los checks actuales.
+    # Auditoría semántica con evidencia. La segunda revisión solo se paga cuando
+    # la primera detecta un error o no puede demostrar una respuesta única.
+    originalidad_ok, similitud_maxima, similitud_pregunta_id = comprobar_originalidad_masiva(
+        con, ctx, pregunta
+    )
     auditoria: dict[str, Any] = {}
-    originalidad_ok = True
-    similitud_maxima = 0.0
-    similitud_pregunta_id: int | None = None
-    auditoria_ok = False
+    auditoria2: dict[str, Any] | None = None
+    clasificacion_final = "NO_DETERMINABLE"
+    respuesta_demostrada: str | None = None
+    motivo_clasificacion = "No se ejecutó la auditoría."
     dificultad_ok = False
     dificultad_discutida = False
     votos_dificultad: list[str] = []
 
-    if doble_ok:
-        originalidad_ok, similitud_maxima, similitud_pregunta_id = comprobar_originalidad_masiva(
-            con, ctx, pregunta
+    if originalidad_ok:
+        auditoria, auditoria2, clasificacion_final, respuesta_demostrada, motivo_clasificacion = (
+            resolver_clasificacion_auditoria(ctx, pregunta, modelo_validacion)
         )
-        if originalidad_ok:
-            auditoria = seleccionar_fragmento_json(
-                prompt=construir_prompt_auditoria_ciega(ctx, pregunta),
-                modelo=modelo_validacion,
-                operacion="auditar_pregunta_juridica_ia_ciega",
-            )
-            auditoria_ok = auditoria_ciega_superada(
-                auditoria, pregunta["respuesta_correcta"]
-            )
-            dificultad_ok, dificultad_discutida, votos_dificultad = (
-                evaluar_dificultad_por_consenso(
-                    validacion1,
-                    validacion2,
-                    auditoria,
-                )
-            )
+        dificultad_ok, dificultad_discutida, votos_dificultad = evaluar_dificultad_por_consenso(
+            validacion1, validacion2, auditoria
+        )
+    else:
+        motivo_clasificacion = "La candidata supera el umbral de similitud permitido."
 
     aceptada_final = (
-        doble_ok
-        and originalidad_ok
-        and auditoria_ok
-        and dificultad_ok
+        doble_ok and originalidad_ok and clasificacion_final == "CONFIRMADA" and dificultad_ok
     )
-    if aceptada_final:
-        dictamen = "VALIDADA_AUDITADA"
-        estado = "VALIDADA_IA"
-    elif doble_ok and not originalidad_ok:
-        dictamen = "RECHAZADA_SIMILITUD"
-        estado = "RECHAZADA_IA"
-    elif doble_ok:
-        dictamen = "RECHAZADA_AUDITORIA"
-        estado = "RECHAZADA_IA"
-    else:
-        dictamen = "RECHAZADA"
-        estado = "RECHAZADA_IA"
+    dictamen = clasificacion_final
+    estado = "VALIDADA_IA" if aceptada_final else "RECHAZADA_IA"
 
     with conectar_auxiliar() as aux:
         cur=aux.execute(
@@ -2126,10 +2172,13 @@ def generar(
                 dictamen_ia,
                 estado,
                 auditoria_json,
+                auditoria2_json,
+                clasificacion_final,
+                evidencia_json,
                 similitud_maxima,
                 similitud_pregunta_id,
                 dictamen_auditoria
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 ahora_iso(),
                 ctx.convocatoria_id,
@@ -2155,18 +2204,25 @@ def generar(
                 dictamen,
                 estado,
                 json.dumps(auditoria, ensure_ascii=False) if auditoria else None,
+                json.dumps(auditoria2, ensure_ascii=False) if auditoria2 else None,
+                clasificacion_final,
+                json.dumps(
+                    {
+                        "respuesta_demostrada": respuesta_demostrada,
+                        "motivo": motivo_clasificacion,
+                        "articulo_fuente_id": ctx.articulo_fuente_id,
+                        "hash_texto_fuente": hashlib.sha256(ctx.texto_articulo.encode("utf-8")).hexdigest(),
+                    },
+                    ensure_ascii=False,
+                ),
                 float(similitud_maxima),
                 similitud_pregunta_id,
                 (
-                    "OK_DIFICULTAD_DISCUTIDA"
-                    if aceptada_final and dificultad_discutida
-                    else "OK"
-                    if aceptada_final
-                    else "SIMILITUD"
-                    if doble_ok and not originalidad_ok
-                    else "DIFICULTAD"
-                    if doble_ok and originalidad_ok and auditoria_ok and not dificultad_ok
-                    else "NO"
+                    "OK_DIFICULTAD_DISCUTIDA" if aceptada_final and dificultad_discutida
+                    else "OK" if aceptada_final
+                    else "SIMILITUD" if not originalidad_ok
+                    else "DIFICULTAD" if clasificacion_final == "CONFIRMADA" and not dificultad_ok
+                    else clasificacion_final
                 ),
             ),
         )
@@ -2193,10 +2249,11 @@ def generar(
                 f"{validacion3.get('decision_desempate')} | "
                 f"{validacion3.get('dificultad')}"
             )
-        print(f"Dictamen IA: {dictamen}")
+        print(f"Clasificación probatoria: {clasificacion_final}")
+        print(f"Motivo: {motivo_clasificacion}")
         print(
             "Publicación: "
-            + ("automática" if doble_ok and r['estado']=='APROBADA' else "no publicada")
+            + ("automática" if r['estado']=='APROBADA' else "no publicada")
         )
     return generacion_id
 

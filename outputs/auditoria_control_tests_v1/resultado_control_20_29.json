@@ -1,0 +1,64 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 2160,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 151 indica que las decisiones pueden revestir la forma de acuerdo o recomendación, y la opción C coincide con esa combinación."
+    },
+    {
+      "pregunta_id": 2161,
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 595 establece que las funciones se ejercen en Pleno o mediante Comisiones previstas en la LOPJ, incluyendo comisiones como las citadas."
+    },
+    {
+      "pregunta_id": 2173,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 12. a) fija el umbral del 5% para no excluir candidaturas (opción C)."
+    },
+    {
+      "pregunta_id": 2213,
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 14.2 obliga a relacionarse electrónicamente a las personas jurídicas (opción B)."
+    },
+    {
+      "pregunta_id": 2220,
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 56.a tipifica como infracción leve la presentación fuera de plazo de las cuentas justificativas."
+    },
+    {
+      "pregunta_id": 2249,
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 106.2 prevé informe por la Intervención General y aclara que no tiene naturaleza de fiscalización cuando no se respetó la legalidad."
+    },
+    {
+      "pregunta_id": 2259,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 103 atribuye al Pleno la competencia en entidades locales; por tanto es incorrecto que corresponda al presidente (opción C)."
+    },
+    {
+      "pregunta_id": 2262,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 114.10 indica que solo quedarán desiertas si no existe aspirante que reúna requisitos o no supere la puntuación mínima (opción C)."
+    },
+    {
+      "pregunta_id": 2286,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 19.3 concede a terceros un plazo de 15 días para alegaciones si pueden verse afectados; por tanto es incorrecto decir que no se les concede plazo (opción C)."
+    },
+    {
+      "pregunta_id": 2297,
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 141.3 permite crear agrupaciones de municipios diferentes de la provincia; por ello es incorrecta la afirmación D."
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 4573,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No coincide con la descripción del apartado básico informador."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye la herramienta informática para relación electrónica y servicio."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se menciona como objetivo del Plan de Modernización."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No: existe una opción correcta y verdadera."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 2.1 incluye expresamente la implementación de herramientas informáticas como principio."
+    },
+    {
+      "pregunta_id": 4612,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Corresponde ejecutar acuerdos del Consell, no aprobarlos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Se refiere a preparar anteproyectos y potestad reglamentaria, no potestad legislativa."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El nombramiento y cese de altos cargos se propone, no ejecuta."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Resuelve recursos en vía administrativa en los supuestos indicados."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 28 h) atribuye a los consellers la resolución de esos recursos."
+    },
+    {
+      "pregunta_id": 4634,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "No es requisito mínimo: se exigen medidas provisionales, no fijas del art. sancionador."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Sí es requisito mínimo en el acuerdo de iniciación sancionadora."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Sí se exige identificación del instructor y secretario, con recusación."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí se exige identificación de presuntos responsables."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 64 exige medidas provisionales y no menciona “fijas” como A."
+    },
+    {
+      "pregunta_id": 4685,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Es posible: contradice literalmente el art. 150.1 CE control y marco."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 150.2 permite transferir o delegar por ley orgánica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 150.3 permite leyes de principios por interés general."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son verdaderas: A no coincide con el art. 150 CE."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 150.1 CE sí contempla atribución; por tanto, A no es la “no verdadera”."
+    },
+    {
+      "pregunta_id": 4718,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Decretos-leyes son disposiciones con rango de ley, no reglamento del Senado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No son leyes delegadas; son dictadas por el Gobierno sin delegación."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Son disposiciones legislativas provisionales en forma de decretos-leyes."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No son reglamentarias; tienen rango legislativo provisional."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 86 CE define los decretos-leyes como disposiciones legislativas provisionales."
+    }
+  ]
+}

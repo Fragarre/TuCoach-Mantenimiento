@@ -44,6 +44,11 @@ class Fuente:
 FUENTES_DOUE = (
     Fuente("TUE", "DOUE-C-2010-083-TUE", "TUE_2010.pdf"),
     Fuente("TFUE", "DOUE-C-2010-083-TFUE", "TFUE_2010.pdf"),
+    Fuente(
+        "Carta de los Derechos Fundamentales de la Unión Europea",
+        "DOUE-C-2010-083-CARTA",
+        "CARTA DE LOS DERECHOS FUNDAMENTALES.pdf",
+    ),
 )
 
 

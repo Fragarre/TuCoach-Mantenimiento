@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 4169,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye profesionales de salud como excepción; no procede según art. 35."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia no regula plazo de quince días."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Titulado universitario con conocimientos especializados cumple art. 37.5."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia no menciona remoción o sanción del delegado."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 35 admite acreditar requisitos del art. 37.5 mediante titulación universitaria."
+    },
+    {
+      "pregunta_id": 4240,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Competencias decisorias requieren publicación BOE."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Competencias de propuesta o informes preceptivos requieren publicación BOE."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Competencias de informe no se justifican como caso excluido."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Competencias de seguimiento o control requieren publicación BOE."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "El art. 22 menciona informes preceptivos; no se aporta excepción para 'informe'."
+    },
+    {
+      "pregunta_id": 4265,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Permiso es por tiempo indispensable, no un día."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe asistencia a reuniones por cargo de concejal/diputado."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Debe ser carácter público y personal."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Tiempo indispensable para deber inexcusable de carácter público y personal."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 38.1 define exactamente el supuesto de la opción D."
+    },
+    {
+      "pregunta_id": 4399,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Solo puede rechazarlas si son manifiestamente improcedentes o innecesarias."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Rechazo solo por manifiestamente improcedentes o innecesarias y motivado."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia no dice que deban aportarse en contencioso."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Cabe período de prueba: no se limita a inicio del procedimiento."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art. 77.3 permite rechazar solo manifiestamente improcedentes o innecesarias, motivando."
+    },
+    {
+      "pregunta_id": 4443,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 48 sí permite financiar con bajas en otros créditos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia permite mayores ingresos, pero no como 'no podrá'."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia permite Fondo de Contingencia; no hay exclusión en art. 48."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Evidencia permite previsión del resultado en términos de ley anual."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "El art. 48 permite A, B, C y D; no existe opción excluida según evidencia."
+    }
+  ]
+}

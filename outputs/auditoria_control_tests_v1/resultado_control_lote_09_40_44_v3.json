@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 15564,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La legitimación de CCAA no es excluida por completo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La legitimación de AGE no queda excluida por completo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Solo si se prevé expresamente obligado para ambas administraciones."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Son exigibles si se prevé expresamente su carácter obligatorio."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 153.4 exige previsión expresa de obligado cumplimiento para ambas administraciones."
+    },
+    {
+      "pregunta_id": 15660,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Falta el artículo constitucional exacto sobre patrimonio monumental."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No procede del art. 148; requiere preceptos sobre dominio público."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La gestión no corresponde en todo caso al Estado según CE."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Afirmación genérica; sin soporte directo en el fragmento aportado."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Con la evidencia de art. 148 no se puede verificar todo lo necesario."
+    },
+    {
+      "pregunta_id": 15673,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La repetición no es al mes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La repetición no es cinco días después."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se repite cuarenta y ocho horas después."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La repetición no es veinticuatro horas después."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 2.4 indica repetición a las 48 horas con mayoría simple."
+    },
+    {
+      "pregunta_id": 15724,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La exclusión no es solo del afectado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La norma también excluye a los descendientes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Quedan excluidos el contrayente y sus descendientes."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí existe una aseveración verdadera: la opción C."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 57.4 establece exclusión por sí y sus descendientes."
+    },
+    {
+      "pregunta_id": 15737,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se eligen por mayoría de dos tercios del número de Diputados."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No son tres quintos; la norma exige dos tercios."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No es mayoría absoluta; se requiere dos tercios."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí hay una opción correcta: A."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 7 fija mayoría de dos tercios del número de derecho de Diputados."
+    }
+  ]
+}

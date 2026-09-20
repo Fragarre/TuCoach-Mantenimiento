@@ -1,0 +1,164 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 13910,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Omite computar antigüedad y promoción profesional como excluidos",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el artículo: no retribuciones ni computa tiempo",
+          "opcion_evidencia": "B"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Añade cursos formativos, no previstos en el artículo",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son incorrectas; B coincide con la norma",
+          "opcion_evidencia": "null"
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 148 solo establece efectos en retribuciones y cómputo, coincidiendo con B."
+    },
+    {
+      "pregunta_id": 13942,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Requiere mayoría simple; la norma exige quinta parte",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Exige mayoría absoluta; la norma exige quinta parte",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Moción propuesta por quinta parte e incluye candidato",
+          "opcion_evidencia": "C"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son incorrectas; C coincide con el artículo",
+          "opcion_evidencia": "null"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 28.2 indica que la moción se propone por quinta parte e incluye candidato."
+    },
+    {
+      "pregunta_id": 13964,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La inspección educativa es quien vela por el cumplimiento",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No menciona consejos escolares; lo indica la inspección educativa",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No es el órgano citado; el artículo señala inspección educativa",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Servicios de inspección educativa velarán por la aplicación",
+          "opcion_evidencia": "D"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 9 atribuye la labor a los servicios de inspección educativa."
+    },
+    {
+      "pregunta_id": 13972,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No es exclusiva: también incluye comunidades y locales",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Falta incluir órganos de gobierno locales según el artículo",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye Gobierno, CCAA y locales conforme a la norma",
+          "opcion_evidencia": "C"
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde solo a CCAA; también al Gobierno y locales",
+          "opcion_evidencia": "null"
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 128.1 asigna potestad reglamentaria a Gobierno, CCAA y locales."
+    },
+    {
+      "pregunta_id": 14010,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Omite auditorías del sector público y supervisión continua",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Omite plan anual de supervisión continua",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Omite auditorías de fondos comunitarios y control financiero subvenciones",
+          "opcion_evidencia": "null"
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye auditorías sector público, fondos comunitarios y control subvenciones",
+          "opcion_evidencia": "D"
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 96 enumera planes: control permanente, auditorías sector público, fondos y supervisión continua."
+    }
+  ]
+}

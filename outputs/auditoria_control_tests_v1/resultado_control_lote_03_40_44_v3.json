@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 4118,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Sanidad atribuida a Estado, no agricultura y ganadería ni demás materias."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Competencia exclusiva Generalitat sobre agricultura y ganadería, con límites art.149 CE."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde sociedades mercantiles; la norma cita agraria y sanidad agraria."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Patrimonio histórico no se cita como agricultura; corresponde a art.49.1.5."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El art.49.3 atribuye competencia exclusiva sobre agricultura, reforma agraria y ganadería."
+    },
+    {
+      "pregunta_id": 4119,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El conjunto de instituciones de autogobierno constituye la Generalitat."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El Consell es parte de la Generalitat, no su conjunto."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Les Corts son parte, no todo el conjunto de autogobierno."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La Presidencia del Consell no constituye el conjunto de instituciones."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Art.20.1: el conjunto de instituciones de autogobierno constituye la Generalitat."
+    },
+    {
+      "pregunta_id": 4121,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La excepción es por afectar derechos fundamentales; por tanto no procede."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Afectar ordenamiento institucional básico es excepción; no procede delegar."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Afectar régimen electoral es excepción; no procede delegar."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Afecten al desarrollo de derechos fundamentales y libertades públicas: excepción."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Art.53: no procederán decretos legislativos sobre desarrollo de derechos fundamentales."
+    },
+    {
+      "pregunta_id": 4137,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Silencio: cabe recurso de reposición en cualquier momento desde efectos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Un mes corresponde al alzada; aquí se trata de reposición."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Tres meses para reposición no coincide; y se indica erróneamente contencioso."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El trámite de alegaciones con nuevos hechos es más específico, no ese plazo."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia del art.122 describe alzada, no reposición; no permite determinar con certeza."
+    },
+    {
+      "pregunta_id": 4148,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Competencia irrenunciable; se ejerce por órgano propio salvo delegación o avocación."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Delegación, encomienda, firma y suplencia no implican alteración de titularidad."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Titularidad y ejercicio podrán ser desconcentradas según normas."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "La desconcentración se realiza en órganos jerárquicamente dependientes, con requisitos."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La evidencia del art.13 trata suplencia: no altera competencia, contradice opción B."
+    }
+  ]
+}

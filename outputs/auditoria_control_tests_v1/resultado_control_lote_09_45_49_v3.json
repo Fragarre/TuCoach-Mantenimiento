@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 15748,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No es el órgano superior jerárquico del que dictó el acto."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Puede interponerse ante el órgano competente para resolverlo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Remitir al competente en diez días, con informe y expediente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo es de diez días, no de diez días."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "UNICA",
+      "motivo": "La incorrecta es D; el plazo legal indicado es de diez días."
+    },
+    {
+      "pregunta_id": 15765,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Organismos públicos dependientes también aprueban su propio plan."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Vigencia de tres años salvo justificación para otro plazo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Los planes son públicos, pero no necesariamente en todo caso."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Pueden elaborarse planes conjuntos y aprueban consellerías ejecutoras."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "C no es correcta: los planes serán públicos, no “en todo caso”."
+    },
+    {
+      "pregunta_id": 15816,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Responsabilidad por integridad, veracidad y actualización de información y servicios."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Responsabilidad del titular no es por seguridad de cualquier Ministerio."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No solo veracidad: incluye integridad y actualización."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No se limita a seguridad; incluye integridad y veracidad."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 38.2 atribuye al titular integridad, veracidad y actualización."
+    },
+    {
+      "pregunta_id": 15818,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No siempre cabe retroactividad; requiere condiciones."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Hay retroactividad si existen hechos y no daña derechos legítimos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No se excluye retroactividad por derechos económicos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La ley permite retroactividad excepcionalmente."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Encaja la retroactividad favorable con hechos previos y sin lesionar derechos."
+    },
+    {
+      "pregunta_id": 15849,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "La cobertura de reembolsos y gastos financieros va en “servicio de la deuda”."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "“Deuda pública” no figura en la sección descrita."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "“Endeudamiento a medio plazo” no es la sección indicada en la norma."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "“Deuda de naturaleza pública” no corresponde a la sección citada."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art. 84 define esa cobertura dentro de la sección “servicio de la deuda”."
+    }
+  ]
+}

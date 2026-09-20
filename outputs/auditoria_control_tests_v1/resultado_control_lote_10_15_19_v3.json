@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 16237,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye artículo 48, pero cambia el tipo de actos favorables impugnables."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide literalmente: actos favorables para interesados y anulables artículo 48."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Añade disposiciones administrativas, y la norma solo menciona actos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Añade que son favorables para los interesados; falta literalidad de la norma."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Solo B reproduce literalmente el art. 107.1 lpac."
+    },
+    {
+      "pregunta_id": 16243,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 54 incluye al primitivo dueño y sus causahabientes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 54 también reconoce el derecho al primitivo dueño, no solo a causahabientes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 54 dice primitivo dueño o sus causahabientes pueden recobrar."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe derecho de recobro/reversión si no se ejecuta o desaparece la afectación."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 54.1 concede recobrar al primitivo dueño o sus causahabientes."
+    },
+    {
+      "pregunta_id": 16284,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye coordinación y colaboración como principio orientador del título I."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye transversalidad organizativa en los principios orientadores del título I."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye necesidad y proporcionalidad como principio orientador del título I."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece como principio orientador en el art. 3 citado."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art. 3 no recoge el principio de máxima intervención administrativa."
+    },
+    {
+      "pregunta_id": 16295,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El objeto no indica carácter básico sobre establecimientos turísticos ni juego."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No excluye a entidades locales del ámbito; la ley abarca en su territorio."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No es supletoria para taurinos y deportivos; se remite a normativa específica."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 1 afirma inspección y sanción no están en este punto."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia del art. 1 no regula inspección/sanción; no puede confirmarse literalmente D."
+    },
+    {
+      "pregunta_id": 16297,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El art. 49 citado no menciona específicamente administración de instituciones sanitarias."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se ve en el art. 49 citado ejecución sobre productos farmacéuticos."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art. 49.1.19 señala ordenación farmacéutica."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "El art. 49.1 no lista sanidad exterior; pero no permite certeza por falta de fuente."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Con la evidencia del art. 49 no consta ni la competencia ni su ausencia sobre sanidad exterior."
+    }
+  ]
+}

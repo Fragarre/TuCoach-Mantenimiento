@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3528,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El art.106 remite a art.47.1 y 47.2, no 47.2 anulabilidad."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Exige dictamen favorable del Consejo de Estado si procede."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Por iniciativa propia o a solicitud de interesado, art.106.1."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Puede declararse en cualquier momento, sin cuatro años."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art.106.1 permite declarar nulidad de oficio por iniciativa o solicitud."
+    },
+    {
+      "pregunta_id": 3529,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se entienden practicadas en el momento del acceso al contenido."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Diez días naturales se prevén solo para entender rechazadas."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Quince días no constan como regla de práctica."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No existe regla de un mes desde salida del registro."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El art.43.2 fija como momento la puesta en acceso del contenido."
+    },
+    {
+      "pregunta_id": 3558,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No coincide: habla de oficinas especializadas y administraciones, distinto artículo."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No establece regla exclusiva regida exclusivamente por el decreto."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Describe puntos PROP, pero el art.23 regula otros puntos alternativos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Permite puntos alternativos presenciales, permanentes o móviles, inclusión digital."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art.23 regula puntos alternativos presenciales para inclusión digital y menos desplazamientos."
+    },
+    {
+      "pregunta_id": 3575,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece como excepción en el art.19."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Horas al mes y formación sin carácter permanente no figura así."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La creación literaria está exceptuada solo bajo condición indicada."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "El personal docente en exámenes distintos se exceptúa, art.19.d."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El art.19.d exceptúa participación del personal docente en evaluaciones."
+    },
+    {
+      "pregunta_id": 3597,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art.49.2 indica competencia exclusiva en materias atribuidas como exclusivas."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art.49.2 incluye materias transferidas por el Estado mediante LO."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El art.49.4 fija competencia exclusiva para desarrollo y ejecución UE."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Hay varias verdaderas; por tanto no puede ser que ninguna sea verdadera."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "A, B y C son verdaderas; luego la opción “Ninguna” es falsa."
+    }
+  ]
+}

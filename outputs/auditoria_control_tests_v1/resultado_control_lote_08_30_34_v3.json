@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 12911,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No coincide con evaluación final por personal formador."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Atribuye acreditación al conseller y exige evaluación final específica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "IVAP acredita; evaluación final por formador, trabajo o pruebas."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas son incorrectas; C coincide con la norma."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 106 atribuye a la IVAP y prevé evaluación final por el formador."
+    },
+    {
+      "pregunta_id": 12946,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Los documentos válidos exigen metadatos mínimos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Para documentos meramente informativos no se requiere firma."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se exige disponer de datos de identificación para individualización."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se exige referencia temporal del momento de emisión."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Documentos meramente informativos no requieren firma electrónica."
+    },
+    {
+      "pregunta_id": 13031,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La reducción tiene excepciones; no todos los plazos se reducen a la mitad."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La reducción depende del tipo de procedimiento y contrato específico."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Inicio ejecución no excede 1 mes desde formalización."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Los cinco días pueden prorrogarse hasta diez por causas justificadas."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 119.c) fija plazo máximo de un mes para inicio de ejecución."
+    },
+    {
+      "pregunta_id": 13176,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Garantía definitiva 5% del precio final, IVA excluido."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La garantía no es 3%; es 5% en general."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El porcentaje es IVA excluido, no incluido."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "En general se calcula sobre precio final, no presupuesto base."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "El artículo 107 exige 5% del precio final ofertado, IVA excluido."
+    },
+    {
+      "pregunta_id": 13227,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se limita a cualquier órgano adscrito al autor del acto."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No es exclusivamente ante el órgano competente; también ante el que dictó."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Puede interponerse también ante el competente para resolver."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Puede interponerse ante órgano autor o competente para resolver."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "El artículo 121.2 permite alzada ante el que dictó o ante el competente."
+    }
+  ]
+}

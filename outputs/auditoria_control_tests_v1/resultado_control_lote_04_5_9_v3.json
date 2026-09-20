@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 4500,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No subsidiario: regula la normativa específica docente y estatutaria sanitaria."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Sin evidencia de que no regule materias específicas."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El investigador solo es subsidiario en lo no dispuesto."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Sí hay previsión de aplicación subsidiaria en ambos casos."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La evidencia solo aclara subsidiariedad para docente y estatutario sanitario."
+    },
+    {
+      "pregunta_id": 4506,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No contempla jornada completa o parcial para jubilación <3 años."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No es licencia suprimida por tiempo de cotización."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Reducción hasta la mitad si faltan menos de cinco años."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Acumulación máxima es seis meses, no tres meses."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 7.1.d prevé reducción por menos de cinco años."
+    },
+    {
+      "pregunta_id": 4537,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta en evidencia para anteproyecto de Ley."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La evidencia trata reglamentos; falta anteproyecto/proyecto concreto Ley."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Organizativas de Presidencia/consellerías: omite c), e) y f."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Copia a Presidencia y consellerías es para reglamentos."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Coincide con art. 43.2 sobre trámites no preceptivos."
+    },
+    {
+      "pregunta_id": 4539,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No hay evidencia del enunciado sobre responsabilidad."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se aportan datos de funciones de secretaría general."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El nivel administrativo se define en esos términos."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La opción C coincide exactamente con el artículo."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El art. 71 establece literalmente la definición del nivel administrativo."
+    },
+    {
+      "pregunta_id": 4552,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo de silencio negativo es seis meses."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No son tres meses; la ley fija seis meses."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No son cinco meses; el plazo es seis meses."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Seis meses: la resolución se entiende contraria a la indemnización."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Art. 91.3: transcurridos seis meses, silencio negativo."
+    }
+  ]
+}

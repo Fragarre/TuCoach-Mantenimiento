@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 15327,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Plazo incorrecto: el reposición es de un mes, no dos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El plazo es un mes si el acto es expreso."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Plazo incorrecto: el reposición es de un mes, no tres."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Plazo incorrecto: el reposición es de un mes, no seis."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Artículo 124.1: un mes si acto es expreso."
+    },
+    {
+      "pregunta_id": 15367,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Enunciado incompleto; no valida relación con bienes o servicios comunes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con seguridad, salud e intereses económicos del art. 51.1 CE."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Vulnerables no aparece en el art. 51.1 citado."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Indemnización y reparación no se mencionan en art. 51.1 CE."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Art. 51.1 CE: seguridad, salud y legítimos intereses económicos."
+    },
+    {
+      "pregunta_id": 15417,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No se evalúa por el artículo 1 aportado; falta marco competencial."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo 1 no establece competencia exclusiva; solo objeto de la ley."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo 1 no afirma desarrollo legislativo; define objeto general."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el objeto: ordenación, regulación y régimen jurídico."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "Art. 1 Ley 4/2021: ordenación y regulación de la función pública valenciana."
+    },
+    {
+      "pregunta_id": 15418,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "No consta en evidencia la excepción por cláusulas tipo AEPD."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Evidencia indica duración máxima de seis meses, no nueve."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 42.1.a: autoriza cuando no encajan en cláusulas tipo."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 42.2: la remisión al Comité suspende hasta dictamen."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Art. 42.1: procedimiento máximo seis meses, opción B dice nueve."
+    },
+    {
+      "pregunta_id": 15447,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Art. 288 TFUE: reglamento, directiva y decisión vinculantes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Recomendaciones y dictámenes no son vinculantes según art. 288."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Dictámenes no vinculantes; art. 288 dice que no lo son."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Recomendaciones no vinculantes, y no incluye decisión."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "Art. 288 TFUE: reglamentos, directivas y decisiones son vinculantes."
+    }
+  ]
+}

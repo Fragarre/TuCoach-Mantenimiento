@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 5037,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No aparece como supuesto del artículo 39.5 a)."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo 39.5 prevé resoluciones judiciales, no sentencias firmes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el supuesto del artículo 39.5 c)."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas A-C son incorrectas: C es correcta."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 39.5 permite imputar obligaciones por compromisos de gasto de ejercicios cerrados adquiridos."
+    },
+    {
+      "pregunta_id": 5057,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El President designa a los Consellers según el artículo citado."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El Consell no designa; los Consellers son designados por el President."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Les Corts regula composición y forma, pero no designa en el texto."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Existe respuesta correcta según la norma: designa el President."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La norma indica que designa el President, pero ninguna opción lo contempla."
+    },
+    {
+      "pregunta_id": 5072,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La norma establece deber de confidencialidad, no custodia."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "No figura como deber; se menciona confidencialidad."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo 5 establece el deber de confidencialidad."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No se usa el término; la obligación es confidencialidad."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 5 dispone que todas las personas están sujetas al deber de confidencialidad."
+    },
+    {
+      "pregunta_id": 5106,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Confunde: el artículo dice programas de gasto en términos anuales."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "El artículo se refiere a programas de gasto, definidos en términos anuales."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el artículo 32.4 sobre programas de gasto anuales."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Niega lo del artículo 32.4: no son plurianuales."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 32.4: programas de gasto anuales con referencias a programas plurianuales."
+    },
+    {
+      "pregunta_id": 6342,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "La prerrogativa de honores figura en el artículo 9."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Presidir actos en la Comunitat figura como prerrogativa."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La prerrogativa es de muy honorable; no “honorable señor”."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Utilizar la bandera como guión figura en el artículo 9."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 9 otorga “muy honorable”, no “honorable señor”."
+    }
+  ]
+}

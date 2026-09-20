@@ -1,0 +1,84 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 1741,
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Es la opción relativa a la no división en lotes en supuestos de concesión de servicios, que no encaja con la excepción citada en la evidencia.",
+      "comprobaciones": [
+        {
+          "proposicion": "El órgano de contratación podrá no dividir en lotes el objeto del contrato cuando existan motivos válidos, que deberán justificarse debidamente en el expediente, salvo en los casos de contratos de concesión de servicios.",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "salvo en los casos de contratos de concesión de servicios",
+          "resultado": "DIFIERE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1742,
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El presupuesto base de licitación incluye el IVA; la opción C lo define correctamente según la evidencia.",
+      "comprobaciones": [
+        {
+          "proposicion": "Se entiende por presupuesto base de licitación el límite máximo de gasto que en virtud del contrato puede comprometer el órgano de contratación, incluido el Impuesto sobre el Valor Añadido, salvo disposición en contrario.",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1770,
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La evidencia indica que el personal funcionario se agrupa en cuerpos por funciones homogéneas.",
+      "comprobaciones": [
+        {
+          "proposicion": "se agrupa en cuerpos",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "por razón del carácter homogéneo de las funciones",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "competencias, capacidades y conocimientos comunes acreditados mediante procedimientos selectivos",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1791,
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "La evidencia dice que no está obligado a motivar y que su ausencia no es causa por sí sola de rechazo.",
+      "comprobaciones": [
+        {
+          "proposicion": "El solicitante no está obligado a motivar su solicitud de acceso a la información.",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "podrá exponer los motivos",
+          "resultado": "COINCIDE"
+        },
+        {
+          "proposicion": "la ausencia de motivación no será por si sola causa de rechazo de la solicitud",
+          "resultado": "COINCIDE"
+        }
+      ]
+    },
+    {
+      "pregunta_id": 1808,
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La evidencia establece que la ejecución de las obras comienza con el acta de comprobación del replanteo.",
+      "comprobaciones": [
+        {
+          "proposicion": "Con la suscripción del acta de comprobación del replanteo.",
+          "resultado": "COINCIDE"
+        }
+      ]
+    }
+  ]
+}

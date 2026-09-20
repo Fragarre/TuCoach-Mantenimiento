@@ -90,6 +90,8 @@ def id_bloque(fuente: auditor.Fuente, numero: int) -> str:
         return f"tue-art-{numero}"
     if fuente.id_fuente == "DOUE-C-2010-083-TFUE":
         return f"tfue-art-{numero}"
+    if fuente.id_fuente == "DOUE-C-2010-083-CARTA":
+        return f"carta-art-{numero}"
     raise RuntimeError(
         f"Fuente DOUE no configurada: {fuente.id_fuente}"
     )

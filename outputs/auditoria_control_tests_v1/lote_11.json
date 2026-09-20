@@ -1,0 +1,22 @@
+[
+  {
+    "pregunta_id": 22684,
+    "enunciado": "Qué recursos en vía administrativa son susceptibles de interponerse contra las resolucio- nes administrativas?",
+    "opciones": {
+      "A": "El recurso de alzada exclusivamente.",
+      "B": "Bien el recurso de alzada o el potestativo de revisión.",
+      "C": "Bien el recurso de alzada o el potestativo de reposición.",
+      "D": "Bien el recurso de alzada o el extraordinario de reposición."
+    },
+    "respuesta_almacenada": "C",
+    "norma": "LEY 39/2015",
+    "articulo_citado": "112.1",
+    "evidencia": {
+      "fuente": "BOE-A-2015-10565",
+      "bloque": "a112",
+      "titulo": "Artículo 112",
+      "texto": "Artículo 112. Objeto y clases. 1. Contra las resoluciones y los actos de trámite, si estos últimos deciden directa o indirectamente el fondo del asunto, determinan la imposibilidad de continuar el procedimiento, producen indefensión o perjuicio irreparable a derechos e intereses legítimos, podrán interponerse por los interesados los recursos de alzada y potestativo de reposición, que cabrá fundar en cualquiera de los motivos de nulidad o anulabilidad previstos en los artículos 47 y 48 de esta Ley. La oposición a los restantes actos de trámite podrá alegarse por los interesados para su consideración en la resolución que ponga fin al procedimiento. 2. Las leyes podrán sustituir el recurso de alzada, en supuestos o ámbitos sectoriales determinados, y cuando la especificidad de la materia así lo justifique, por otros procedimientos de impugnación, reclamación, conciliación, mediación y arbitraje, ante órganos colegiados o Comisiones específicas no sometidas a instrucciones jerárquicas, con respeto a los principios, garantías y plazos que la presente Ley reconoce a las personas y a los interesados en todo procedimiento administrativo. En las mismas condiciones, el recurso de reposición podrá ser sustituido por los procedimientos a que se refiere el párrafo anterior, respetando su carácter potestativo para el interesado. La aplicación de estos procedimientos en el ámbito de la Administración Local no podrá suponer el desconocimiento de las facultades resolutorias reconocidas a los órganos representativos electos establecidos por la Ley. 3. Contra las disposiciones administrativas de carácter general no cabrá recurso en vía administrativa. Los recursos contra un acto administrativo que se funden únicamente en la nulidad de alguna disposición administrativa de carácter general podrán interponerse directamente ante el órgano que dictó dicha disposición. 4. Las reclamaciones económico-administrativas se ajustarán a los procedimientos establecidos por su legislación específica.",
+      "hash": "0a7e602c81cfc454b9eca9114e63ffca75f17e73b22cd512daddb0f382346a30"
+    }
+  }
+]

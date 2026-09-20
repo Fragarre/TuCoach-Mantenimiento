@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 3034,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye pérdida de confidencialidad de datos sujetos al secreto profesional."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Abarca tratamiento no meramente incidental de categorías especiales."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye evaluación de aspectos personales para crear o usar perfiles."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Mayor riesgo en transferencias habituales a terceros sin nivel adecuado."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La opción D es la incorrecta según el supuesto descrito."
+    },
+    {
+      "pregunta_id": 3044,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No menciona participación en los del Estado y CCAA."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La CE no cita tasas como nutriente fundamental."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La CE indica tributos propios y participación en del Estado y CCAA."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No incluye subvenciones como fuente fundamental en el precepto."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "Coincide literalmente con el artículo 142 de la Constitución."
+    },
+    {
+      "pregunta_id": 3066,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "No figura como función: no se atribuye firmar decretos."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se establece asistir a las reuniones del Consell."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se recoge ejecutar los acuerdos del Consell en sus competencias."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se recoge resolver conflictos de atribuciones en su Consellería."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La única función no prevista en el artículo es firmar decretos."
+    },
+    {
+      "pregunta_id": 3126,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo es de dos meses a cuatro meses, no 3-5."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "Incluye límites temporales distintos a los de la norma."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La norma prevé jubilación por incapacidad permanente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "La revisión es anual; no indica revisiones como en las prórrogas."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "La opción C coincide con el apartado 6 del artículo 73."
+    },
+    {
+      "pregunta_id": 3131,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo 142 señala medios suficientes y funciones por ley."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "El artículo 142 indica tributos propios y participación en Estado y CCAA."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "La CE no afirma que CCAA carezcan de tributos propios."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Hay al menos una afirmación verdadera."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "Es verdadera según el tenor literal del artículo 142."
+    }
+  ]
+}

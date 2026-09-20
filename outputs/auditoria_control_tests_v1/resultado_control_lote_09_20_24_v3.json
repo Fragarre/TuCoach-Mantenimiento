@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 15045,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye educación, sanidad y servicios sociales esenciales."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Añade educación obligatoria, no mencionada en la norma."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Usa sanidad básica, y la norma dice sanidad."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Cambia servicios sociales esenciales por servicios sociales fundamentales."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La norma define servicios públicos fundamentales: educación, sanidad y servicios sociales esenciales."
+    },
+    {
+      "pregunta_id": 15057,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Falta la mención de la libre circulación de bienes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Coincide con el artículo 139.2: personas y bienes."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Incluye libertad de establecimiento, no citada como tal."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No todas las anteriores son verdaderas."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 139.2 menciona personas y bienes; la opción B lo refleja correctamente."
+    },
+    {
+      "pregunta_id": 15077,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye libertad de circulación y establecimiento de personas."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye libre circulación de bienes en todo el territorio."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Incluye circulación y establecimiento de personas y bienes."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "“Todas las anteriores” es verdadera si A-C lo son."
+        }
+      ],
+      "opcion_evidencia": null,
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "Según la evidencia, ninguna opción cumple “no verdadera”: A, B y C coinciden."
+    },
+    {
+      "pregunta_id": 15216,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Rumanía y Bulgaria ingresan el 1 enero 2007."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Eslovenia ingresó el 1 enero 2004."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Rumanía y Bulgaria ingresan el 1 enero 2007; no encaja."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Croacia ingresó el 1 de julio de 2013."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "UNICA",
+      "motivo": "La configuración culmina con la adhesión de Croacia el 1 de julio de 2013."
+    },
+    {
+      "pregunta_id": 15220,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Divide competencias en exclusivas, compartidas y apoyo/coord/complemento."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "Confunde competencias con funciones legislativas, ejecutivas y judiciales."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "No existen categorías como “sancionadoras” en esa clasificación."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No corresponde a la clasificación del TFUE sobre tipos de competencias."
+        }
+      ],
+      "opcion_evidencia": "A",
+      "certeza": "UNICA",
+      "motivo": "La categoría de competencias incluye exclusivas, compartidas y de apoyo/coord/complemento."
+    }
+  ]
+}

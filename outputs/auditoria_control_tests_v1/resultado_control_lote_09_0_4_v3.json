@@ -1,0 +1,144 @@
+{
+  "resultados": [
+    {
+      "pregunta_id": 13807,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "Artículo 65 inicia con reconocimiento del derecho, no obligación/pago."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Artículo 65: reconocimiento del derecho y propuesta de ingreso."
+        },
+        {
+          "letra": "C",
+          "veredicto": "FALSA",
+          "justificacion": "Orden incorrecto: no es obligación y orden de ingreso."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "Inicia con reconocimiento del derecho, no reconocimiento del ingreso."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 65 enumera reconocimiento del derecho y propuesta de ingreso."
+    },
+    {
+      "pregunta_id": 13849,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "Estatuto prevé protección a quienes sufren daños por catástrofes."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Estatuto garantiza solidaridad y renta de ciudadanía en ley."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Estatuto garantiza acceso a una vivienda digna."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "No es cierto que ninguna o todas sean verdaderas."
+        }
+      ],
+      "opcion_evidencia": "D",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "No hay base suficiente para asegurar que D sea falsa o verdadera globalmente."
+    },
+    {
+      "pregunta_id": 13852,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "VERDADERA",
+          "justificacion": "El nivel administrativo puede organizarse en unidades y otras necesarias."
+        },
+        {
+          "letra": "B",
+          "veredicto": "FALSA",
+          "justificacion": "La única Secretaría General Administrativa depende de la Subsecretaría, no de Secretaría Autonómica."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "Se permite que excepcionalmente unidades dependan directamente del Conseller."
+        },
+        {
+          "letra": "D",
+          "veredicto": "VERDADERA",
+          "justificacion": "Función: prestar apoyo directo al titular de la Subsecretaría."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "UNICA",
+      "motivo": "El artículo 73 sitúa la Secretaría General Administrativa bajo la Subsecretaría."
+    },
+    {
+      "pregunta_id": 13885,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "FALSA",
+          "justificacion": "El plazo es diez días, no 20 días."
+        },
+        {
+          "letra": "B",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo 40 no regula el número de reintentos por rechazo."
+        },
+        {
+          "letra": "C",
+          "veredicto": "VERDADERA",
+          "justificacion": "La notificación debe contener expresión de recursos y órgano competente."
+        },
+        {
+          "letra": "D",
+          "veredicto": "FALSA",
+          "justificacion": "La ley admite notificaciones; no prohíbe telemáticas en general."
+        }
+      ],
+      "opcion_evidencia": "C",
+      "certeza": "UNICA",
+      "motivo": "El artículo 40 exige incluir recursos que proceden en la notificación."
+    },
+    {
+      "pregunta_id": 13907,
+      "opciones": [
+        {
+          "letra": "A",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo 96 no fija fecha de presentación ante Les Corts."
+        },
+        {
+          "letra": "B",
+          "veredicto": "VERDADERA",
+          "justificacion": "Tras presentarse al Consell, se publican en la web según artículo 96."
+        },
+        {
+          "letra": "C",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo 96 indica primero presentación al Consell y luego publicación en web."
+        },
+        {
+          "letra": "D",
+          "veredicto": "NO_DETERMINABLE",
+          "justificacion": "El artículo 96 no establece publicación en DOGV para estos informes."
+        }
+      ],
+      "opcion_evidencia": "B",
+      "certeza": "NO_DETERMINABLE",
+      "motivo": "La secuencia exacta es (Consell → web), y la opción B omite esa condición."
+    }
+  ]
+}

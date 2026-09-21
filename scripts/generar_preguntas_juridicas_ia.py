@@ -84,6 +84,72 @@ class ContextoReferencia:
     texto_articulo: str
 
 
+def es_fuente_doctrinal_gen(ctx: ContextoReferencia) -> bool:
+    """Indica si la referencia procede de un documento doctrinal GEN."""
+    return str(ctx.nombre_norma_csv or "").strip().casefold().startswith("gen-")
+
+
+def bloque_fuente_prompt(ctx: ContextoReferencia) -> str:
+    """Presenta la fuente con la semántica que corresponde a su naturaleza."""
+    if es_fuente_doctrinal_gen(ctx):
+        return f"""FUENTE DOCTRINAL DE ESTUDIO
+Documento: {ctx.nombre_norma_csv}
+Tema: {ctx.numero_tema}. {ctx.titulo_tema}
+Unidad doctrinal: {ctx.articulo_solicitado}"""
+    return f"""FUENTE OFICIAL ÚNICA
+Norma: {ctx.nombre_norma_csv}
+Artículo: {ctx.articulo_solicitado}"""
+
+
+def reglas_fuente_prompt(
+    ctx: ContextoReferencia,
+    para_generacion: bool = False,
+) -> str:
+    """Reglas reutilizables para impedir que una unidad GEN se trate como ley."""
+    if not es_fuente_doctrinal_gen(ctx):
+        return ""
+    accion_contenido_citado = (
+        "No generes una pregunta que dependa"
+        if para_generacion
+        else "Rechaza toda candidata que dependa"
+    )
+    return f"""
+REGLAS ESPECÍFICAS DE LA FUENTE DOCTRINAL GEN
+- Es un documento doctrinal de estudio, no una disposición normativa.
+- "Unidad doctrinal {ctx.articulo_solicitado}" es una división técnica del
+  documento, NO un artículo; su número debe conservarse como referencia técnica.
+- El único material permitido para responder es el texto de esa unidad.
+- Evalúa solo conceptos, relaciones, distinciones y consecuencias respaldados
+  por ese texto.
+- No presentes la unidad como una disposición jurídica: no uses "según el
+  artículo", "conforme al artículo", "de acuerdo con el artículo", "según la
+  ley", "conforme a la ley", "de acuerdo con la ley", "según la norma",
+  "conforme a la norma" ni fórmulas equivalentes.
+- Una ley, norma o artículo real citado en el texto puede explicar el contenido
+  doctrinal, pero no puede ser el objeto autónomo de la pregunta.
+  {accion_contenido_citado} de su tenor literal, número o contenido específico.
+- articulo_referencia debe conservar la unidad técnica seleccionada:
+  {ctx.articulo_solicitado}; nunca un artículo legal citado dentro del texto.
+""".strip()
+
+
+def denominacion_fuente_prompt(ctx: ContextoReferencia) -> str:
+    return "fuente doctrinal" if es_fuente_doctrinal_gen(ctx) else "fuente oficial"
+
+
+def denominacion_referencia_prompt(ctx: ContextoReferencia) -> str:
+    return "unidad doctrinal suministrada" if es_fuente_doctrinal_gen(ctx) else "artículo suministrado"
+
+
+def instruccion_referencia_prompt(ctx: ContextoReferencia) -> str:
+    if es_fuente_doctrinal_gen(ctx):
+        return (
+            "Devuelve como articulo_referencia la unidad técnica seleccionada: "
+            f"{ctx.articulo_solicitado}."
+        )
+    return "Devuelve la referencia más precisa dentro del artículo."
+
+
 def ahora_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
@@ -1047,6 +1113,25 @@ def construir_prompt_generacion(
     tipo = (tipo_pregunta or "").strip().upper()
 
     if tipo == "PRACTICA":
+        regla_aplicacion = (
+            "2. Para contestar hay que aplicar el contenido de la fuente a esos hechos."
+            if es_fuente_doctrinal_gen(ctx)
+            else "2. Para contestar hay que aplicar el artículo a esos hechos."
+        )
+        regla_fuente_suministrada = (
+            """6. NO se exige usar varias leyes: toda la solución debe salir de la fuente
+   suministrada."""
+            if es_fuente_doctrinal_gen(ctx)
+            else """6. NO se exige usar varias leyes: toda la solución debe salir de la fuente
+   oficial suministrada."""
+        )
+        regla_fuente_insuficiente = (
+            """8. Si la fuente no ofrece contenido suficiente para construir un supuesto
+   práctico de dificultad ALTA/MUY ALTA sin inventar contenido externo, devuelve"""
+            if es_fuente_doctrinal_gen(ctx)
+            else """8. Si el artículo no ofrece contenido suficiente para construir un supuesto
+   práctico de dificultad ALTA/MUY ALTA sin inventar normativa, devuelve"""
+        )
         instrucciones_tipo = """
 TIPO OBLIGATORIO: PRACTICA.
 
@@ -1054,7 +1139,7 @@ Crea un SUPUESTO PRÁCTICO real de oposición, no una pregunta teórica adornada
 
 Debe cumplir TODOS estos criterios:
 1. Presenta una situación concreta con hechos jurídicamente relevantes.
-2. Para contestar hay que aplicar el artículo a esos hechos.
+{regla_aplicacion}
 3. Incluye, cuando el texto lo permita, AL MENOS DOS datos o condiciones
    jurídicamente relevantes del supuesto (por ejemplo: sujeto + plazo,
    porcentaje + consecuencia, requisito + excepción, órgano + actuación).
@@ -1062,33 +1147,41 @@ Debe cumplir TODOS estos criterios:
    de hechos, no de una redacción confusa.
 5. Los distractores deben modificar de forma sutil un dato decisivo:
    plazo, sujeto, porcentaje, órgano, requisito, excepción o efecto.
-6. NO se exige usar varias leyes: toda la solución debe salir de la fuente
-   oficial suministrada.
+{regla_fuente_suministrada}
 7. Una aplicación directa de una regla a hechos concretos SÍ es práctica,
    pero para dificultad ALTA/MUY ALTA evita casos triviales de un solo dato.
-8. Si el artículo no ofrece contenido suficiente para construir un supuesto
-   práctico de dificultad ALTA/MUY ALTA sin inventar normativa, devuelve
+{regla_fuente_insuficiente}
    no_apta_practica=true.
 
 No uses conocimientos jurídicos externos aunque los conozcas.
-""".strip()
+""".format(
+            regla_aplicacion=regla_aplicacion,
+            regla_fuente_suministrada=regla_fuente_suministrada,
+            regla_fuente_insuficiente=regla_fuente_insuficiente,
+        ).strip()
     else:
+        descripcion_teorica = (
+            "Evalúa conocimiento directo del texto suministrado, con dificultad\n"
+            "ALTA/MUY ALTA, distractores plausibles y sin contenido externo."
+            if es_fuente_doctrinal_gen(ctx)
+            else "Evalúa conocimiento jurídico directo del texto oficial, con dificultad\n"
+            "ALTA/MUY ALTA, distractores plausibles y sin normativa externa."
+        )
         instrucciones_tipo = """
 TIPO OBLIGATORIO: TEORICA.
 
-Evalúa conocimiento jurídico directo del texto oficial, con dificultad
-ALTA/MUY ALTA, distractores plausibles y sin normativa externa.
-""".strip()
+{descripcion_teorica}
+""".format(descripcion_teorica=descripcion_teorica).strip()
 
     return f"""
 Actúas como redactor experto de preguntas de oposición.
 
-FUENTE OFICIAL ÚNICA
-Norma: {ctx.nombre_norma_csv}
-Artículo: {ctx.articulo_solicitado}
+{bloque_fuente_prompt(ctx)}
 ---
 {ctx.texto_articulo}
 ---
+
+{reglas_fuente_prompt(ctx, para_generacion=True)}
 
 EJEMPLOS EXISTENTES DEL BANCO
 {ejemplos_json}
@@ -1099,10 +1192,10 @@ REGLAS COMUNES
 - Una sola pregunta nueva.
 - Cuatro opciones A/B/C/D y exactamente una correcta.
 - La correcta y la falsedad de los distractores deben poder comprobarse
-  EXCLUSIVAMENTE con la fuente oficial anterior.
+  EXCLUSIVAMENTE con la {denominacion_fuente_prompt(ctx)} anterior.
 - No copies ni reformules de cerca los ejemplos.
 - No inventes plazos, órganos, excepciones, requisitos ni consecuencias.
-- Devuelve la referencia más precisa dentro del artículo.
+- {instruccion_referencia_prompt(ctx)}
 
 Devuelve SOLO JSON:
 {{
@@ -1142,17 +1235,43 @@ def construir_prompt_validacion(
         ensure_ascii=False,
         indent=2,
     )
+    es_gen = es_fuente_doctrinal_gen(ctx)
+    correccion = (
+        "La respuesta marcada es correcta según la fuente."
+        if es_gen
+        else "La respuesta marcada es jurídicamente correcta según la fuente."
+    )
+    referencia = (
+        "articulo_referencia identifica con precisión la unidad doctrinal técnica "
+        "seleccionada."
+        if es_gen
+        else "articulo_referencia identifica con precisión el artículo/apartado aplicable."
+    )
+    aplicacion_practica = (
+        "debe existir un supuesto concreto y ser necesario aplicar el contenido\n"
+        "   de la fuente a esos hechos"
+        if es_gen
+        else "debe existir un supuesto concreto y ser necesario aplicar la norma\n"
+        "   a esos hechos"
+    )
+    practica_directa = (
+        """- NO las rechaces por ser una aplicación directa del contenido de la fuente a hechos.
+- Un contenido expreso aplicado a un supuesto concreto sigue siendo práctico."""
+        if es_gen
+        else """- NO las rechaces por ser una aplicación directa del artículo a hechos.
+- Una regla literal aplicada a un supuesto concreto sigue siendo práctica."""
+    )
 
     return f"""
 Actúas como revisor jurídico independiente.
 Revisión nº {numero_revision}.
 
-FUENTE OFICIAL ÚNICA
-Norma: {ctx.nombre_norma_csv}
-Artículo: {ctx.articulo_solicitado}
+{bloque_fuente_prompt(ctx)}
 ---
 {ctx.texto_articulo}
 ---
+
+{reglas_fuente_prompt(ctx)}
 
 EJEMPLOS EXISTENTES PARA DETECTAR CLONACIÓN
 {ejemplos_json}
@@ -1161,21 +1280,19 @@ CANDIDATA
 {pregunta_json}
 
 Comprueba EXCLUSIVAMENTE:
-1. La respuesta marcada es jurídicamente correcta según la fuente.
+1. {correccion}
 2. Los otros tres distractores son inequívocamente falsos según la fuente.
 3. No se usa información jurídica externa.
 4. La dificultad es ALTA/MUY ALTA por la proximidad de los distractores,
    condiciones, excepciones, sujetos, plazos, porcentajes o efectos.
 5. No es clon ni paráfrasis cercana de los ejemplos.
-6. articulo_referencia identifica con precisión el artículo/apartado aplicable.
+6. {referencia}
 7. El tipo real de la pregunta coincide con CANDIDATA.tipo_pregunta. Si declara
-   PRACTICA, debe existir un supuesto concreto y ser necesario aplicar la norma
-   a esos hechos; una pregunta puramente literal no cumple este criterio. Si
+   PRACTICA, {aplicacion_practica}; una pregunta puramente literal no cumple este criterio. Si
    declara TEORICA, no debe depender de resolver un supuesto práctico.
 
 IMPORTANTE PARA CANDIDATAS PRACTICAS:
-- NO las rechaces por ser una aplicación directa del artículo a hechos.
-- Una regla literal aplicada a un supuesto concreto sigue siendo práctica.
+{practica_directa}
 - El tipo PRACTICA no exige varias leyes ni una inferencia compleja.
 - Si consideras que el caso es demasiado fácil, refleja eso SOLO en
   "dificultad"; no lo conviertas artificialmente en un error de tipo.
@@ -1221,6 +1338,22 @@ def construir_prompt_desempate(
         ensure_ascii=False,
         indent=2,
     )
+    es_gen = es_fuente_doctrinal_gen(ctx)
+    coincidencia = (
+        "coincide con el contenido de la fuente"
+        if es_gen
+        else "coincide con la norma"
+    )
+    informacion_necesaria = (
+        "información necesaria no contenida en la fuente"
+        if es_gen
+        else "información jurídica necesaria no contenida en la fuente"
+    )
+    referencia_material = (
+        "referencia materialmente incorrecta respecto de la unidad doctrinal seleccionada"
+        if es_gen
+        else "referencia jurídica materialmente incorrecta"
+    )
 
     return f"""
 Actúas como TERCER REVISOR DE DESEMPATE de una pregunta de oposición.
@@ -1228,12 +1361,12 @@ Actúas como TERCER REVISOR DE DESEMPATE de una pregunta de oposición.
 Tu misión NO es volver a redactar la pregunta ni ser más exigente que los
 revisores anteriores. Debes resolver una discrepancia entre dos validaciones.
 
-FUENTE OFICIAL ÚNICA
-Norma: {ctx.nombre_norma_csv}
-Artículo: {ctx.articulo_solicitado}
+{bloque_fuente_prompt(ctx)}
 ---
 {ctx.texto_articulo}
 ---
+
+{reglas_fuente_prompt(ctx)}
 
 PREGUNTAS EXISTENTES PARA DETECTAR CLONACIÓN
 {ejemplos_json}
@@ -1248,24 +1381,24 @@ VALIDACIÓN 2
 {v2_json}
 
 REGLAS DE DESEMPATE
-1. Comprueba por ti mismo la pregunta usando exclusivamente la fuente oficial.
+1. Comprueba por ti mismo la pregunta usando exclusivamente la {denominacion_fuente_prompt(ctx)}.
 2. No des por correcta ninguna observación de los validadores por el mero hecho
    de que aparezca escrita.
 3. Si un validador marca "distractores=ERROR" pero en sus propias observaciones
    explica que los tres distractores son falsos, considera esa validación
    internamente incongruente.
 4. Si un validador marca correccion_juridica=ERROR pero su explicación afirma
-   que la respuesta correcta coincide con la norma, considera esa validación
+   que la respuesta correcta {coincidencia}, considera esa validación
    internamente incongruente.
 5. No rechaces por cuestiones meramente estilísticas, por preferencia de
    redacción ni por una interpretación más elegante.
 6. Rechaza solo por DEFECTO MATERIAL:
    - respuesta marcada incorrecta;
    - al menos un distractor también correcto o realmente ambiguo;
-   - información jurídica necesaria no contenida en la fuente;
+   - {informacion_necesaria};
    - dificultad claramente insuficiente;
    - clonación real o paráfrasis demasiado cercana;
-   - referencia jurídica materialmente incorrecta;
+   - {referencia_material};
    - tipo real de pregunta distinto del declarado en CANDIDATA.tipo_pregunta.
 7. En preguntas PRACTICAS, una aplicación directa de una regla a hechos
    concretos es válida. No exijas varias leyes ni razonamiento complejo.
@@ -1445,16 +1578,28 @@ def construir_prompt_auditoria_ciega(
         "tipo_pregunta": pregunta.get("tipo_pregunta"),
         "articulo_referencia": pregunta.get("articulo_referencia"),
     }
+    no_decidible = (
+        """usa si no puede decidirse solo con la fuente, sin otro texto, definición
+   externa o interpretación discutible."""
+        if es_fuente_doctrinal_gen(ctx)
+        else """usa si no puede decidirse solo con la fuente, sin otra norma, artículo,
+   definición externa o interpretación discutible."""
+    )
+    referencia_auditoria = (
+        "Comprueba si la referencia propuesta corresponde a la unidad doctrinal seleccionada."
+        if es_fuente_doctrinal_gen(ctx)
+        else "Comprueba si la referencia propuesta pertenece al artículo suministrado."
+    )
     return f"""
 Actúas como AUDITOR JURÍDICO CIEGO e independiente de una pregunta de oposición.
 Revisión {numero_revision}. No conoces la respuesta que marcó el generador.
 
-FUENTE OFICIAL ÚNICA
-Norma: {ctx.nombre_norma_csv}
-Artículo: {ctx.articulo_solicitado}
+{bloque_fuente_prompt(ctx)}
 ---
 {ctx.texto_articulo}
 ---
+
+{reglas_fuente_prompt(ctx)}
 
 CANDIDATA
 {json.dumps(candidata, ensure_ascii=False, indent=2)}
@@ -1463,8 +1608,7 @@ AUDITORÍA OBLIGATORIA
 1. Lee con especial cuidado si el enunciado pide la opción CORRECTA,
    INCORRECTA, FALSA, EXCEPTO o contiene una negación.
 2. Clasifica cada opción como CORRECTA, FALSA o NO_DECIDIBLE. Esta última se
-   usa si no puede decidirse solo con la fuente, sin otra norma, artículo,
-   definición externa o interpretación discutible.
+   {no_decidible}
 3. Para CADA opción aporta evidencia_literal: el fragmento mínimo exacto de la
    fuente que la demuestra, o indica expresamente por qué falta evidencia.
 4. Indica si existe exactamente una opción correcta. No fuerces una respuesta:
@@ -1472,7 +1616,7 @@ AUDITORÍA OBLIGATORIA
    respuesta_unica=false.
 5. Comprueba condiciones acumulativas (Y), alternativas (O), plazos, sujetos,
    excepciones y consecuencias. No simplifiques un párrafo con varias condiciones.
-6. Comprueba si la referencia propuesta pertenece al artículo suministrado.
+6. {referencia_auditoria}
 7. No uses memoria, conocimiento general ni fuentes externas. No corrijas ni
    reescribas la candidata.
 

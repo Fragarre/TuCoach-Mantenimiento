@@ -13,6 +13,7 @@ Ejecución:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -816,6 +817,215 @@ def auditar_vigencia_preguntas() -> None:
     )
     pausa()
 
+def publicar_bd_streamlit_git(carpeta_streamlit: Path) -> bool:
+    """Publica exclusivamente la SQLite de Streamlit en origin/main."""
+    bd_relativa = "db/oposiciones.sqlite3"
+    origin_esperado = "https://github.com/Fragarre/TuCoach-Streamlit.git"
+
+    def git(*args: str, capturar: bool = True) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *args],
+            cwd=carpeta_streamlit,
+            check=False,
+            text=True,
+            capture_output=capturar,
+        )
+
+    print("\nCOMPROBACION PREVIA DE GIT / STREAMLIT CLOUD")
+    print("-" * 78)
+
+    rama = git("branch", "--show-current")
+    if rama.returncode != 0 or rama.stdout.strip() != "main":
+        print("ERROR: TuCoach-Streamlit no esta en la rama main.")
+        return False
+
+    origin = git("remote", "get-url", "origin")
+    if origin.returncode != 0 or origin.stdout.strip().rstrip("/") != origin_esperado.rstrip("/"):
+        print("ERROR: el remote origin de TuCoach-Streamlit no es el esperado.")
+        return False
+
+    fetch = git("fetch", "origin", capturar=False)
+    if fetch.returncode != 0:
+        print("ERROR: git fetch origin ha fallado.")
+        return False
+
+    divergencia = git(
+        "rev-list",
+        "--left-right",
+        "--count",
+        "HEAD...origin/main",
+    )
+    if divergencia.returncode != 0:
+        print("ERROR: no se pudo determinar la divergencia con origin/main.")
+        return False
+
+    partes = divergencia.stdout.split()
+    if len(partes) != 2 or not all(x.isdigit() for x in partes):
+        print("ERROR: respuesta Git inesperada al comprobar divergencia.")
+        return False
+
+    locales, remotos = map(int, partes)
+
+    if (locales, remotos) == (1, 0):
+        estado_pendiente = git("status", "--porcelain", "--untracked-files=all")
+        staged_pendiente = git("diff", "--cached", "--name-only")
+        if estado_pendiente.returncode != 0 or staged_pendiente.returncode != 0:
+            print("ERROR: no se pudo validar el commit local pendiente.")
+            return False
+        if estado_pendiente.stdout.strip() or staged_pendiente.stdout.strip():
+            print("ERROR: hay cambios adicionales junto al commit local pendiente.")
+            return False
+
+        mensaje_pendiente = git("log", "-1", "--pretty=%s")
+        archivos_pendientes = git(
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            "HEAD",
+        )
+        padre_pendiente = git("rev-parse", "HEAD^")
+        remoto_actual = git("rev-parse", "origin/main")
+
+        if any(
+            resultado.returncode != 0
+            for resultado in (
+                mensaje_pendiente,
+                archivos_pendientes,
+                padre_pendiente,
+                remoto_actual,
+            )
+        ):
+            print("ERROR: no se pudo identificar con seguridad el commit pendiente.")
+            return False
+
+        archivos = [
+            x.strip()
+            for x in archivos_pendientes.stdout.splitlines()
+            if x.strip()
+        ]
+        commit_seguro = (
+            mensaje_pendiente.stdout.strip() == "Actualizar contenidos Streamlit"
+            and archivos == [bd_relativa]
+            and padre_pendiente.stdout.strip() == remoto_actual.stdout.strip()
+        )
+        if not commit_seguro:
+            print("ERROR: el commit local pendiente no pertenece a esta automatizacion.")
+            print("No se realiza ningun push automatico.")
+            return False
+
+        print("\nHay un commit de Streamlit pendiente de publicar.")
+        if not pedir_si_no("Reintentar git push origin main?"):
+            print("Publicacion pendiente conservada sin cambios.")
+            return False
+
+        push_pendiente = git("push", "origin", "main", capturar=False)
+        if push_pendiente.returncode != 0:
+            print("ERROR: el reintento de git push ha fallado.")
+            return False
+
+        if git("fetch", "origin", capturar=False).returncode != 0:
+            print("ERROR: push realizado, pero fallo la verificacion remota.")
+            return False
+
+        divergencia_final = git(
+            "rev-list",
+            "--left-right",
+            "--count",
+            "HEAD...origin/main",
+        )
+        if divergencia_final.returncode != 0 or divergencia_final.stdout.split() != ["0", "0"]:
+            print("ERROR: no se pudo confirmar la sincronizacion tras el push.")
+            return False
+
+        print("Commit pendiente publicado y verificado.")
+        return True
+
+    if (locales, remotos) != (0, 0):
+        print(
+            "ERROR: divergencia Git no segura: "
+            f"locales={locales}, remotos={remotos}. No se publica."
+        )
+        return False
+
+    staged_previo = git("diff", "--cached", "--name-only")
+    if staged_previo.returncode != 0:
+        print("ERROR: no se pudo comprobar el staging previo.")
+        return False
+    if staged_previo.stdout.strip():
+        print("ERROR: ya existen archivos en staging. No se publica.")
+        return False
+
+    estado = git("status", "--porcelain", "--untracked-files=all")
+    if estado.returncode != 0:
+        print("ERROR: no se pudo comprobar el estado Git.")
+        return False
+
+    lineas = [line for line in estado.stdout.splitlines() if line.strip()]
+    permitidas = {f" M {bd_relativa}", f"M  {bd_relativa}"}
+    inesperadas = [line for line in lineas if line not in permitidas]
+
+    if inesperadas:
+        print("ERROR: hay cambios inesperados en TuCoach-Streamlit:")
+        for line in inesperadas:
+            print(f"  {line}")
+        print("No se ha preparado ni publicado ningun commit.")
+        return False
+
+    if not lineas:
+        print("La base de Streamlit ya coincide con Git. No hay nada que publicar.")
+        return True
+
+    print(f"Unico cambio detectado: {bd_relativa}")
+    if not pedir_si_no("Publicar esta base en GitHub / Streamlit Cloud?"):
+        print("Publicacion Cloud cancelada. La copia local se conserva.")
+        return True
+
+    add = git("add", "--", bd_relativa, capturar=False)
+    if add.returncode != 0:
+        print("ERROR: git add de la SQLite ha fallado.")
+        return False
+
+    staged = git("diff", "--cached", "--name-only")
+    staged_files = [x.strip() for x in staged.stdout.splitlines() if x.strip()]
+    if staged.returncode != 0 or staged_files != [bd_relativa]:
+        git("reset", "--", bd_relativa, capturar=False)
+        print("ERROR: el staging no contiene exclusivamente la SQLite esperada.")
+        return False
+
+    commit = git("commit", "-m", "Actualizar contenidos Streamlit", capturar=False)
+    if commit.returncode != 0:
+        git("reset", "--", bd_relativa, capturar=False)
+        print("ERROR: no se pudo crear el commit de Streamlit.")
+        print("La SQLite se ha devuelto a estado no staged.")
+        return False
+
+    push = git("push", "origin", "main", capturar=False)
+    if push.returncode != 0:
+        print("ERROR: el commit existe localmente, pero git push ha fallado.")
+        print("Revisa el repositorio antes de volver a publicar.")
+        return False
+
+    if git("fetch", "origin", capturar=False).returncode != 0:
+        print("ERROR: push realizado, pero fallo la verificacion remota final.")
+        return False
+
+    head_final = git("rev-parse", "HEAD")
+    remoto_final = git("rev-parse", "origin/main")
+    if (
+        head_final.returncode != 0
+        or remoto_final.returncode != 0
+        or head_final.stdout.strip() != remoto_final.stdout.strip()
+    ):
+        print("ERROR: no se pudo confirmar HEAD == origin/main tras el push.")
+        return False
+
+    print("\nPublicacion Git completada y verificada.")
+    print(f"Commit: {head_final.stdout.strip()}")
+    print("Streamlit Cloud recibira esta revision desde GitHub.")
+    return True
+
+
 def actualizar_bd_tucoach() -> None:
     """
     Copia la base de datos de TuCoach-Mantenimiento a TuCoach.
@@ -824,7 +1034,7 @@ def actualizar_bd_tucoach() -> None:
         TuCoach/db/copias_seguridad/
     """
     origen = RAIZ / "db" / "oposiciones.sqlite3"
-    carpeta_tucoach = RAIZ.parent / "TuCoach"
+    carpeta_tucoach = RAIZ.parent / "TuCoach-Streamlit"
     destino = carpeta_tucoach / "db" / "oposiciones.sqlite3"
     carpeta_copias = carpeta_tucoach / "db" / "copias_seguridad"
 
@@ -897,8 +1107,25 @@ def actualizar_bd_tucoach() -> None:
                 "El tamaño del archivo copiado no coincide con el origen."
             )
 
+        def sha256(ruta: Path) -> str:
+            h = hashlib.sha256()
+            with ruta.open("rb") as f:
+                for bloque in iter(lambda: f.read(1024 * 1024), b""):
+                    h.update(bloque)
+            return h.hexdigest()
+
+        hash_origen = sha256(origen)
+        hash_destino = sha256(destino)
+        if hash_origen != hash_destino:
+            raise RuntimeError(
+                "La copia no es identica al origen: SHA256 diferente."
+            )
+
         print("\nBase de datos actualizada correctamente.")
         print(f"Archivo actualizado:\n{destino}")
+        print(f"SHA256 verificado: {hash_destino}")
+
+        publicar_bd_streamlit_git(carpeta_tucoach)
 
     except Exception as error:
         print(f"\nERROR al actualizar la base de datos: {error}")
@@ -984,25 +1211,12 @@ def desplegar_publicacion_web_local_menu() -> None:
         pausa()
         return
 
-    print("Publicaciones disponibles")
+    snapshot, informe, version = publicaciones[0]
+    tamano_mb = snapshot.stat().st_size / (1024 * 1024)
+
+    print("Publicacion mas reciente seleccionada automaticamente")
     print("-" * 78)
-    for numero, (snapshot, _informe, version) in enumerate(publicaciones, 1):
-        tamano_mb = snapshot.stat().st_size / (1024 * 1024)
-        print(
-            f"{numero:>3}. {version}  "
-            f"{snapshot.name}  [{tamano_mb:.1f} MB]"
-        )
-    print("  0. Cancelar")
-
-    while True:
-        valor = input("Publicación: ").strip()
-        if valor == "0":
-            return
-        if valor.isdigit() and 1 <= int(valor) <= len(publicaciones):
-            break
-        print("Opción no válida.")
-
-    snapshot, informe, version = publicaciones[int(valor) - 1]
+    print(f"{version}  {snapshot.name}  [{tamano_mb:.1f} MB]")
 
     destino = (
         RAIZ.parent
@@ -1071,25 +1285,12 @@ def actualizar_publicacion_supabase_menu() -> None:
         pausa()
         return
 
-    print("Publicaciones disponibles")
+    snapshot, informe, version = publicaciones[0]
+    tamano_mb = snapshot.stat().st_size / (1024 * 1024)
+
+    print("Publicacion mas reciente seleccionada automaticamente")
     print("-" * 78)
-    for numero, (snapshot, _informe, version) in enumerate(publicaciones, 1):
-        tamano_mb = snapshot.stat().st_size / (1024 * 1024)
-        print(
-            f"{numero:>3}. {version}  "
-            f"{snapshot.name}  [{tamano_mb:.1f} MB]"
-        )
-    print("  0. Cancelar")
-
-    while True:
-        valor = input("Publicación: ").strip()
-        if valor == "0":
-            return
-        if valor.isdigit() and 1 <= int(valor) <= len(publicaciones):
-            break
-        print("Opción no válida.")
-
-    snapshot, informe, version = publicaciones[int(valor) - 1]
+    print(f"{version}  {snapshot.name}  [{tamano_mb:.1f} MB]")
 
     informe_salida = (
         RAIZ

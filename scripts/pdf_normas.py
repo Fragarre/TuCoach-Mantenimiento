@@ -538,13 +538,26 @@ def normalizar_articulo(articulo: str) -> str:
 
     return resultado
 
-def _encabezados(texto: str) -> list[tuple[int, int, str, str]]:
-    patron = re.compile(r"(?im)^[ \t]*art[ií]culo[ \t]+([^\n.]+(?:\.[0-9]+)?)[ \t]*\.?[ \t]*([^\n]*)$")
+def _encabezados(
+    texto: str,
+    *,
+    doctrinal: bool = False,
+) -> list[tuple[int, int, str, str]]:
+    if doctrinal:
+        patron = re.compile(
+            r"(?im)^[ \t]*unidad[ \t]+doctrinal[ \t]+([^\n.]+(?:\.[0-9]+)?)[ \t]*\.?[ \t]*([^\n]*)$"
+        )
+    else:
+        patron = re.compile(
+            r"(?im)^[ \t]*art[i\u00ed]culo[ \t]+([^\n.]+(?:\.[0-9]+)?)[ \t]*\.?[ \t]*([^\n]*)$"
+        )
+
     salida: list[tuple[int, int, str, str]] = []
     for m in patron.finditer(texto):
         bruto = m.group(1).strip()
         # Numérico, eventualmente 4.3.
         num = None
+
         mn = re.match(
             r"^(\d+(?:\.\d+)?)(?:\s+(bis|ter|quater))?\b",
             bruto,
@@ -564,36 +577,63 @@ def _encabezados(texto: str) -> list[tuple[int, int, str, str]]:
                     break
             if palabras:
                 num = _numero_palabras(" ".join(palabras))
+
         if not num:
             continue
+
         salida.append((m.start(), m.end(), num, m.group(2).strip()))
+
     return salida
 
 
-def _bloque_articulo(pdf: PDFNorma, articulo_solicitado: str) -> tuple[str, str, str]:
+def _bloque_articulo(
+    pdf: PDFNorma,
+    articulo_solicitado: str,
+) -> tuple[str, str, str]:
     solicitado = normalizar_articulo(articulo_solicitado)
     if solicitado == "ANEXO":
-        raise BOEError("La extracción automática de ANEXO completo no está habilitada para PDF genérico.")
+        raise BOEError(
+            "La extracción automática de ANEXO completo no está habilitada "
+            "para PDF genérico."
+        )
+
     base = solicitado
     texto = _texto_pdf(str(pdf.ruta.resolve()))
-    encabezados = _encabezados(texto)
+    es_gen = normalizar(pdf.ruta.stem).startswith("gen ")
+    encabezados = _encabezados(texto, doctrinal=es_gen)
     candidatos = [h for h in encabezados if h[2] == base]
+
     if not candidatos:
-        raise BOEError(f"No se encontró el artículo {base} en {pdf.ruta.name}.")
-    # Puede aparecer en índice o en una remisión al inicio de línea. Elegimos
-    # el bloque con mayor cuerpo real; el índice y las remisiones son mucho
-    # más cortos que el artículo normativo.
+        tipo_bloque = "unidad doctrinal" if es_gen else "artículo"
+        raise BOEError(
+            f"No se encontró la {tipo_bloque} {base} en {pdf.ruta.name}."
+        )
+
+    # Puede aparecer más de una coincidencia. Elegimos el bloque con mayor
+    # cuerpo real para evitar índices o remisiones breves.
     opciones: list[tuple[int, str, str]] = []
-    for inicio, _, _, titulo in candidatos:
-        siguientes = [h for h in encabezados if h[0] > inicio]
-        fin = siguientes[0][0] if siguientes else len(texto)
-        bloque = limpiar_texto(texto[inicio:fin])
+
+    for posicion, _, _, titulo in candidatos:
+        siguientes = [h for h in encabezados if h[0] > posicion]
+        fin_bloque = siguientes[0][0] if siguientes else len(texto)
+        bloque = limpiar_texto(texto[posicion:fin_bloque])
         opciones.append((len(normalizar(bloque)), titulo, bloque))
+
     opciones.sort(key=lambda x: x[0], reverse=True)
     longitud, titulo, bloque = opciones[0]
+
     if longitud < 20:
-        raise BOEError(f"El artículo {base} se localizó en {pdf.ruta.name}, pero quedó sin cuerpo suficiente.")
-    titulo_bloque = f"Artículo {base}" + (f". {titulo}" if titulo else "")
+        tipo_bloque = "unidad doctrinal" if es_gen else "artículo"
+        raise BOEError(
+            f"La {tipo_bloque} {base} se localizó en {pdf.ruta.name}, "
+            "pero quedó sin cuerpo suficiente."
+        )
+
+    prefijo = "Unidad doctrinal" if es_gen else "Artículo"
+    titulo_bloque = f"{prefijo} {base}" + (
+        f". {titulo}" if titulo else ""
+    )
+
     return base, titulo_bloque.strip(), bloque
 
 
@@ -628,23 +668,36 @@ def obtener_articulo_por_id(id_fuente: str, articulo: str) -> ArticuloBOE:
 def obtener_todos_articulos_por_id(id_fuente: str) -> list[ArticuloBOE]:
     pdf = buscar_norma_por_id(id_fuente)
     texto = _texto_pdf(str(pdf.ruta.resolve()))
-    encabezados = _encabezados(texto)
+    es_gen = normalizar(pdf.ruta.stem).startswith("gen ")
+    encabezados = _encabezados(texto, doctrinal=es_gen)
     candidatos = {int(h[2]) for h in encabezados if h[2].isdigit()}
-    # Las normas manejadas aquí numeran sus artículos correlativamente desde 1.
-    # Esto excluye remisiones internas que aparecen al inicio de línea como si
-    # fueran encabezados (p. ej. "Artículo 149...").
+
+    # Tanto los artículos normativos como las unidades doctrinales GEN se
+    # numeran correlativamente desde 1. En normas reales, esto además excluye
+    # remisiones internas que puedan parecer encabezados.
     ultimo = 0
     while ultimo + 1 in candidatos:
         ultimo += 1
+
     if ultimo == 0:
-        raise BOEError(f"No se pudo determinar la secuencia de artículos de {pdf.ruta.name}.")
+        tipo = "unidades doctrinales" if es_gen else "artículos"
+        raise BOEError(
+            f"No se pudo determinar la secuencia de {tipo} de {pdf.ruta.name}."
+        )
+
     numeros = [str(n) for n in range(1, ultimo + 1)]
     resultado: list[ArticuloBOE] = []
+
     for numero in numeros:
         try:
             resultado.append(obtener_articulo_por_id(id_fuente, numero))
         except BOEError:
             continue
+
     if not resultado:
-        raise BOEError(f"No se pudieron extraer artículos del PDF local {pdf.ruta.name}.")
+        tipo = "unidades doctrinales" if es_gen else "artículos"
+        raise BOEError(
+            f"No se pudieron extraer {tipo} del PDF local {pdf.ruta.name}."
+        )
+
     return resultado

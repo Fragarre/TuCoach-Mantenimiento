@@ -2316,6 +2316,96 @@ def actualizar_materiales_estudio_menu() -> None:
     pausa()
 
 
+def construir_materiales_convocatoria_menu() -> None:
+    cabecera_submenu(
+        "MATERIALES POR CONVOCATORIA",
+        "[PLAN → RAG → EXTRACTO → RESUMEN] Revisa las referencias del temario, "
+        "comprueba el corpus y crea extractos literales idempotentes. Los resúmenes "
+        "sólo se generan después de confirmación y con el presupuesto disponible.",
+    )
+    codigo = pedir_texto("Código exacto de convocatoria: ")
+    try:
+        with sqlite3.connect(
+            f"file:{(RAIZ / 'db' / 'oposiciones.sqlite3').as_posix()}?mode=ro",
+            uri=True,
+        ) as con:
+            convocatoria = con.execute(
+                "SELECT id, puesto FROM convocatorias WHERE codigo=? AND activa=1",
+                (codigo,),
+            ).fetchone()
+            if convocatoria is None:
+                print("ERROR: no existe una convocatoria activa con ese código.")
+                pausa()
+                return
+            filas = con.execute(
+                """
+                SELECT n.id, n.nombre_canonico, COUNT(DISTINCT tr.articulo_fuente_id)
+                FROM temarios t
+                JOIN temario_temas tt ON tt.temario_id=t.id
+                JOIN temario_referencias tr ON tr.tema_id=tt.id
+                JOIN normas n ON n.id=tr.norma_id
+                WHERE t.convocatoria_id=? AND tr.norma_id IS NOT NULL
+                GROUP BY n.id, n.nombre_canonico
+                ORDER BY UPPER(n.nombre_canonico), n.id
+                """,
+                (convocatoria[0],),
+            ).fetchall()
+    except sqlite3.Error as error:
+        print(f"ERROR: no se han podido consultar las normas: {error}")
+        pausa()
+        return
+
+    if not filas:
+        print("ERROR: la convocatoria no tiene normas normalizadas para materiales.")
+        pausa()
+        return
+    print("\nNORMAS DISPONIBLES")
+    print("-" * 78)
+    for norma_id, nombre, articulos in filas:
+        print(f"{norma_id:>5} | {articulos:>4} artículos | {nombre}")
+    print("-" * 78)
+    ids_disponibles = {int(fila[0]) for fila in filas}
+    norma = pedir_texto("ID de norma (Enter = todas las anteriores): ", obligatorio=False)
+    argumentos = ("--codigo", codigo)
+    if norma:
+        if not norma.isdigit():
+            print("ERROR: el ID de norma debe ser numérico.")
+            pausa()
+            return
+        if int(norma) not in ids_disponibles:
+            print("ERROR: ese ID no pertenece a las normas mostradas para la convocatoria.")
+            pausa()
+            return
+        argumentos += ("--norma-id", norma)
+
+    if ejecutar_script("generar_materiales_convocatoria.py", *argumentos) != 0:
+        pausa()
+        return
+    if not pedir_si_no("¿Validar RAG y crear/actualizar los extractos mostrados?"):
+        print("Operación cancelada.")
+        pausa()
+        return
+    if ejecutar_script(
+        "generar_materiales_convocatoria.py",
+        *argumentos,
+        "--aplicar",
+        "--validar-rag",
+    ) != 0:
+        print("No se generarán resúmenes porque el extracto o la validación RAG falló.")
+        pausa()
+        return
+    if pedir_si_no("¿Generar también los resúmenes pendientes con IA?"):
+        if ejecutar_script(
+            "generar_materiales_convocatoria.py",
+            *argumentos,
+            "--aplicar",
+            "--validar-rag",
+            "--generar-resumenes",
+        ) != 0:
+            print("El extracto se conserva; revise el mensaje anterior para el resumen.")
+    pausa()
+
+
 
 def submenu_administracion() -> None:
     while True:
@@ -2331,6 +2421,7 @@ def submenu_administracion() -> None:
         print("5. Limpiar logs/auditorías temporales                 [VISTA PREVIA → APLICAR]")
         print("6. Mostrar componentes internos                       [INFORMATIVO]")
         print("7. Actualizar materiales de estudio                   [PLAN → VALIDAR RAG → IA → BACKUP → PDF]")
+        print("8. Construir materiales por convocatoria              [PLAN → RAG → EXTRACTO → RESUMEN]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -2342,6 +2433,7 @@ def submenu_administracion() -> None:
             "5":limpiar_temporales_menu,
             "6":mostrar_componentes_internos,
             "7":actualizar_materiales_estudio_menu,
+            "8":construir_materiales_convocatoria_menu,
         }
         fn=acciones.get(op)
         if fn: fn()

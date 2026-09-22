@@ -40,9 +40,14 @@ def copia_seguridad(db: Path) -> Path:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--db", default=str(DB_DEFECTO))
-    p.add_argument("--id-fuente", required=True)
+    p.add_argument("--id-fuente", required=True,
+                   help="Fuente asociada al PDF local que se va a leer.")
+    p.add_argument("--id-fuente-destino",
+                   help=("Fuente canónica de la BD que se debe completar. "
+                         "Por defecto coincide con --id-fuente."))
     p.add_argument("--aplicar", action="store_true")
     args = p.parse_args()
+    id_destino = args.id_fuente_destino or args.id_fuente
 
     db = Path(args.db).resolve()
     if not db.is_file():
@@ -65,7 +70,7 @@ def main() -> int:
             WHERE UPPER(id_boe)=UPPER(?)
             ORDER BY id
             """,
-            (args.id_fuente,),
+            (id_destino,),
         ).fetchall()
 
     por_art: dict[str, list[sqlite3.Row]] = {}
@@ -103,6 +108,7 @@ def main() -> int:
     print("FALLBACK PDF LOCAL - NORMA COMPLETA")
     print("=" * 78)
     print(f"Fuente:                {args.id_fuente}")
+    print(f"Fuente BD destino:     {id_destino}")
     print(f"PDF:                   {pdf.ruta}")
     print(f"Artículos PDF:         {len(articulos)}")
     print(f"Ya correctos:          {ya_ok}")
@@ -154,7 +160,7 @@ def main() -> int:
                     ) VALUES(?,?,?,?,?,?,?)
                     """,
                     (
-                        articulo.id_boe,
+                        id_destino,
                         articulo.id_bloque,
                         articulo.articulo,
                         articulo.titulo_bloque,

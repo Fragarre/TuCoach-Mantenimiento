@@ -29,15 +29,14 @@ import argparse
 import csv
 import hashlib
 import re
-import shutil
 import sqlite3
 import sys
 import unicodedata
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
+from comun import crear_backup_sqlite_unico
 from normalizador_normas import identidad_sin_fecha, normalizar_norma
 
 
@@ -83,14 +82,6 @@ def sha256(ruta: Path) -> str:
 
     return resumen.hexdigest()
 
-
-def crear_copia_seguridad(ruta_db: Path) -> Path:
-    marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-    destino = ruta_db.with_name(
-        f"{ruta_db.stem}_antes_temario_{marca}{ruta_db.suffix}"
-    )
-    shutil.copy2(ruta_db, destino)
-    return destino
 
 def leer_csv(ruta_csv: Path, encoding: str | None = None) -> list[FilaTemario]:
 
@@ -586,7 +577,7 @@ def importar(args: argparse.Namespace) -> None:
     copia = None
 
     if not args.sin_copia_seguridad:
-        copia = crear_copia_seguridad(ruta_db)
+        copia = crear_backup_sqlite_unico(ruta_db)
 
     filas = leer_csv(ruta_csv, args.encoding)
     nombre_temario = args.nombre or f"Temario {args.convocatoria}"

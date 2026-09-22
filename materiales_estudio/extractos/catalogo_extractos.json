@@ -1,0 +1,24 @@
+[
+  {
+    "codigo": "C1-01_58_26",
+    "norma_id": 11798,
+    "norma": "Ley 4/2023, de 28 de febrero, para la igualdad real y efectiva de las personas trans y para la garantía de los derechos de las personas LGTBI",
+    "archivo": "C1-01_58_26_11798_Ley_4_2023_de_28_de_febrero_para_la_igualdad_real_y_efectiva_de_las_personas_trans_y_para__extracto.pdf",
+    "hash": "56fdc9e0ec1a0053966af22d3928b0c5a8c427589fe4a535b1b5b6567d8f3b59",
+    "version": "extracto-convocatoria-v1",
+    "fuente_canonica": "BOE-A-2023-5366",
+    "articulos": 4,
+    "actualizado": "2026-09-22T16:49:01"
+  },
+  {
+    "codigo": "C2-01_70_26",
+    "norma_id": 73,
+    "norma": "Ley Orgánica 5/1982, de 1 de julio, de Estatuto de Autonomía de la Comunitat Valenciana",
+    "archivo": "C2-01_70_26_0073_Ley_Org_nica_5_1982_de_1_de_julio_de_Estatuto_de_Autonom_a_de_la_Comunitat_Valenciana_extracto.pdf",
+    "hash": "885a9db3a9c06358297f5ffe72ea893632ad7b1e8b1fcf297330675d6fff4fcf",
+    "version": "extracto-convocatoria-v1",
+    "fuente_canonica": "BOE-A-1982-17235",
+    "articulos": 50,
+    "actualizado": "2026-09-22T17:20:40"
+  }
+]

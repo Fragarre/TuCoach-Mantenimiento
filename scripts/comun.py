@@ -26,6 +26,7 @@ import locale
 import os
 import sqlite3
 import subprocess
+from contextlib import closing
 from pathlib import Path
 
 
@@ -97,6 +98,71 @@ def ejecutar_subproceso(
         env=entorno,
     )
     return resultado.returncode, decodificar_salida(resultado.stdout or b"")
+
+
+def crear_backup_sqlite_unico(
+    ruta_db: Path,
+    *,
+    destino: Path | None = None,
+) -> Path:
+    """
+    Crea o actualiza de forma segura una única copia persistente de una BD SQLite.
+
+    La copia se genera mediante la API nativa de backup de SQLite en un fichero
+    temporal. Antes de sustituir la copia persistente se comprueba
+    PRAGMA integrity_check.
+
+    No modifica la base de datos de origen.
+    """
+    ruta_db = ruta_db.resolve()
+
+    if not ruta_db.is_file():
+        raise FileNotFoundError(f"No existe la base de datos: {ruta_db}")
+
+    if destino is None:
+        destino = (
+            ruta_db.parent
+            / "copias_seguridad"
+            / f"{ruta_db.stem}_backup_unico{ruta_db.suffix}"
+        )
+    else:
+        destino = destino.resolve()
+
+    destino.parent.mkdir(parents=True, exist_ok=True)
+
+    temporal = destino.with_name(
+        f"{destino.name}.tmp"
+    )
+
+    if temporal.exists():
+        temporal.unlink()
+
+    origen_uri = ruta_db.as_uri() + "?mode=ro"
+
+    try:
+        with closing(sqlite3.connect(origen_uri, uri=True)) as origen:
+            with closing(sqlite3.connect(temporal)) as copia:
+                origen.backup(copia)
+
+        with closing(sqlite3.connect(temporal)) as comprobacion:
+            resultado = comprobacion.execute(
+                "PRAGMA integrity_check"
+            ).fetchone()
+
+        if resultado is None or resultado[0] != "ok":
+            raise RuntimeError(
+                "La copia SQLite no supera PRAGMA integrity_check."
+            )
+
+        temporal.replace(destino)
+
+    except Exception:
+        if temporal.exists():
+            temporal.unlink()
+        raise
+
+    return destino
+
 
 
 def sha256_archivo(ruta: Path) -> str:

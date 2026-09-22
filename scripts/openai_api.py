@@ -54,7 +54,10 @@ clave = (
 )
 
 cliente = OpenAI(
-    api_key=clave
+    api_key=clave,
+    # Evita que una petición de mantenimiento quede bloqueada indefinidamente.
+    timeout=90.0,
+    max_retries=2,
 )
 
 

@@ -9,7 +9,7 @@ Principios:
 - conserva los registros acumulativos de valor operativo (por ejemplo coste_ia.csv);
 - conserva un pequeño conjunto de auditorías, backups y publicaciones recientes;
 - elimina historiales de trabajo antiguos y artefactos regenerables;
-- actúa también sobre las copias locales de TuCoach y TuCoach-Web cuando existen.
+- limita toda limpieza al repositorio TuCoach-Mantenimiento.
 
 La finalidad es sustituir varias limpiezas parciales por una única revisión
 controlada y trazable desde el menú de mantenimiento.
@@ -164,27 +164,23 @@ def candidatos_backups(
     dias: int = 14,
     conservar_ultimos_por_familia: int = 2,
 ) -> list[Candidato]:
-    carpetas = [
-        RAIZ / "db" / "copias_seguridad",
-        RAIZ.parent / "TuCoach" / "db" / "copias_seguridad",
-        RAIZ.parent / "TuCoach-Web" / "backend" / "data" / "copias_seguridad",
+    carpeta = RAIZ / "db" / "copias_seguridad"
+    candidatos = _seleccionar_antiguos_por_familia(
+        carpeta,
+        dias,
+        conservar_ultimos_por_familia,
+        incluir_directorios=False,
+    )
+    return [
+        c
+        for c in candidatos
+        if not c.ruta.name.startswith("oposiciones_backup_unico_")
     ]
-    resultado: list[Candidato] = []
-    for carpeta in carpetas:
-        resultado.extend(
-            _seleccionar_antiguos_por_familia(
-                carpeta,
-                dias,
-                conservar_ultimos_por_familia,
-                incluir_directorios=False,
-            )
-        )
-    return resultado
 
 
 def candidatos_publicaciones_web(
-    dias: int = 90,
-    conservar_ultimas: int = 3,
+    dias: int = 0,
+    conservar_ultimas: int = 1,
 ) -> list[Candidato]:
     carpeta = RAIZ / "publicaciones_web"
     if not carpeta.is_dir():
@@ -204,6 +200,39 @@ def candidatos_publicaciones_web(
                     _tamano(p),
                 )
             )
+    return resultado
+
+
+def candidatos_cache_boe(dias: int = 7) -> list[Candidato]:
+    """Elimina cachés completas de normas BOE que no se han renovado recientemente."""
+    carpeta = RAIZ / "cache_boe_v2"
+    if not carpeta.is_dir():
+        return []
+
+    limite = _ahora() - dias * 86400
+    resultado: list[Candidato] = []
+
+    for p in carpeta.iterdir():
+        if not p.is_dir() or not p.name.startswith("BOE-"):
+            continue
+
+        archivos = [f for f in p.rglob("*") if f.is_file()]
+        if not archivos:
+            continue
+
+        mtimes = [m for f in archivos if (m := _mtime(f)) is not None]
+        if not mtimes:
+            continue
+
+        if max(mtimes) < limite:
+            resultado.append(
+                Candidato(
+                    p,
+                    f"caché BOE sin renovar > {dias} días; regenerable desde BOE",
+                    _tamano(p),
+                )
+            )
+
     return resultado
 
 
@@ -247,7 +276,7 @@ def candidatos_registros(dias: int = 60) -> list[Candidato]:
 def candidatos_pycache() -> list[Candidato]:
     """Busca __pycache__ solo fuera de entornos/dependencias locales."""
     resultado: list[Candidato] = []
-    bases = (RAIZ, RAIZ.parent / "TuCoach", RAIZ.parent / "TuCoach-Web")
+    bases = (RAIZ,)
 
     def directorio_excluido(path: Path) -> bool:
         try:
@@ -270,7 +299,7 @@ def candidatos_pycache() -> list[Candidato]:
 
 def candidatos_temporales_rollback() -> list[Candidato]:
     resultado: list[Candidato] = []
-    for base in (RAIZ, RAIZ.parent / "TuCoach", RAIZ.parent / "TuCoach-Web"):
+    for base in (RAIZ,):
         if not base.exists():
             continue
         try:
@@ -334,8 +363,9 @@ def main() -> int:
     p.add_argument("--conservar-auditorias", type=int, default=1)
     p.add_argument("--dias-backups", type=int, default=14)
     p.add_argument("--conservar-backups", type=int, default=2)
-    p.add_argument("--dias-publicaciones", type=int, default=90)
-    p.add_argument("--conservar-publicaciones", type=int, default=3)
+    p.add_argument("--dias-publicaciones", type=int, default=0)
+    p.add_argument("--conservar-publicaciones", type=int, default=1)
+    p.add_argument("--dias-cache-boe", type=int, default=7)
     p.add_argument("--dias-logs-rotados", type=int, default=30)
     p.add_argument("--dias-registros", type=int, default=60)
     p.add_argument("--max-log-mib", type=int, default=10)
@@ -346,6 +376,7 @@ def main() -> int:
         candidatos_auditorias(args.dias_auditorias, args.conservar_auditorias)
         + candidatos_backups(args.dias_backups, args.conservar_backups)
         + candidatos_publicaciones_web(args.dias_publicaciones, args.conservar_publicaciones)
+        + candidatos_cache_boe(args.dias_cache_boe)
         + candidatos_logs_rotados(args.dias_logs_rotados)
         + candidatos_registros(args.dias_registros)
         + candidatos_pycache()
@@ -363,6 +394,7 @@ def main() -> int:
     print(f"- backups:          {args.conservar_backups} por familia y {args.dias_backups} días")
     print(f"- publicaciones:    {args.conservar_publicaciones} últimas y {args.dias_publicaciones} días")
     print(f"- registros:        regenerables > {args.dias_registros} días")
+    print(f"- caché BOE:        normas sin renovar > {args.dias_cache_boe} días")
     print(f"- logs rotados:     > {args.dias_logs_rotados} días")
     print(f"- log activo:       > {args.max_log_mib} MiB → conservar ~{args.conservar_log_mib} MiB")
     print("- __pycache__:      eliminar siempre (regenerable, excepto .venv/entornos)")
@@ -382,7 +414,6 @@ def main() -> int:
     print("NO SE TOCA:")
     print("- ninguna SQLite/BD")
     print("- data_*/datos de entrada")
-    print("- cache_boe_v2/")
     print("- registros acumulativos protegidos, incluido coste_ia.csv")
     print("- scripts/documentación/fuentes normativas")
 

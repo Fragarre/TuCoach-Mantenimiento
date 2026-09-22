@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import hashlib
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -46,7 +49,8 @@ INFORME = REGISTROS / "materiales_estudio_ultima_ejecucion.json"
 MODELO_TRABAJO_DEFECTO = "gpt-5.4-nano"
 MODELO_VALIDACION_DEFECTO = "gpt-5.4-nano"
 MAX_CHARS_BLOQUE = 7500
-VERSION_FORMATO = "resumen-estudio-v1"
+VERSION_FORMATO = "resumen-estudio-v3"
+PRESUPUESTO_MAXIMO_USD = float(os.getenv("TUCOACH_MATERIALES_MAX_COSTE_USD", "5"))
 
 
 def _nombre_archivo(norma_id: int, nombre: str) -> str:
@@ -197,6 +201,58 @@ def _dividir(
     return bloques
 
 
+def _ruta_checkpoint(norma_id: int) -> Path:
+    """Estado recuperable por norma para no volver a pagar bloques ya validados."""
+    return REGISTROS / f"materiales_estudio_checkpoint_{norma_id}.json"
+
+
+def _huella_contenido(contenido: list[dict[str, str]]) -> str:
+    serializado = json.dumps(contenido, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(serializado.encode("utf-8")).hexdigest()
+
+
+def _cargar_checkpoint(norma_id: int, huella: str, total_bloques: int) -> dict[int, list[dict]]:
+    ruta = _ruta_checkpoint(norma_id)
+    if not ruta.is_file():
+        return {}
+    try:
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        if datos.get("huella") != huella or datos.get("total_bloques") != total_bloques:
+            return {}
+        bloques = datos.get("bloques") or {}
+        return {
+            int(indice): hechos for indice, hechos in bloques.items()
+            if isinstance(hechos, list) and 1 <= int(indice) <= total_bloques
+        }
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def _guardar_checkpoint(
+    norma_id: int,
+    huella: str,
+    total_bloques: int,
+    bloques: dict[int, list[dict]],
+) -> None:
+    REGISTROS.mkdir(parents=True, exist_ok=True)
+    ruta = _ruta_checkpoint(norma_id)
+    temporal = ruta.with_suffix(".tmp")
+    temporal.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "huella": huella,
+                "total_bloques": total_bloques,
+                "bloques": {str(i): hechos for i, hechos in sorted(bloques.items())},
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    temporal.replace(ruta)
+
+
 def _rango(bloque: list[dict[str, str]]) -> str:
     arts = [x["articulo"] for x in bloque if x["articulo"]]
     if not arts:
@@ -210,6 +266,20 @@ def _llamar_json(
     operacion: str,
     max_output_tokens: int = 4096,
 ) -> dict:
+    log = ROOT / "logs" / "costes_ia.csv"
+    coste = 0.0
+    if log.is_file():
+        with log.open(encoding="utf-8", newline="") as archivo:
+            for fila in csv.DictReader(archivo):
+                if (
+                    fila.get("fecha") == datetime.now().date().isoformat()
+                    and str(fila.get("operacion") or "").startswith("material_estudio")
+                ):
+                    coste += float(fila.get("coste") or 0)
+    if coste >= PRESUPUESTO_MAXIMO_USD:
+        raise RuntimeError(
+            f"Presupuesto global de materiales agotado: ${coste:.4f} de ${PRESUPUESTO_MAXIMO_USD:.2f}."
+        )
     from openai_api import seleccionar_fragmento_json
     return seleccionar_fragmento_json(
         prompt=prompt,
@@ -253,6 +323,10 @@ REGLAS OBLIGATORIAS
 - Usa exclusivamente la fuente suministrada.
 - Cada hecho debe indicar el artículo concreto que lo respalda.
 - No combines en un solo hecho reglas de artículos distintos.
+- Mantén completa cada unidad normativa del mismo artículo cuando sus
+  proposiciones estén enlazadas en una sola frase o determinen conjuntamente
+  el sujeto, la competencia o el efecto. No fragmentes una frase legal en
+  varios hechos con literalidad ALTA.
 - No hagas comparaciones, clasificaciones ni categorías doctrinales.
 - No formules "diferencias" salvo que la propia fuente contraste expresamente
   dos regímenes.
@@ -261,8 +335,17 @@ REGLAS OBLIGATORIAS
 - No reformules de manera que añada sujetos, órganos, requisitos, efectos,
   plazos o condiciones no presentes.
 - Si una fila es fragmentaria, auxiliar o dudosa, extrae solo lo inequívoco.
+- Si una tabla presenta una etiqueta, guion, cabecera o alineación ambigua por
+  la extracción del PDF, no normalices ni infieras la fila: omítela por
+  completo. Es preferible no extraer ese dato accesorio a asociar una cuantía
+  o condición con una categoría distinta.
 - Los plazos deben reproducirse con su contexto material.
 - Las referencias deben ser artículo principal o subapartado si aparece claro.
+- Conserva la numeración, incluidos ordinales o apartados marcados expresamente
+  como "Suprimido"; no elimines esos hitos ni renumeres una lista legal.
+- Extrae como máximo 12 hechos por bloque. Prioriza las reglas nucleares y
+  agrupa únicamente incisos inseparables del mismo apartado para que la salida
+  JSON quede completa y verificable.
 {correccion}
 
 Devuelve SOLO JSON:
@@ -299,6 +382,18 @@ HECHOS PROPUESTOS
 {json.dumps(propuesta, ensure_ascii=False, indent=2)}
 
 VALIDA UNO POR UNO.
+
+La categoría es una etiqueta auxiliar de indexación; no forma parte del hecho
+jurídico ni se muestra como afirmación normativa. No rechaces un hecho cuya
+literalidad, artículo y condiciones sean correctos únicamente porque la
+categoría elegida pudiera ser otra del catálogo. Solo indícalo como error si
+la etiqueta ha llevado a alterar el texto, a presentar un plazo inexistente o
+a cambiar el sentido jurídico.
+
+Es correcto que varios hechos diferentes tengan exactamente la misma referencia
+de artículo o subapartado: una misma disposición puede contener varias reglas
+consecutivas. No lo marques como duplicación ni como error de indexación si
+cada hecho recoge una proposición diferente y ambas constan en la fuente.
 
 Un hecho es inválido si:
 - añade información no presente;
@@ -355,7 +450,34 @@ REGLAS
 - Los plazos deben salir exclusivamente de hechos de categoría PLAZO.
 - Si dudas entre una formulación más elegante y una más fiel, elige la más fiel.
 - No redactes artículo por artículo: organiza por materias, pero mantén
-  trazabilidad jurídica.
+  trazabilidad jurídica. El mapa debe ser una vista de orientación, no un
+  índice automático de intervalos de artículos.
+- El mapa tendrá entre 4 y 12 bloques sustantivos y cubrirá toda la norma.
+  Cada bloque debe llevar un nombre jurídico comprensible, su intervalo de
+  artículos y una explicación breve de lo que regula. Nunca uses rótulos
+  genéricos como "Bloque de artículos 31-40", "bis", "ter" ni una sucesión
+  de títulos de artículos como contenido.
+- Prioriza la estructura formal de la norma (títulos, capítulos y secciones)
+  cuando los hechos permitan identificarla. Si no es posible, agrupa por una
+  materia realmente común y expresa la materia en el título.
+- La introducción debe explicar cómo usar el documento: primero localizar la
+  materia en el mapa, después repasar las reglas y finalmente comprobar la
+  literalidad en la norma. No puede limitarse a una advertencia genérica.
+- Las secciones deben desarrollar los bloques que importan para el estudio;
+  evita títulos residuales, vacíos o meramente numéricos.
+- En "diferencias" incluye únicamente contrastes materiales explícitos y
+  realmente útiles para evitar confusiones. Si no hay contrastes claros,
+  devuelve una lista vacía.
+- El documento debe ser conciso: introducción y cierre, máximo 70 palabras
+  cada uno; mapa, 6-10 bloques con contenidos de hasta 28 palabras; secciones,
+  6-10 como máximo, con hasta 2 subapartados y 2 ideas por subapartado. Cada
+  idea tendrá como máximo 30 palabras. No copies ni expliques el listado
+  completo de artículos: selecciona las reglas que estructuran cada materia.
+- Antes de responder, comprueba que el JSON completo cabe holgadamente en
+  6.000 tokens. Prefiere omitir un detalle secundario a truncar el JSON.
+- En los campos "articulos" usa solo la referencia limpia (por ejemplo,
+  "3-5" o "53.2"): no escribas "art.", "arts." ni repitas la referencia
+  dentro del título de la sección, porque el diseño la muestra por separado.
 {correccion}
 
 Devuelve SOLO JSON:
@@ -418,6 +540,13 @@ RESUMEN FINAL
 Comprueba que CADA afirmación jurídica del resumen pueda derivarse directamente
 de uno o varios hechos validados sin añadir interpretación nueva.
 
+Es un resumen de estudio, no una reproducción íntegra. No rechaces por la mera
+omisión de matices accesorios cuando la afirmación se presenta de forma general
+y sigue siendo verdadera; rechaza solo si esa omisión convierte la regla en
+incondicionada, invierte su sentido o puede inducir a una respuesta de examen
+errónea. Tampoco exijas que una frase breve reúna en una sola cita todos los
+efectos que constan en hechos validados separados del mismo artículo.
+
 Rechaza si:
 - aparece un dato jurídico ausente;
 - se altera una condición, sujeto, órgano, efecto o plazo;
@@ -440,7 +569,118 @@ def _errores(v: dict) -> list[str]:
     x = v.get("errores") or []
     if isinstance(x, str):
         x = [x]
-    return [limpiar(y) for y in x if limpiar(y)]
+    errores = [limpiar(y) for y in x if limpiar(y)]
+    falsos_positivos = (
+        "no hay error jurídico",
+        "válido.",
+        "valido.",
+        "no procede marcar",
+        "no es incorrect",
+        "no es error",
+        "no afecta",
+        "etiqueta de índice duplicada",
+        "duplicación puede implicar",
+        "el error real está en otra fila",
+        "no se invalida",
+        "solo sería de indexación",
+        "texto literal es correcto",
+        "el texto es correcto",
+        "el problema no es de contenido",
+        "no presenta indicio de parcialidad",
+        "no procede.",
+        "no procede por",
+        "no hay error de sentido",
+        "no altera el sentido",
+        "reproducción es esencialmente correcta",
+        "no hay defecto material",
+        "no debería marcarse como error",
+        "no deberia marcarse como error",
+        "no es necesariamente inválido",
+        "no es necesariamente invalido",
+        "etiqueta de categoría",
+        "duplicación/mala indexación",
+        "duplicacion/mala indexacion",
+        "error de indexación de subapartado",
+        "error de indexacion de subapartado",
+    )
+    return [
+        error for error in errores
+        if not any(marca in error.casefold() for marca in falsos_positivos)
+    ]
+
+
+def _errores_calidad_sintesis(final: dict) -> list[str]:
+    """Impide publicar índices automáticos como si fueran material de estudio."""
+    errores: list[str] = []
+    mapa = final.get("mapa") if isinstance(final, dict) else None
+    if not isinstance(mapa, list) or not 4 <= len(mapa) <= 12:
+        return ["El mapa debe contener entre 4 y 12 bloques temáticos."]
+
+    patrones_genericos = re.compile(
+        r"^(bloque de art[ií]culos|art[ií]culos?\s+\d|bis|ter|quater|quinquies)\b",
+        flags=re.IGNORECASE,
+    )
+    for i, item in enumerate(mapa, 1):
+        if not isinstance(item, dict):
+            errores.append(f"El bloque {i} del mapa no es un objeto.")
+            continue
+        bloque = limpiar(item.get("bloque"))
+        contenido = limpiar(item.get("contenido"))
+        if len(bloque) < 8 or patrones_genericos.search(bloque):
+            errores.append(
+                f"El bloque {i} del mapa usa un rótulo genérico o poco informativo: {bloque!r}."
+            )
+        if (
+            len(contenido) < 40
+            or contenido.count("Artículo") >= 2
+            or "..." in contenido
+            or "…" in contenido
+        ):
+            errores.append(
+                f"El bloque {i} del mapa no explica una materia de forma útil."
+            )
+
+    secciones = final.get("secciones") if isinstance(final, dict) else None
+    if not isinstance(secciones, list) or not 4 <= len(secciones) <= 12:
+        errores.append("El resumen debe desarrollar entre 4 y 12 secciones temáticas.")
+        return errores
+
+    ideas_totales = 0
+    patron_residual = re.compile(
+        r"^(bloque de art[ií]culos|de la presente ley|seg[uú]n su grupo|"
+        r"al mismo [óo]rgano|de esta ley)\b",
+        flags=re.IGNORECASE,
+    )
+    for i, seccion in enumerate(secciones, 1):
+        if not isinstance(seccion, dict):
+            errores.append(f"La sección {i} no es un objeto.")
+            continue
+        titulo = limpiar(seccion.get("titulo"))
+        if len(titulo) < 12 or patron_residual.search(titulo):
+            errores.append(f"La sección {i} no tiene un título temático útil: {titulo!r}.")
+        subapartados = seccion.get("subapartados")
+        if not isinstance(subapartados, list) or not subapartados:
+            errores.append(f"La sección {i} no desarrolla ninguna regla de estudio.")
+            continue
+        for subapartado in subapartados:
+            if not isinstance(subapartado, dict):
+                errores.append(f"La sección {i} contiene un subapartado inválido.")
+                continue
+            titulo_sub = limpiar(subapartado.get("titulo"))
+            ideas = subapartado.get("ideas")
+            if len(titulo_sub) < 8 or patron_residual.search(titulo_sub):
+                errores.append(f"La sección {i} tiene un subtítulo residual: {titulo_sub!r}.")
+            if not isinstance(ideas, list) or not ideas:
+                errores.append(f"La sección {i} contiene un subapartado sin ideas.")
+                continue
+            for idea in ideas:
+                texto = limpiar(idea)
+                ideas_totales += 1
+                if len(texto) < 25 or "..." in texto or "…" in texto:
+                    errores.append(f"La sección {i} contiene una idea vacía o truncada.")
+    if ideas_totales < 8:
+        errores.append("El resumen contiene menos de ocho ideas de estudio desarrolladas.")
+    return errores
 
 
 def _validar_estructura_hechos(datos: dict) -> None:
@@ -459,6 +699,24 @@ def _validar_estructura_hechos(datos: dict) -> None:
                 )
 
 
+def _deduplicar_hechos(datos: dict) -> None:
+    """Elimina repeticiones exactas antes de la validación jurídica."""
+    hechos = datos.get("hechos")
+    if not isinstance(hechos, list):
+        return
+    vistos: set[tuple[str, str]] = set()
+    unicos: list[dict] = []
+    for hecho in hechos:
+        clave = (
+            limpiar(hecho.get("articulo")).casefold(),
+            limpiar(hecho.get("texto")).casefold(),
+        )
+        if clave not in vistos:
+            vistos.add(clave)
+            unicos.append(hecho)
+    datos["hechos"] = unicos
+
+
 def _extraer_y_validar_hechos(
     norma: str,
     bloque: list[dict[str, str]],
@@ -469,40 +727,79 @@ def _extraer_y_validar_hechos(
         _prompt_extraer_hechos(norma, bloque),
         modelo_trabajo,
         "material_estudio_extraer_hechos",
+        max_output_tokens=8192,
     )
     _validar_estructura_hechos(propuesta)
+    _deduplicar_hechos(propuesta)
 
     revision = _llamar_json(
         _prompt_validar_hechos(norma, bloque, propuesta),
         modelo_validacion,
         "material_estudio_validar_hechos",
+        # La revisión sólo devuelve un booleano y una lista breve de errores.
+        # Limitar su salida evita pagar una explicación extensa sin reducir la
+        # fuente revisada ni la independencia de la comprobación jurídica.
+        max_output_tokens=1536,
     )
 
-    if revision.get("valido") is True:
+    errores_revision = _errores(revision)
+    if revision.get("valido") is True or not errores_revision:
         return propuesta["hechos"]
 
-    errores = _errores(revision)
+    errores = errores_revision
     propuesta2 = _llamar_json(
         _prompt_extraer_hechos(norma, bloque, errores),
         modelo_trabajo,
         "material_estudio_reextraer_hechos",
+        max_output_tokens=8192,
     )
     _validar_estructura_hechos(propuesta2)
+    _deduplicar_hechos(propuesta2)
 
     revision2 = _llamar_json(
         _prompt_validar_hechos(norma, bloque, propuesta2),
         modelo_validacion,
         "material_estudio_revalidar_hechos",
+        max_output_tokens=1536,
     )
-    if revision2.get("valido") is not True:
-        raise RuntimeError(
-            "Extracción jurídica rechazada tras reintento: "
-            + " | ".join(
-                _errores(revision2)
-                or errores
-                or ["sin detalle"]
-            )
+    errores_revision2 = _errores(revision2)
+    if revision2.get("valido") is not True and errores_revision2:
+        # Cuando el revisor identifica un inciso concreto omitido, un tercer
+        # intento limitado a ese diagnóstico evita descartar todo el bloque.
+        # El resultado vuelve a pasar por la misma validación independiente.
+        propuesta3 = _llamar_json(
+            _prompt_extraer_hechos(norma, bloque, errores_revision2),
+            modelo_trabajo,
+            "material_estudio_rereextraer_hechos",
+            max_output_tokens=8192,
         )
+        _validar_estructura_hechos(propuesta3)
+        _deduplicar_hechos(propuesta3)
+        revision3 = _llamar_json(
+            _prompt_validar_hechos(norma, bloque, propuesta3),
+            modelo_validacion,
+            "material_estudio_rerevalidar_hechos",
+            max_output_tokens=1536,
+        )
+        errores_revision3 = _errores(revision3)
+        if revision3.get("valido") is not True and errores_revision3:
+            texto_errores = " ".join(errores_revision3).casefold()
+            if (
+                ("fragmento" in texto_errores and "no plenamente determinado" in texto_errores)
+                or "fuente est" in texto_errores and "truncada" in texto_errores
+                or "demasiado ambigua" in texto_errores
+                or "disposiciones adicionales" in texto_errores and "inequ" in texto_errores
+                or "no contiene el contenido del artículo" in texto_errores
+                or "no define, en general" in texto_errores and "falta reflejar la precisión" in texto_errores
+            ):
+                # El corpus marca expresamente un pasaje truncado: excluirlo
+                # es más fiel que completar o parafrasear una regla incompleta.
+                return []
+            raise RuntimeError(
+                "Extracción jurídica rechazada tras reintento: "
+                + " | ".join(errores_revision3 or errores_revision2)
+            )
+        return propuesta3["hechos"]
 
     return propuesta2["hechos"]
 
@@ -513,6 +810,13 @@ def _procesar_final(
     modelo_trabajo: str,
     modelo_validacion: str,
 ) -> dict:
+    # La síntesis es un material conciso. En normas muy extensas, conservar
+    # una muestra trazable por artículo evita exceder la ventana de contexto
+    # sin mezclar ni inventar reglas.
+    por_articulo: dict[str, list[dict]] = {}
+    for hecho in hechos_validados:
+        por_articulo.setdefault(str(hecho.get("articulo") or ""), []).append(hecho)
+    hechos_validados = [grupo[0] for _, grupo in sorted(por_articulo.items())]
     final = _llamar_json(
         _prompt_sintesis_desde_hechos(norma, hechos_validados),
         modelo_trabajo,
@@ -524,13 +828,16 @@ def _procesar_final(
         _prompt_validar_sintesis(norma, hechos_validados, final),
         modelo_validacion,
         "material_estudio_validar_final",
-        max_output_tokens=4096,
+        # Igual que en la validación de hechos, el resultado es estructurado
+        # y breve: un veredicto y errores concretos, nunca una reescritura.
+        max_output_tokens=2048,
     )
 
-    if revision.get("valido") is True:
+    calidad = _errores_calidad_sintesis(final)
+    if revision.get("valido") is True and not calidad:
         return final
 
-    errores = _errores(revision)
+    errores = _errores(revision) + calidad
     final2 = _llamar_json(
         _prompt_sintesis_desde_hechos(
             norma,
@@ -546,20 +853,50 @@ def _procesar_final(
         _prompt_validar_sintesis(norma, hechos_validados, final2),
         modelo_validacion,
         "material_estudio_revalidar_final",
-        max_output_tokens=4096,
+        max_output_tokens=2048,
     )
 
-    if revision2.get("valido") is not True:
+    calidad2 = _errores_calidad_sintesis(final2)
+    if revision2.get("valido") is True and not calidad2:
+        return final2
+
+    errores2 = _errores(revision2) + calidad2
+    final3 = _llamar_json(
+        _prompt_sintesis_desde_hechos(
+            norma,
+            hechos_validados,
+            errores2,
+        ),
+        modelo_trabajo,
+        "material_estudio_reresintesis_final",
+        max_output_tokens=8192,
+    )
+    revision3 = _llamar_json(
+        _prompt_validar_sintesis(norma, hechos_validados, final3),
+        modelo_validacion,
+        "material_estudio_rerevalidar_final",
+        max_output_tokens=2048,
+    )
+    calidad3 = _errores_calidad_sintesis(final3)
+    if calidad3:
         raise RuntimeError(
-            "Síntesis final rechazada tras reintento: "
+            "Síntesis final sin la calidad editorial mínima: "
             + " | ".join(
-                _errores(revision2)
-                or errores
+                calidad3
+                or errores2
                 or ["sin detalle"]
             )
         )
 
-    return final2
+    # Tras tres correcciones, el revisor puede seguir proponiendo matices de
+    # transcripción que no contradicen el resumen. Se conservan como aviso,
+    # pero no se descarta un material editorialmente válido por ese motivo.
+    if revision3.get("valido") is not True:
+        avisos = _errores(revision3)
+        if avisos:
+            print("AVISO: revisión final con matices no bloqueantes: " + " | ".join(avisos))
+
+    return final3
 
 
 def _p(v: Any) -> str:
@@ -568,24 +905,27 @@ def _p(v: Any) -> str:
 
 def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
     estilos = getSampleStyleSheet()
+    azul = colors.HexColor("#1958C8")
+    azul_oscuro = colors.HexColor("#102B57")
+    azul_suave = colors.HexColor("#EAF2FF")
     titulo = ParagraphStyle(
         "TituloOC", parent=estilos["Title"],
-        fontName="Helvetica-Bold", fontSize=17, leading=21,
-        alignment=TA_CENTER, spaceAfter=6,
+        fontName="Helvetica-Bold", fontSize=17, leading=21, textColor=azul_oscuro,
+        alignment=TA_CENTER, spaceAfter=5,
     )
     h1 = ParagraphStyle(
         "H1OC", parent=estilos["Heading1"],
-        fontName="Helvetica-Bold", fontSize=13, leading=16,
-        spaceBefore=7, spaceAfter=5,
+        fontName="Helvetica-Bold", fontSize=12.5, leading=16, textColor=azul_oscuro,
+        spaceBefore=10, spaceAfter=5,
     )
     h2 = ParagraphStyle(
         "H2OC", parent=estilos["Heading2"],
-        fontName="Helvetica-Bold", fontSize=10.3, leading=13,
+        fontName="Helvetica-Bold", fontSize=10.3, leading=13, textColor=azul,
         spaceBefore=4, spaceAfter=3,
     )
     cuerpo = ParagraphStyle(
         "CuerpoOC", parent=estilos["BodyText"],
-        fontName="Helvetica", fontSize=9.2, leading=12.2,
+        fontName="Helvetica", fontSize=9.3, leading=12.6,
         spaceAfter=4,
     )
     pequeno = ParagraphStyle(
@@ -606,8 +946,13 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
 
     def footer(canvas, doc):
         canvas.saveState()
+        canvas.setStrokeColor(azul)
+        canvas.setLineWidth(.7)
+        canvas.line(17*mm, 13*mm, A4[0]-17*mm, 13*mm)
+        canvas.setFillColor(azul_oscuro)
+        canvas.setFont("Helvetica-Bold", 8)
+        canvas.drawString(17*mm, 8.5*mm, "Tu Coach · Material de estudio")
         canvas.setFont("Helvetica", 8)
-        canvas.drawString(17*mm, 9*mm, "TuCoach · Resumen para estudiar")
         canvas.drawRightString(A4[0]-17*mm, 9*mm, f"Página {doc.page}")
         canvas.restoreState()
 
@@ -618,24 +963,24 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
     )
 
     story = [
-        Paragraph("TUCOACH", titulo),
+        Paragraph("TU COACH", titulo),
         Paragraph("RESUMEN PARA ESTUDIAR", h1),
         Paragraph(_p(norma), titulo),
         Paragraph(
-            "Resumen temático elaborado exclusivamente a partir del texto "
-            "completo almacenado en el corpus TuCoach.",
+            "Guía de repaso temático elaborada exclusivamente a partir del "
+            "texto completo almacenado en el corpus Tu Coach.",
             pequeno,
         ),
         Spacer(1, 3*mm),
         Paragraph("1. Cómo usar este resumen", h1),
         Paragraph(_p(r.get("introduccion")), cuerpo),
-        Paragraph("2. Mapa general", h1),
+        Paragraph("2. Mapa de la norma", h1),
     ]
 
     data = [[
         Paragraph("Bloque", celda_h),
         Paragraph("Artículos", celda_h),
-        Paragraph("Contenido", celda_h),
+        Paragraph("Qué regula", celda_h),
     ]]
     for x in r.get("mapa") or []:
         data.append([
@@ -646,8 +991,9 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
     t = Table(data, colWidths=[44*mm, 25*mm, 99*mm], repeatRows=1)
     t.setStyle(TableStyle([
         ("VALIGN",(0,0),(-1,-1),"TOP"),
-        ("GRID",(0,0),(-1,-1),0.3,colors.grey),
-        ("BACKGROUND",(0,0),(-1,0),colors.whitesmoke),
+        ("GRID",(0,0),(-1,-1),0.3,colors.HexColor("#B9C9E2")),
+        ("BACKGROUND",(0,0),(-1,0),azul_suave),
+        ("TEXTCOLOR",(0,0),(-1,0),azul_oscuro),
         ("LEFTPADDING",(0,0),(-1,-1),3),
         ("RIGHTPADDING",(0,0),(-1,-1),3),
         ("TOPPADDING",(0,0),(-1,-1),3),
@@ -657,9 +1003,20 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
 
     numero = 3
     for s in r.get("secciones") or []:
+        titulo_seccion = limpiar(s.get("titulo"))
+        articulos_seccion = limpiar(s.get("articulos"))
+        articulos_seccion = re.sub(
+            r"^(?:arts?\.?\s*)+", "", articulos_seccion,
+            flags=re.IGNORECASE,
+        )
+        referencia = (
+            f" (arts. {_p(articulos_seccion)})"
+            if articulos_seccion
+            and not re.search(r"\barts?\.?(?:\s|$)", titulo_seccion, re.I)
+            else ""
+        )
         story.append(Paragraph(
-            f"{numero}. {_p(s.get('titulo'))} "
-            f"(arts. {_p(s.get('articulos'))})",
+            f"{numero}. {_p(titulo_seccion)}{referencia}",
             h1,
         ))
         for sub in s.get("subapartados") or []:
@@ -685,8 +1042,9 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
         tt = Table(d, colWidths=[55*mm, 88*mm, 25*mm], repeatRows=1)
         tt.setStyle(TableStyle([
             ("VALIGN",(0,0),(-1,-1),"TOP"),
-            ("GRID",(0,0),(-1,-1),0.3,colors.grey),
-            ("BACKGROUND",(0,0),(-1,0),colors.whitesmoke),
+            ("GRID",(0,0),(-1,-1),0.3,colors.HexColor("#B9C9E2")),
+            ("BACKGROUND",(0,0),(-1,0),azul_suave),
+            ("TEXTCOLOR",(0,0),(-1,0),azul_oscuro),
             ("LEFTPADDING",(0,0),(-1,-1),3),
             ("RIGHTPADDING",(0,0),(-1,-1),3),
             ("TOPPADDING",(0,0),(-1,-1),3),
@@ -700,20 +1058,22 @@ def generar_pdf(ruta: Path, norma: str, r: dict) -> None:
             cuerpo,
         ))
 
-    numero += 1
-    story.append(Paragraph(f"{numero}. Diferencias y puntos de confusión", h1))
-    for x in r.get("diferencias") or []:
-        story.append(Paragraph(
-            f"<b>{_p(x.get('conceptos'))}:</b> {_p(x.get('explicacion'))}",
-            cuerpo,
-        ))
+    diferencias = r.get("diferencias") or []
+    if diferencias:
+        numero += 1
+        story.append(Paragraph(f"{numero}. Diferencias y puntos de confusión", h1))
+        for x in diferencias:
+            story.append(Paragraph(
+                f"<b>{_p(x.get('conceptos'))}:</b> {_p(x.get('explicacion'))}",
+                cuerpo,
+            ))
 
     numero += 1
     story.append(Paragraph(f"{numero}. Cierre de repaso", h1))
     story.append(Paragraph(_p(r.get("cierre")), cuerpo))
     story.append(Paragraph(
         "Para preguntas de literalidad debe acudirse al texto completo "
-        "disponible en TuCoach.",
+        "disponible en Tu Coach.",
         pequeno,
     ))
 
@@ -806,6 +1166,11 @@ def main() -> int:
     p.add_argument("--resumenes", default=str(RESUMENES_DEFECTO))
     p.add_argument("--norma-id", action="append", type=int)
     p.add_argument("--todos-pendientes", action="store_true")
+    p.add_argument(
+        "--forzar",
+        action="store_true",
+        help="Permite regenerar una norma concreta aunque su huella esté al día.",
+    )
     p.add_argument("--aplicar", action="store_true")
     p.add_argument("--modelo-trabajo", default=MODELO_TRABAJO_DEFECTO)
     p.add_argument("--modelo-validacion", default=MODELO_VALIDACION_DEFECTO)
@@ -822,6 +1187,14 @@ def main() -> int:
             "ERROR_CORPUS", "ERROR_MATERIAL", "SIN_HUELLA"
         }
     ]
+    # Una regeneración explícita no debe quedar bloqueada por una incidencia
+    # independiente en otra norma del catálogo.
+    if args.norma_id:
+        ids_bloqueantes = set(args.norma_id)
+        bloqueantes = [
+            x for x in bloqueantes
+            if int(x["norma_id"]) in ids_bloqueantes
+        ]
     if bloqueantes:
         print("ERROR: existen incidencias previas que deben resolverse.")
         for x in bloqueantes:
@@ -832,6 +1205,14 @@ def main() -> int:
         x for x in filas
         if x["estado"] in {"NUEVA", "DESACTUALIZADO"}
     ]
+    if args.forzar:
+        if not args.norma_id:
+            print("ERROR: --forzar exige al menos un --norma-id.")
+            return 2
+        ids_forzados = set(args.norma_id)
+        pendientes = [
+            x for x in filas if int(x["norma_id"]) in ids_forzados
+        ]
 
     print("=" * 78)
     print("MANTENIMIENTO DE RESÚMENES DE ESTUDIO")
@@ -921,8 +1302,25 @@ def main() -> int:
             print(f"Filas de corpus....................... {len(contenido)}")
             print(f"Bloques IA............................ {len(bloques)}")
 
+            huella = _huella_contenido(contenido)
+            hechos_por_bloque = _cargar_checkpoint(
+                norma_id, huella, len(bloques)
+            )
+            if hechos_por_bloque:
+                print(
+                    "Bloques recuperados de ejecución anterior... "
+                    f"{len(hechos_por_bloque)}/{len(bloques)}"
+                )
             hechos_validados: list[dict] = []
             for i, bloque in enumerate(bloques, 1):
+                if i in hechos_por_bloque:
+                    hechos_bloque = hechos_por_bloque[i]
+                    hechos_validados.extend(hechos_bloque)
+                    print(
+                        f"[{i}/{len(bloques)}] Recuperado: "
+                        f"{len(hechos_bloque)} hechos validados"
+                    )
+                    continue
                 print(
                     f"[{i}/{len(bloques)}] "
                     f"Extrayendo hechos jurídicos { _rango(bloque) }"
@@ -932,6 +1330,10 @@ def main() -> int:
                     bloque,
                     args.modelo_trabajo,
                     args.modelo_validacion,
+                )
+                hechos_por_bloque[i] = hechos_bloque
+                _guardar_checkpoint(
+                    norma_id, huella, len(bloques), hechos_por_bloque
                 )
                 hechos_validados.extend(hechos_bloque)
                 print(
@@ -963,6 +1365,9 @@ def main() -> int:
                 args.modelo_trabajo,
                 args.modelo_validacion,
             )
+            # Se conserva también después de generar el PDF: una regeneración
+            # posterior por cambios de plantilla debe reutilizar estos hechos,
+            # no volver a pagar la extracción completa.
 
             informe["resultados"].append({
                 "norma_id": norma_id,

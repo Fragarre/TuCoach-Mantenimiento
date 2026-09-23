@@ -2,8 +2,7 @@
 
 No contiene reglas de selección. Delega siempre en sincronizar_bancos.py.
 REVIEW congela el SHA-256 de la SQLite revisada.
-APPLY exige ese mismo SHA, toma un backup SQLite consistente y mantiene
-el mismo lock de escritura usado por el mantenimiento protegido de temario.
+APPLY exige ese mismo SHA, toma un backup SQLite consistente y mantiene\nun lock exclusivo para esta operación protegida.
 """
 from __future__ import annotations
 

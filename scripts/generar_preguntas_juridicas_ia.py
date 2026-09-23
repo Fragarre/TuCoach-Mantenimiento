@@ -1729,7 +1729,11 @@ def evaluar_dificultad_por_consenso(
         str(auditoria.get("dificultad") or "").strip().upper(),
     ]
     positivos = sum(v in {"ALTA", "MUY_ALTA"} for v in votos)
-    dificultad_ok = positivos >= 2
+    # La auditoría ciega de evidencia actúa como veto de dificultad: no basta
+    # con que los dos validadores iniciales voten ALTA/MUY_ALTA si, al revisar
+    # la pregunta contra la fuente, el auditor la considera insuficiente.
+    auditoria_ok = votos[2] in {"ALTA", "MUY_ALTA"}
+    dificultad_ok = positivos >= 2 and auditoria_ok
     discutida = len(set(votos)) > 1
     return dificultad_ok, discutida, votos
 

@@ -2209,6 +2209,7 @@ def generar(
     con: sqlite3.Connection, ctx: ContextoReferencia, tipo_pregunta: str,
     modelo_generacion: str, modelo_validacion: str, max_ejemplos: int,
     mostrar_detalle: bool = True,
+    publicar_automaticamente: bool = True,
 ) -> int:
     from openai_api import seleccionar_fragmento_json
 
@@ -2373,7 +2374,7 @@ def generar(
         generacion_id=int(cur.lastrowid)
         aux.commit()
 
-    if aceptada_final:
+    if aceptada_final and publicar_automaticamente:
         try: aprobar(con,generacion_id,modo_publicacion="IA_DOBLE_CHECK_AUDITADA")
         except Exception as exc:
             with conectar_auxiliar() as aux:
@@ -2419,6 +2420,7 @@ def generar_lote(
     modelo_validacion: str,
     max_ejemplos: int,
     usar_modelo_examen: bool = True,
+    publicar_automaticamente: bool = True,
 ) -> list[dict[str, Any]]:
     iniciar_ejecucion_generacion()
 
@@ -2513,6 +2515,7 @@ def generar_lote(
                     modelo_validacion,
                     max_ejemplos,
                     mostrar_detalle=False,
+                    publicar_automaticamente=publicar_automaticamente,
                 )
                 ids_ejecucion.append(gid)
                 r = resumen_generacion(gid)
@@ -3149,7 +3152,7 @@ def detalle_generacion(generacion_id: int) -> None:
     print("="*78)
 
 def crear_parser() -> argparse.ArgumentParser:
-    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); return p
+    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); p.add_argument("--solo-generar",action="store_true",help="Genera y valida candidatas sin publicar en lote_preguntas ni sincronizar bancos."); return p
 
 def main() -> int:
     args=crear_parser().parse_args(); ruta_db=Path(args.db).resolve()
@@ -3246,11 +3249,14 @@ def main() -> int:
             args.modelo_validacion,
             args.max_ejemplos,
             usar_modelo_examen=usar_modelo_examen,
+            publicar_automaticamente=not args.solo_generar,
         )
 
-    # La conexión maestra ya está cerrada. Una única operación común
-    # sincroniza todos los bancos y ejecuta la validación completa.
-    sincronizar_todos_bancos(ruta_db, aplicar=True, validar_final=True)
+    # En modo normal se conserva exactamente el comportamiento histórico.
+    # --solo-generar es una frontera de seguridad: no publica en lote_preguntas
+    # y tampoco ejecuta ninguna sincronización de bancos.
+    if not args.solo_generar:
+        sincronizar_todos_bancos(ruta_db, aplicar=True, validar_final=True)
     return 0
 
 

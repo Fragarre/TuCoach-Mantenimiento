@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -17,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -130,28 +131,50 @@ def ejecutar_job(job: dict[str, Any]) -> None:
         }
 
         if proceso.returncode == 0:
-            actualizar_estado(job_id, "COMPLETADO", resultado=resultado)
-            print(f"Trabajo completado: {job_id} | CORRECTO")
+            estado_final = "COMPLETADO"
+            error_final = None
+            mensaje = f"Trabajo completado: {job_id} | CORRECTO"
         else:
-            actualizar_estado(
-                job_id,
-                "ERROR",
-                resultado=resultado,
-                error_texto=f"VALIDACION_COMPLETA terminó con código {proceso.returncode}.",
-            )
-            print(f"Trabajo finalizado con error: {job_id} | código {proceso.returncode}")
+            estado_final = "ERROR"
+            error_final = f"VALIDACION_COMPLETA terminó con código {proceso.returncode}."
+            mensaje = f"Trabajo finalizado con error: {job_id} | código {proceso.returncode}"
     except subprocess.TimeoutExpired:
-        actualizar_estado(
-            job_id,
-            "ERROR",
-            error_texto="VALIDACION_COMPLETA superó el límite de 60 minutos.",
-        )
-        print(f"Trabajo finalizado con error: {job_id} | timeout")
+        estado_final = "ERROR"
+        resultado = None
+        error_final = "VALIDACION_COMPLETA superó el límite de 60 minutos."
+        mensaje = f"Trabajo finalizado con error: {job_id} | timeout"
     except Exception as exc:
+        estado_final = "ERROR"
+        resultado = None
+        error_final = f"{type(exc).__name__}: {exc}"
+        mensaje = f"Trabajo finalizado con error local: {job_id} | {error_final}"
+
+    # La ejecución local ya ha terminado. Un fallo de red al comunicar el
+    # resultado no debe reinterpretarse como un fallo del proceso ni provocar
+    # una segunda ejecución.
+    try:
         actualizar_estado(
             job_id,
-            "ERROR",
-            error_texto=f"{type(exc).__name__}: {exc}",
+            estado_final,
+            resultado=resultado,
+            error_texto=error_final,
+        )
+        print(mensaje)
+    except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+        print(
+            f"Resultado local obtenido para {job_id}, pero no se pudo confirmar "
+            f"el estado remoto: {exc}"
+        )
+    except urllib.error.HTTPError as exc:
+        detalle = exc.read().decode("utf-8", errors="replace")
+        print(
+            f"Resultado local obtenido para {job_id}, pero el servidor rechazó "
+            f"la actualización: HTTP {exc.code}: {detalle}"
+        )
+    except Exception as exc:
+        print(
+            f"Resultado local obtenido para {job_id}, pero falló su comunicación: "
+            f"{type(exc).__name__}: {exc}"
         )
 
 
@@ -182,7 +205,7 @@ def ciclo() -> None:
             detalle = exc.read().decode("utf-8", errors="replace")
             print(f"HTTP {exc.code}: {detalle}")
             time.sleep(INTERVALO_SEGUNDOS)
-        except (urllib.error.URLError, TimeoutError) as exc:
+        except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
             print(f"Conexión no disponible: {exc}")
             time.sleep(INTERVALO_SEGUNDOS)
         except Exception as exc:

@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.6.1"
+VERSION = "0.6.2"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -345,16 +345,30 @@ def ejecutar_job(job: dict[str, Any]) -> None:
             "salida": salida_resumida,
         }
 
-        if proceso.returncode == 0:
-            if fase == "REVIEW":
-                estado_final = "ESPERANDO_CONFIRMACION"
+        if fase == "REVIEW" and proceso.returncode == 0:
+            try:
+                review = json.loads(salida)
+            except json.JSONDecodeError as exc:
+                estado_final = "ERROR"
+                error_final = (
+                    f"{tipo} REVIEW no devolvió JSON válido: "
+                    f"{exc.msg} (línea {exc.lineno}, columna {exc.colno})."
+                )
+                mensaje = f"Trabajo finalizado con error: {job_id} | REVIEW sin JSON válido"
             else:
-                estado_final = "COMPLETADO"
+                if not isinstance(review, dict):
+                    estado_final = "ERROR"
+                    error_final = f"{tipo} REVIEW debe devolver un objeto JSON."
+                    mensaje = f"Trabajo finalizado con error: {job_id} | REVIEW JSON inválido"
+                else:
+                    resultado["review"] = review
+                    estado_final = "ESPERANDO_CONFIRMACION"
+                    error_final = None
+                    mensaje = f"Revisión completada: {job_id} | ESPERANDO CONFIRMACIÓN"
+        elif proceso.returncode == 0:
+            estado_final = "COMPLETADO"
             error_final = None
-            if fase == "REVIEW":
-                mensaje = f"Revisión completada: {job_id} | ESPERANDO CONFIRMACIÓN"
-            else:
-                mensaje = f"Trabajo completado: {job_id} | CORRECTO"
+            mensaje = f"Trabajo completado: {job_id} | CORRECTO"
         elif tipo == "AUDITORIA_MATERIALES_ESTUDIO" and proceso.returncode == 1:
             # En esta auditoría, 1 significa que el diagnóstico encontró
             # materiales que requieren actualización/revisión. La ejecución

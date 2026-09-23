@@ -22,7 +22,7 @@ VERSION = "0.6.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
-OPERACIONES: dict[str, list[str]] = {
+OPERACIONES_DIRECTAS: dict[str, list[str]] = {
     "VALIDACION_COMPLETA": [
         sys.executable,
         str(RAIZ / "scripts" / "validacion_completa.py"),
@@ -73,6 +73,12 @@ OPERACIONES: dict[str, list[str]] = {
         str(RAIZ / "scripts" / "buscar_norma_por_respuesta_correcta.py"),
     ],
 }
+
+# Las operaciones con confirmación se declararán de forma separada y deberán
+# definir dos comandos distintos: REVIEW (sin escritura) y APPLY (escritura).
+# Mientras este mapa esté vacío, el agente rechazará cualquier job que solicite
+# confirmación aunque el servidor lo marque por error.
+OPERACIONES_CONFIRMABLES: dict[str, dict[str, list[str]]] = {}
 
 OPERACIONES_CON_CONVOCATORIA = {
     "AUDITORIA_FUNCIONAL_BANCO",
@@ -209,12 +215,17 @@ def ejecutar_job(job: dict[str, Any]) -> None:
     else:
         fase = "DIRECTA"
 
-    comando = OPERACIONES.get(tipo)
+    if fase == "DIRECTA":
+        comando = OPERACIONES_DIRECTAS.get(tipo)
+    else:
+        fases_operacion = OPERACIONES_CONFIRMABLES.get(tipo)
+        comando = fases_operacion.get(fase) if fases_operacion else None
+
     if comando is None:
         actualizar_estado(
             job_id,
             "ERROR",
-            error_texto=f"Tipo de trabajo no permitido por el agente: {tipo}",
+            error_texto=f"Tipo/fase de trabajo no permitido por el agente: {tipo}/{fase}",
         )
         return
 
@@ -350,7 +361,7 @@ def ciclo() -> None:
     print(f"TuCoach Agent {VERSION}")
     print(f"Repositorio: {RAIZ}")
     print(f"API: {API_BASE}")
-    print("Operaciones permitidas: " + ", ".join(sorted(OPERACIONES)))
+    print("Operaciones directas permitidas: " + ", ".join(sorted(OPERACIONES_DIRECTAS)))\n    if OPERACIONES_CONFIRMABLES:\n        print("Operaciones confirmables: " + ", ".join(sorted(OPERACIONES_CONFIRMABLES)))
     print("Ctrl+C para detener.")
 
     while True:

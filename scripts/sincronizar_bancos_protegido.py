@@ -13,16 +13,37 @@ import os
 import sqlite3
 import subprocess
 import sys
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from aplicar_mantenimiento_temario import bloqueo_exclusivo, validar_sha
+from aplicar_mantenimiento_temario import validar_sha
 from preparar_mantenimiento_temario import sha256_fichero
 
 RAIZ = Path(__file__).resolve().parent.parent
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 SINCRONIZADOR = RAIZ / "scripts" / "sincronizar_bancos.py"
 BACKUPS = RAIZ / "backups" / "sincronizacion_bancos"
+LOCK = RAIZ / "backups" / ".mantenimiento_apply.lock"
+
+
+@contextmanager
+def bloqueo_exclusivo():
+    """Bloqueo común para APPLY protegidos que escriben la SQLite maestra."""
+    LOCK.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise RuntimeError("Ya existe un APPLY de mantenimiento en curso o quedó un bloqueo pendiente.") from exc
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"pid": os.getpid(), "inicio": datetime.now().isoformat()}))
+        yield
+    finally:
+        try:
+            LOCK.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def _ejecutar(db: Path, *, aplicar: bool) -> tuple[int, str]:

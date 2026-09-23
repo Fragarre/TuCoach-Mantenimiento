@@ -17,7 +17,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -131,6 +131,7 @@ def ejecutar_job(job: dict[str, Any]) -> None:
 
         if proceso.returncode == 0:
             actualizar_estado(job_id, "COMPLETADO", resultado=resultado)
+            print(f"Trabajo completado: {job_id} | CORRECTO")
         else:
             actualizar_estado(
                 job_id,
@@ -138,12 +139,14 @@ def ejecutar_job(job: dict[str, Any]) -> None:
                 resultado=resultado,
                 error_texto=f"VALIDACION_COMPLETA terminó con código {proceso.returncode}.",
             )
+            print(f"Trabajo finalizado con error: {job_id} | código {proceso.returncode}")
     except subprocess.TimeoutExpired:
         actualizar_estado(
             job_id,
             "ERROR",
             error_texto="VALIDACION_COMPLETA superó el límite de 60 minutos.",
         )
+        print(f"Trabajo finalizado con error: {job_id} | timeout")
     except Exception as exc:
         actualizar_estado(
             job_id,

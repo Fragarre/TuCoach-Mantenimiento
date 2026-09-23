@@ -2557,11 +2557,11 @@ def generar_lote(
 
         validadas = [
             r for r in resultados
-            if str(r.get("dictamen", "")).startswith("VALIDADA")
+            if str(r.get("estado", "")) == "VALIDADA_IA"
         ]
         rechazadas = [
             r for r in resultados
-            if str(r.get("dictamen", "")).startswith("RECHAZADA")
+            if str(r.get("estado", "")) == "RECHAZADA_IA"
         ]
 
         ruta = exportar_informe_ultima_ejecucion(

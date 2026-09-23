@@ -54,7 +54,8 @@ from sincronizar_bancos import sincronizar_todos_bancos
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_DEFECTO = ROOT / "db" / "oposiciones.sqlite3"
-DB_AUX = Path(tempfile.gettempdir()) / "tucoach_generacion_preguntas_ia.sqlite3"
+DB_AUX_TEMP = Path(tempfile.gettempdir()) / "tucoach_generacion_preguntas_ia.sqlite3"
+DB_AUX = DB_AUX_TEMP
 REGISTROS = ROOT / "registros"
 
 TIPO_FUENTE = "ia_generada"
@@ -394,6 +395,12 @@ def conectar_maestra(ruta: Path) -> sqlite3.Connection:
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con
+
+
+def configurar_db_auxiliar(ruta: Path | None) -> None:
+    """Selecciona la SQLite auxiliar de esta ejecución."""
+    global DB_AUX
+    DB_AUX = ruta.resolve() if ruta is not None else DB_AUX_TEMP
 
 
 def conectar_auxiliar() -> sqlite3.Connection:
@@ -2566,8 +2573,11 @@ def generar_lote(
         return resultados
 
     finally:
-        # La base auxiliar era solo de trabajo. No se conserva historial.
-        finalizar_ejecucion_generacion()
+        # El flujo histórico elimina la auxiliar. Un REVIEW persistente la
+        # conserva expresamente para que un APPLY posterior publique exactamente
+        # las candidatas ya generadas, sin volver a invocar la IA.
+        if DB_AUX == DB_AUX_TEMP:
+            finalizar_ejecucion_generacion()
 
 
 def _tipo_norma_desde_nombre(nombre: str) -> tuple[str, str]:
@@ -3152,10 +3162,15 @@ def detalle_generacion(generacion_id: int) -> None:
     print("="*78)
 
 def crear_parser() -> argparse.ArgumentParser:
-    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); p.add_argument("--solo-generar",action="store_true",help="Genera y valida candidatas sin publicar en lote_preguntas ni sincronizar bancos."); return p
+    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); p.add_argument("--solo-generar",action="store_true",help="Genera y valida candidatas sin publicar en lote_preguntas ni sincronizar bancos."); p.add_argument("--lote-review",help="Ruta controlada para conservar la SQLite auxiliar de un REVIEW; requiere --solo-generar."); return p
 
 def main() -> int:
     args=crear_parser().parse_args(); ruta_db=Path(args.db).resolve()
+    if args.lote_review and not args.solo_generar:
+        print("ERROR: --lote-review requiere --solo-generar.")
+        return 1
+    lote_review = Path(args.lote_review).resolve() if args.lote_review else None
+    configurar_db_auxiliar(lote_review)
     if not ruta_db.is_file(): print(f"ERROR: no existe la base: {ruta_db}"); return 1
     if (
         args.listar_generaciones

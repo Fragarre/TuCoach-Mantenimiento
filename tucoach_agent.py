@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -181,6 +181,33 @@ def ejecutar_job(job: dict[str, Any]) -> None:
     job_id = str(job["id"])
     tipo = str(job.get("tipo", "")).strip().upper()
     parametros = job.get("parametros") or {}
+    requiere_confirmacion = bool(job.get("requiere_confirmacion"))
+    confirmado_at = job.get("confirmado_at")
+    resultado_revision = job.get("resultado")
+
+    # Protocolo REVIEW/APPLY. Ninguna operación actual requiere confirmación,
+    # por lo que este soporte queda inerte hasta que se añada explícitamente
+    # una operación de escritura a la allowlist.
+    if confirmado_at is not None:
+        if not requiere_confirmacion:
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto="Trabajo confirmado que no está marcado como requiere_confirmacion.",
+            )
+            return
+        if not isinstance(resultado_revision, dict):
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto="Falta el resultado de REVIEW necesario para ejecutar APPLY.",
+            )
+            return
+        fase = "APPLY"
+    elif requiere_confirmacion:
+        fase = "REVIEW"
+    else:
+        fase = "DIRECTA"
 
     comando = OPERACIONES.get(tipo)
     if comando is None:
@@ -270,9 +297,15 @@ def ejecutar_job(job: dict[str, Any]) -> None:
         }
 
         if proceso.returncode == 0:
-            estado_final = "COMPLETADO"
+            if fase == "REVIEW":
+                estado_final = "ESPERANDO_CONFIRMACION"
+            else:
+                estado_final = "COMPLETADO"
             error_final = None
-            mensaje = f"Trabajo completado: {job_id} | CORRECTO"
+            if fase == "REVIEW":
+                mensaje = f"Revisión completada: {job_id} | ESPERANDO CONFIRMACIÓN"
+            else:
+                mensaje = f"Trabajo completado: {job_id} | CORRECTO"
         elif tipo == "AUDITORIA_MATERIALES_ESTUDIO" and proceso.returncode == 1:
             # En esta auditoría, 1 significa que el diagnóstico encontró
             # materiales que requieren actualización/revisión. La ejecución

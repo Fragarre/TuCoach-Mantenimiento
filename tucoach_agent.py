@@ -242,9 +242,8 @@ def ejecutar_job(job: dict[str, Any]) -> None:
     confirmado_at = job.get("confirmado_at")
     resultado_revision = job.get("resultado")
 
-    # Protocolo REVIEW/APPLY. Ninguna operación actual requiere confirmación,
-    # por lo que este soporte queda inerte hasta que se añada explícitamente
-    # una operación de escritura a la allowlist.
+    # Protocolo REVIEW/APPLY. Las operaciones confirmables ejecutan primero
+    # REVIEW y solo pasan a APPLY tras una confirmación registrada por el backend.
     if confirmado_at is not None:
         if not requiere_confirmacion:
             actualizar_estado(
@@ -375,7 +374,7 @@ def ejecutar_job(job: dict[str, Any]) -> None:
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            timeout=60 * 60,
+            timeout=None if fase == "APPLY" else 60 * 60,
         )
         salida_bytes = proceso.stdout or b""
         try:

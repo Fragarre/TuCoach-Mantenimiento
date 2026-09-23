@@ -2678,6 +2678,8 @@ def aprobar(
     con: sqlite3.Connection,
     generacion_id: int,
     modo_publicacion: str = "HUMANA",
+    gestionar_transaccion: bool = True,
+    actualizar_auxiliar: bool = True,
 ) -> int:
     """
     Publica una candidata validada.
@@ -2816,7 +2818,8 @@ def aprobar(
         # ---------------------------------------------------------------
         # FASE 1: PERSISTENCIA MAESTRA
         # ---------------------------------------------------------------
-        con.execute("BEGIN IMMEDIATE")
+        if gestionar_transaccion:
+            con.execute("BEGIN IMMEDIATE")
         try:
             cur_imp = con.execute(
                 """
@@ -2939,10 +2942,12 @@ def aprobar(
                     "integrity_check."
                 )
 
-            con.commit()
+            if gestionar_transaccion:
+                con.commit()
 
         except Exception:
-            con.rollback()
+            if gestionar_transaccion:
+                con.rollback()
             raise
 
         # ---------------------------------------------------------------
@@ -2956,25 +2961,26 @@ def aprobar(
             "bancos=PENDIENTE_SINCRONIZACION_COMUN"
         )
 
-        aux.execute(
-            """
-            UPDATE generaciones_preguntas_ia
+        if actualizar_auxiliar:
+            aux.execute(
+                """
+                UPDATE generaciones_preguntas_ia
             SET estado='APROBADA',
                 fecha_revision=?,
                 lote_pregunta_id=?,
                 tipo_publicacion=?,
                 observaciones=?
-            WHERE id=?
-            """,
-            (
-                ahora_iso(),
+                WHERE id=?
+                """,
+                (
+                    ahora_iso(),
                 pregunta_id,
                 modo_publicacion,
                 observaciones_publicacion,
-                generacion_id,
-            ),
-        )
-        aux.commit()
+                    generacion_id,
+                ),
+            )
+            aux.commit()
 
     print(
         f"Generación {generacion_id} aprobada."

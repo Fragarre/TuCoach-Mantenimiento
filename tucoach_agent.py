@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -47,6 +47,18 @@ OPERACIONES: dict[str, list[str]] = {
         sys.executable,
         str(RAIZ / "scripts" / "auditar_materiales_estudio.py"),
         "--detalle",
+    ],
+    "AUDITORIA_CORPUS_TEMARIO": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_corpus_temario.py"),
+    ],
+    "AUDITORIA_ESQUEMA_OBSOLETO": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_esquema_obsoleto.py"),
+    ],
+    "INVENTARIO_DENOMINACIONES_NORMAS": [
+        sys.executable,
+        str(RAIZ / "scripts" / "inventariar_denominaciones_normas.py"),
     ],
 }
 

@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -88,9 +88,7 @@ OPERACIONES_CONFIRMABLES: dict[str, dict[str, list[str]]] = {
         ],
         "APPLY": [
             sys.executable,
-            str(RAIZ / "scripts" / "preparar_mantenimiento_temario.py"),
-            "--fase",
-            "preparar-apply",
+            str(RAIZ / "scripts" / "aplicar_mantenimiento_temario.py"),
         ],
     },
 }
@@ -305,7 +303,7 @@ def ejecutar_job(job: dict[str, Any]) -> None:
                 actualizar_estado(
                     job_id,
                     "ERROR",
-                    error_texto="Falta resultado.review estructurado para preparar APPLY.",
+                    error_texto="Falta resultado.review estructurado para ejecutar APPLY.",
                 )
                 return
             if review.get("convocatoria_id") != convocatoria_id:

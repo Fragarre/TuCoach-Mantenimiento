@@ -5,7 +5,6 @@ Publica exclusivamente candidatas VALIDADA_IA ya generadas. No invoca la IA.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sqlite3
 import sys

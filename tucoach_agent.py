@@ -361,7 +361,9 @@ def ciclo() -> None:
     print(f"TuCoach Agent {VERSION}")
     print(f"Repositorio: {RAIZ}")
     print(f"API: {API_BASE}")
-    print("Operaciones directas permitidas: " + ", ".join(sorted(OPERACIONES_DIRECTAS)))\n    if OPERACIONES_CONFIRMABLES:\n        print("Operaciones confirmables: " + ", ".join(sorted(OPERACIONES_CONFIRMABLES)))
+    print("Operaciones directas permitidas: " + ", ".join(sorted(OPERACIONES_DIRECTAS)))
+    if OPERACIONES_CONFIRMABLES:
+        print("Operaciones confirmables: " + ", ".join(sorted(OPERACIONES_CONFIRMABLES)))
     print("Ctrl+C para detener.")
 
     while True:

@@ -835,7 +835,7 @@ def main() -> int:
     print("\nAUDITORÍA DE FIDELIDAD PDF ↔ TEMARIO.CSV")
     pdf_sha256 = sha256_fichero(pdf)
     csv_sha256 = sha256_fichero(csvp)
-    print(f"PDF: {pdf}\\nCSV: {csvp}\\nLa base de datos NO se modifica durante la revisión.")
+    print(f"PDF: {pdf}\nCSV: {csvp}\nLa base de datos NO se modifica durante la revisión.")
     print(f"SHA256 PDF: {pdf_sha256}")
     print(f"SHA256 CSV: {csv_sha256}")
 

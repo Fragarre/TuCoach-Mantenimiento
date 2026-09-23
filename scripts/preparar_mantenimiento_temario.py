@@ -106,6 +106,7 @@ def preparar_apply(
     db: Path,
     convocatoria_id: int,
     csv_sha256_esperado: str,
+    db_sha256_esperado: str,
 ) -> dict[str, object]:
     codigo, csv = resolver_convocatoria(db, convocatoria_id)
     actual = sha256_fichero(csv)
@@ -116,6 +117,14 @@ def preparar_apply(
         raise RuntimeError(
             "El temario.csv ha cambiado desde REVIEW. APPLY cancelado antes de modificar datos."
         )
+    db_esperado = db_sha256_esperado.strip().lower()
+    if len(db_esperado) != 64 or any(c not in "0123456789abcdef" for c in db_esperado):
+        raise RuntimeError("db_sha256_esperado no es un SHA-256 válido.")
+    db_actual = sha256_fichero(db)
+    if db_actual != db_esperado:
+        raise RuntimeError(
+            "La SQLite ha cambiado desde REVIEW. APPLY cancelado antes de modificar datos."
+        )
     backup, backup_sha = crear_backup_sqlite(db, codigo)
     return {
         "fase": "APPLY_PREPARADO",
@@ -123,6 +132,7 @@ def preparar_apply(
         "codigo": codigo,
         "csv": str(csv.relative_to(RAIZ)),
         "csv_sha256": actual,
+        "db_sha256": db_actual,
         "backup_db": str(backup.relative_to(RAIZ)),
         "backup_db_sha256": backup_sha,
         "listo_para_aplicar": True,
@@ -137,21 +147,23 @@ def main() -> int:
     p.add_argument("--convocatoria-id", type=int, required=True)
     p.add_argument("--fase", choices=("review", "preparar-apply"), required=True)
     p.add_argument("--csv-sha256-esperado")
+    p.add_argument("--db-sha256-esperado")
     a = p.parse_args()
 
     db = Path(a.db).expanduser().resolve()
     try:
         if a.fase == "review":
-            if a.csv_sha256_esperado:
-                raise RuntimeError("REVIEW no acepta csv_sha256_esperado.")
+            if a.csv_sha256_esperado or a.db_sha256_esperado:
+                raise RuntimeError("REVIEW no acepta hashes esperados.")
             resultado = revisar(db, a.convocatoria_id)
         else:
-            if not a.csv_sha256_esperado:
-                raise RuntimeError("APPLY requiere csv_sha256_esperado.")
+            if not a.csv_sha256_esperado or not a.db_sha256_esperado:
+                raise RuntimeError("APPLY requiere los SHA-256 de CSV y SQLite revisados.")
             resultado = preparar_apply(
                 db,
                 a.convocatoria_id,
                 a.csv_sha256_esperado,
+                a.db_sha256_esperado,
             )
         print(json.dumps(resultado, ensure_ascii=False, indent=2))
         return 0

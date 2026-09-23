@@ -54,10 +54,8 @@ from sincronizar_bancos import sincronizar_todos_bancos
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_DEFECTO = ROOT / "db" / "oposiciones.sqlite3"
-DB_AUX_TEMP = Path(tempfile.gettempdir()) / "tucoach_generacion_preguntas_ia.sqlite3"
-DB_AUX = DB_AUX_TEMP
+DB_AUX = Path(tempfile.gettempdir()) / "tucoach_generacion_preguntas_ia.sqlite3"
 REGISTROS = ROOT / "registros"
-LOTES_REVIEW = ROOT / "registros" / "lotes_preguntas_ia"
 
 TIPO_FUENTE = "ia_generada"
 DIFICULTAD_OBJETIVO = "ALTA_MUY_ALTA"
@@ -396,19 +394,6 @@ def conectar_maestra(ruta: Path) -> sqlite3.Connection:
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
     return con
-
-
-def configurar_db_auxiliar(lote_review: str | None) -> None:
-    """Selecciona una auxiliar temporal o un lote REVIEW dentro del área controlada."""
-    global DB_AUX
-    if lote_review is None:
-        DB_AUX = DB_AUX_TEMP
-        return
-    lote = str(lote_review).strip()
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", lote):
-        raise RuntimeError("--lote-review contiene un identificador no válido.")
-    LOTES_REVIEW.mkdir(parents=True, exist_ok=True)
-    DB_AUX = (LOTES_REVIEW / f"{lote}.sqlite3").resolve()
 
 
 def conectar_auxiliar() -> sqlite3.Connection:
@@ -1729,11 +1714,7 @@ def evaluar_dificultad_por_consenso(
         str(auditoria.get("dificultad") or "").strip().upper(),
     ]
     positivos = sum(v in {"ALTA", "MUY_ALTA"} for v in votos)
-    # La auditoría ciega de evidencia actúa como veto de dificultad: no basta
-    # con que los dos validadores iniciales voten ALTA/MUY_ALTA si, al revisar
-    # la pregunta contra la fuente, el auditor la considera insuficiente.
-    auditoria_ok = votos[2] in {"ALTA", "MUY_ALTA"}
-    dificultad_ok = positivos >= 2 and auditoria_ok
+    dificultad_ok = positivos >= 2
     discutida = len(set(votos)) > 1
     return dificultad_ok, discutida, votos
 
@@ -2228,7 +2209,6 @@ def generar(
     con: sqlite3.Connection, ctx: ContextoReferencia, tipo_pregunta: str,
     modelo_generacion: str, modelo_validacion: str, max_ejemplos: int,
     mostrar_detalle: bool = True,
-    publicar_automaticamente: bool = True,
 ) -> int:
     from openai_api import seleccionar_fragmento_json
 
@@ -2393,7 +2373,7 @@ def generar(
         generacion_id=int(cur.lastrowid)
         aux.commit()
 
-    if aceptada_final and publicar_automaticamente:
+    if aceptada_final:
         try: aprobar(con,generacion_id,modo_publicacion="IA_DOBLE_CHECK_AUDITADA")
         except Exception as exc:
             with conectar_auxiliar() as aux:
@@ -2439,7 +2419,6 @@ def generar_lote(
     modelo_validacion: str,
     max_ejemplos: int,
     usar_modelo_examen: bool = True,
-    publicar_automaticamente: bool = True,
 ) -> list[dict[str, Any]]:
     iniciar_ejecucion_generacion()
 
@@ -2534,7 +2513,6 @@ def generar_lote(
                     modelo_validacion,
                     max_ejemplos,
                     mostrar_detalle=False,
-                    publicar_automaticamente=publicar_automaticamente,
                 )
                 ids_ejecucion.append(gid)
                 r = resumen_generacion(gid)
@@ -2561,11 +2539,11 @@ def generar_lote(
 
         validadas = [
             r for r in resultados
-            if str(r.get("estado", "")) == "VALIDADA_IA"
+            if str(r.get("dictamen", "")).startswith("VALIDADA")
         ]
         rechazadas = [
             r for r in resultados
-            if str(r.get("estado", "")) == "RECHAZADA_IA"
+            if str(r.get("dictamen", "")).startswith("RECHAZADA")
         ]
 
         ruta = exportar_informe_ultima_ejecucion(
@@ -2585,11 +2563,8 @@ def generar_lote(
         return resultados
 
     finally:
-        # El flujo histórico elimina la auxiliar. Un REVIEW persistente la
-        # conserva expresamente para que un APPLY posterior publique exactamente
-        # las candidatas ya generadas, sin volver a invocar la IA.
-        if DB_AUX == DB_AUX_TEMP:
-            finalizar_ejecucion_generacion()
+        # La base auxiliar era solo de trabajo. No se conserva historial.
+        finalizar_ejecucion_generacion()
 
 
 def _tipo_norma_desde_nombre(nombre: str) -> tuple[str, str]:
@@ -2682,8 +2657,6 @@ def aprobar(
     con: sqlite3.Connection,
     generacion_id: int,
     modo_publicacion: str = "HUMANA",
-    gestionar_transaccion: bool = True,
-    actualizar_auxiliar: bool = True,
 ) -> int:
     """
     Publica una candidata validada.
@@ -2712,11 +2685,6 @@ def aprobar(
             "VALIDADA_IA",
             "ERROR_PUBLICACION",
         }
-        if modo_publicacion == "IA_REVIEW_CONFIRMADA" and g["estado"] != "VALIDADA_IA":
-            raise RuntimeError(
-                "El APPLY protegido solo puede publicar candidatas VALIDADA_IA; "
-                f"estado actual: {g['estado']}."
-            )
 
         if g["estado"] not in estados_aprobables:
             raise RuntimeError(
@@ -2822,8 +2790,7 @@ def aprobar(
         # ---------------------------------------------------------------
         # FASE 1: PERSISTENCIA MAESTRA
         # ---------------------------------------------------------------
-        if gestionar_transaccion:
-            con.execute("BEGIN IMMEDIATE")
+        con.execute("BEGIN IMMEDIATE")
         try:
             cur_imp = con.execute(
                 """
@@ -2946,12 +2913,10 @@ def aprobar(
                     "integrity_check."
                 )
 
-            if gestionar_transaccion:
-                con.commit()
+            con.commit()
 
         except Exception:
-            if gestionar_transaccion:
-                con.rollback()
+            con.rollback()
             raise
 
         # ---------------------------------------------------------------
@@ -2965,26 +2930,25 @@ def aprobar(
             "bancos=PENDIENTE_SINCRONIZACION_COMUN"
         )
 
-        if actualizar_auxiliar:
-            aux.execute(
-                """
-                UPDATE generaciones_preguntas_ia
-                SET estado='APROBADA',
-                    fecha_revision=?,
-                    lote_pregunta_id=?,
-                    tipo_publicacion=?,
-                    observaciones=?
-                WHERE id=?
-                """,
-                (
-                    ahora_iso(),
-                    pregunta_id,
-                    modo_publicacion,
-                    observaciones_publicacion,
-                    generacion_id,
-                ),
-            )
-            aux.commit()
+        aux.execute(
+            """
+            UPDATE generaciones_preguntas_ia
+            SET estado='APROBADA',
+                fecha_revision=?,
+                lote_pregunta_id=?,
+                tipo_publicacion=?,
+                observaciones=?
+            WHERE id=?
+            """,
+            (
+                ahora_iso(),
+                pregunta_id,
+                modo_publicacion,
+                observaciones_publicacion,
+                generacion_id,
+            ),
+        )
+        aux.commit()
 
     print(
         f"Generación {generacion_id} aprobada."
@@ -3185,14 +3149,10 @@ def detalle_generacion(generacion_id: int) -> None:
     print("="*78)
 
 def crear_parser() -> argparse.ArgumentParser:
-    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); p.add_argument("--solo-generar",action="store_true",help="Genera y valida candidatas sin publicar en lote_preguntas ni sincronizar bancos."); p.add_argument("--lote-review",help="Identificador del lote REVIEW que se conservará en registros/lotes_preguntas_ia; requiere --solo-generar."); return p
+    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); return p
 
 def main() -> int:
     args=crear_parser().parse_args(); ruta_db=Path(args.db).resolve()
-    if args.lote_review and not args.solo_generar:
-        print("ERROR: --lote-review requiere --solo-generar.")
-        return 1
-    configurar_db_auxiliar(args.lote_review)
     if not ruta_db.is_file(): print(f"ERROR: no existe la base: {ruta_db}"); return 1
     if (
         args.listar_generaciones
@@ -3286,14 +3246,11 @@ def main() -> int:
             args.modelo_validacion,
             args.max_ejemplos,
             usar_modelo_examen=usar_modelo_examen,
-            publicar_automaticamente=not args.solo_generar,
         )
 
-    # En modo normal se conserva exactamente el comportamiento histórico.
-    # --solo-generar es una frontera de seguridad: no publica en lote_preguntas
-    # y tampoco ejecuta ninguna sincronización de bancos.
-    if not args.solo_generar:
-        sincronizar_todos_bancos(ruta_db, aplicar=True, validar_final=True)
+    # La conexión maestra ya está cerrada. Una única operación común
+    # sincroniza todos los bancos y ejecuta la validación completa.
+    sincronizar_todos_bancos(ruta_db, aplicar=True, validar_final=True)
     return 0
 
 

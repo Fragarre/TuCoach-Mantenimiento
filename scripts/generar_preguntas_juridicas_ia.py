@@ -2965,18 +2965,18 @@ def aprobar(
             aux.execute(
                 """
                 UPDATE generaciones_preguntas_ia
-            SET estado='APROBADA',
-                fecha_revision=?,
-                lote_pregunta_id=?,
-                tipo_publicacion=?,
-                observaciones=?
+                SET estado='APROBADA',
+                    fecha_revision=?,
+                    lote_pregunta_id=?,
+                    tipo_publicacion=?,
+                    observaciones=?
                 WHERE id=?
                 """,
                 (
                     ahora_iso(),
-                pregunta_id,
-                modo_publicacion,
-                observaciones_publicacion,
+                    pregunta_id,
+                    modo_publicacion,
+                    observaciones_publicacion,
                     generacion_id,
                 ),
             )

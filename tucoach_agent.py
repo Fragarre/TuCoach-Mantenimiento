@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -200,6 +200,14 @@ def ejecutar_job(job: dict[str, Any]) -> None:
             estado_final = "COMPLETADO"
             error_final = None
             mensaje = f"Trabajo completado: {job_id} | CORRECTO"
+        elif tipo == "AUDITORIA_MATERIALES_ESTUDIO" and proceso.returncode == 1:
+            # En esta auditoría, 1 significa que el diagnóstico encontró
+            # materiales que requieren actualización/revisión. La ejecución
+            # ha sido correcta; no es un fallo técnico del agente ni del script.
+            resultado["requiere_revision"] = True
+            estado_final = "COMPLETADO"
+            error_final = None
+            mensaje = f"Trabajo completado: {job_id} | REQUIERE REVISIÓN"
         else:
             estado_final = "ERROR"
             error_final = f"{tipo} terminó con código {proceso.returncode}."

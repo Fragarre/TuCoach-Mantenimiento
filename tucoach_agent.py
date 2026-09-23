@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -81,6 +81,51 @@ def actualizar_estado(
         },
     )
 
+
+def confirmar_estado_final(
+    job_id: str,
+    estado: str,
+    *,
+    resultado: dict[str, Any] | None = None,
+    error_texto: str | None = None,
+) -> bool:
+    # Reintenta únicamente la notificación del resultado. Nunca reejecuta
+    # el proceso local. El backend acepta ACK repetido del mismo estado final.
+    for intento in range(1, 4):
+        try:
+            actualizar_estado(
+                job_id,
+                estado,
+                resultado=resultado,
+                error_texto=error_texto,
+            )
+            return True
+        except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+            if intento == 3:
+                print(
+                    f"Resultado local obtenido para {job_id}, pero no se pudo "
+                    f"confirmar el estado remoto tras {intento} intentos: {exc}"
+                )
+                return False
+            print(
+                f"Comunicación del resultado pendiente para {job_id}; "
+                f"reintento {intento + 1}/3."
+            )
+            time.sleep(5)
+        except urllib.error.HTTPError as exc:
+            detalle = exc.read().decode("utf-8", errors="replace")
+            print(
+                f"Resultado local obtenido para {job_id}, pero el servidor rechazó "
+                f"la actualización: HTTP {exc.code}: {detalle}"
+            )
+            return False
+        except Exception as exc:
+            print(
+                f"Resultado local obtenido para {job_id}, pero falló su comunicación: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return False
+    return False
 
 def ejecutar_job(job: dict[str, Any]) -> None:
     job_id = str(job["id"])
@@ -152,30 +197,13 @@ def ejecutar_job(job: dict[str, Any]) -> None:
     # La ejecución local ya ha terminado. Un fallo de red al comunicar el
     # resultado no debe reinterpretarse como un fallo del proceso ni provocar
     # una segunda ejecución.
-    try:
-        actualizar_estado(
-            job_id,
-            estado_final,
-            resultado=resultado,
-            error_texto=error_final,
-        )
+    if confirmar_estado_final(
+        job_id,
+        estado_final,
+        resultado=resultado,
+        error_texto=error_final,
+    ):
         print(mensaje)
-    except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
-        print(
-            f"Resultado local obtenido para {job_id}, pero no se pudo confirmar "
-            f"el estado remoto: {exc}"
-        )
-    except urllib.error.HTTPError as exc:
-        detalle = exc.read().decode("utf-8", errors="replace")
-        print(
-            f"Resultado local obtenido para {job_id}, pero el servidor rechazó "
-            f"la actualización: HTTP {exc.code}: {detalle}"
-        )
-    except Exception as exc:
-        print(
-            f"Resultado local obtenido para {job_id}, pero falló su comunicación: "
-            f"{type(exc).__name__}: {exc}"
-        )
 
 
 def ciclo() -> None:

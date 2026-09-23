@@ -17,6 +17,7 @@ from generar_preguntas_juridicas_ia import (
     conectar_maestra,
 )
 from preparar_mantenimiento_temario import sha256_fichero
+from sincronizar_bancos_protegido import aplicar as aplicar_sincronizacion_bancos
 from sincronizar_bancos_protegido import bloqueo_exclusivo
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -124,8 +125,18 @@ def aplicar(db: Path, lote_id: str, db_sha: str, lote_sha: str) -> dict[str, obj
                 )
             aux.commit()
 
+        # La publicación ha cambiado legítimamente la maestra. Se congela ese
+        # nuevo SHA y se delega la selección/sincronización en el wrapper común,
+        # reutilizando el lock que ya posee esta operación de alto nivel.
+        db_sha_post_publicacion = sha256_fichero(db)
+        sincronizacion = aplicar_sincronizacion_bancos(
+            db,
+            db_sha_post_publicacion,
+            gestionar_lock=False,
+        )
+
         return {
-            "fase": "APPLY_PUBLICACION",
+            "fase": "APPLY",
             "lote_id": lote_id,
             "db_sha256_revisado": db_sha,
             "lote_sha256_revisado": lote_sha,
@@ -133,7 +144,8 @@ def aplicar(db: Path, lote_id: str, db_sha: str, lote_sha: str) -> dict[str, obj
             "backup_db_sha256": backup_sha,
             "publicadas": len(publicados),
             "lote_preguntas_ids": [p for _, p in publicados],
-            "bancos": "PENDIENTE_SINCRONIZACION",
+            "sincronizacion_bancos": sincronizacion,
+            "aplicado": True,
         }
 
 

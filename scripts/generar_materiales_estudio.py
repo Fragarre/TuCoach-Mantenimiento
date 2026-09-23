@@ -888,13 +888,16 @@ def _procesar_final(
             )
         )
 
-    # Tras tres correcciones, el revisor puede seguir proponiendo matices de
-    # transcripción que no contradicen el resumen. Se conservan como aviso,
-    # pero no se descarta un material editorialmente válido por ese motivo.
+    # Tras tres intentos, una síntesis que el auditor jurídico siga
+    # considerando inválida no puede aprobarse como material de estudio.
+    # _errores() ya descarta falsos positivos y observaciones no materiales.
     if revision3.get("valido") is not True:
-        avisos = _errores(revision3)
-        if avisos:
-            print("AVISO: revisión final con matices no bloqueantes: " + " | ".join(avisos))
+        errores_finales = _errores(revision3)
+        if errores_finales:
+            raise RuntimeError(
+                "Síntesis jurídica final rechazada tras tres intentos: "
+                + " | ".join(errores_finales)
+            )
 
     return final3
 

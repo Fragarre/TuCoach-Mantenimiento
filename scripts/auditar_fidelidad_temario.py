@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import csv
 import html
-import hashlib
 import os
 import re
 import shutil
@@ -39,14 +38,6 @@ from openai_api import seleccionar_fragmento_json  # noqa: E402
 
 COLUMNAS = ("parte", "tema", "titulo", "LEY", "articulo", "tipo")
 MODELO = "gpt-5.4"
-
-
-def sha256_fichero(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for bloque in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(bloque)
-    return h.hexdigest()
 
 
 @dataclass
@@ -827,17 +818,13 @@ def main() -> int:
     ap.add_argument("--csv", dest="csvp", type=Path)
     ap.add_argument("--modelo", default=MODELO)
     ap.add_argument("--aplicar", action="store_true")
-    ap.add_argument("--no-preguntar-aplicar", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--no-preguntar-aplicar", action="store_true")
     a = ap.parse_args()
 
     pdf = ruta_arg(a.pdf, "Ruta del temario PDF: ")
     csvp = ruta_arg(a.csvp, "Ruta del temario CSV: ")
     print("\nAUDITORÍA DE FIDELIDAD PDF ↔ TEMARIO.CSV")
-    pdf_sha256 = sha256_fichero(pdf)
-    csv_sha256 = sha256_fichero(csvp)
-    print(f"PDF: {pdf}\nCSV: {csvp}\nLa base de datos NO se modifica durante la revisión.")
-    print(f"SHA256 PDF: {pdf_sha256}")
-    print(f"SHA256 CSV: {csv_sha256}")
+    print(f"PDF: {pdf}\nCSV: {csvp}\nLa base de datos NO se modifica.")
 
     filas, campos, real, enc, delim, quote, eol = leer_csv(csvp)
     temas = extraer_ia(leer_pdf(pdf), filas, a.modelo)
@@ -856,9 +843,14 @@ def main() -> int:
         f"OK: {len(ok)}\nInforme: {informe}"
     )
 
-    if not a.aplicar:
-        print("Modo revisión: no se ha modificado el CSV.")
-        print("Para aplicar cambios confirmados es obligatorio ejecutar de nuevo con --aplicar.")
+    aplicar_ok = a.aplicar
+    if not a.no_preguntar_aplicar and not a.aplicar:
+        aplicar_ok = (
+            input("\n¿Incorporar modificaciones confirmadas? [s/N]: ")
+            .strip().lower() in {"s", "si", "sí"}
+        )
+    if not aplicar_ok:
+        print("No se ha modificado el CSV.")
         return 0
     if not conf:
         print("No existen modificaciones confirmadas.")

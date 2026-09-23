@@ -22,7 +22,7 @@ for _nombre in dir(_base):
 _importar_temario_manual_base = _base.importar_temario_manual
 
 
-def seleccionar_convocatoria_temario() -> tuple[int, str, Path] | None:
+def seleccionar_convocatoria_temario() -> tuple[str, Path] | None:
     """Selecciona una convocatoria activa y resuelve su temario.csv real."""
     db = _base.RAIZ / "db" / "oposiciones.sqlite3"
     if not db.is_file():
@@ -78,7 +78,7 @@ def seleccionar_convocatoria_temario() -> tuple[int, str, Path] | None:
             if not ruta.is_file():
                 print(f"\nERROR: no existe el temario.csv de {codigo}:\n{ruta}")
                 return None
-            return int(fila["id"]), codigo, ruta
+            return codigo, ruta
         print("Opción no válida.")
 
 
@@ -91,48 +91,18 @@ def mantener_temario_convocatoria_menu() -> None:
     seleccion = seleccionar_convocatoria_temario()
     if seleccion is None:
         return
-    convocatoria_id, codigo, ruta_csv = seleccion
+    codigo, ruta_csv = seleccion
 
     print("\nSelección")
     print("-" * 78)
     print(f"Convocatoria: {codigo}")
     print(f"Temario CSV:  {ruta_csv}")
 
-    # Congelar la identidad exacta del CSV y de la BD que se van a revisar.
-    # Estos hashes son los que se conservarán hasta el APPLY; no se recalculan
-    # después de la confirmación.
-    import hashlib
-
-    def _sha256(path: Path) -> str:
-        h = hashlib.sha256()
-        with path.open("rb") as fh:
-            for bloque in iter(lambda: fh.read(1024 * 1024), b""):
-                h.update(bloque)
-        return h.hexdigest()
-
-    db = (_base.RAIZ / "db" / "oposiciones.sqlite3").resolve()
-    csv_sha256_revisado = _sha256(ruta_csv)
-    db_sha256_revisado = _sha256(db)
-
     if _base.ejecutar_script(
         "orquestar_mantenimiento_temario.py",
         "--codigo", codigo,
         "--csv", str(ruta_csv),
     ) != 0:
-        _base.pausa()
-        return
-
-    # El REVIEW debe ser realmente de los mismos bytes que se hashearon antes.
-    # Si otro proceso cambia CSV o BD durante la revisión, se aborta sin pedir
-    # confirmación sobre un estado distinto.
-    if (
-        _sha256(ruta_csv) != csv_sha256_revisado
-        or _sha256(db) != db_sha256_revisado
-    ):
-        print(
-            "\nERROR: el temario.csv o la base de datos cambiaron durante el REVIEW. "
-            "Repita la revisión antes de aplicar."
-        )
         _base.pausa()
         return
 
@@ -143,14 +113,11 @@ def mantener_temario_convocatoria_menu() -> None:
         _base.pausa()
         return
 
-    # El APPLY usa exactamente los hashes del estado revisado. Si CSV o BD
-    # cambian mientras se espera la confirmación, el wrapper protegido rechazará
-    # la operación antes de modificar datos.
     if _base.ejecutar_script(
-        "aplicar_mantenimiento_temario.py",
-        "--convocatoria-id", str(convocatoria_id),
-        "--csv-sha256-esperado", csv_sha256_revisado,
-        "--db-sha256-esperado", db_sha256_revisado,
+        "orquestar_mantenimiento_temario.py",
+        "--codigo", codigo,
+        "--csv", str(ruta_csv),
+        "--aplicar",
     ) != 0:
         print("\nEl mantenimiento se ha detenido por una incidencia.")
         _base.pausa()

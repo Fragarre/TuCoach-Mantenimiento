@@ -24,22 +24,6 @@
       "estado_asignacion": "ASIGNADO"
     },
     {
-      "id": "examen-a2-01-34-26",
-      "tipo": "SIMULACRO_EXAMEN",
-      "convocatoria_codigo": null,
-      "ruta": "data_examenes/apoyo/Examen_A2-01_34_26.pdf",
-      "estado_asignacion": "SIN_ASIGNAR",
-      "referencia_detectada": "A2-01_34_26"
-    },
-    {
-      "id": "examen-a2-01-34-27",
-      "tipo": "SIMULACRO_EXAMEN",
-      "convocatoria_codigo": null,
-      "ruta": "data_examenes/apoyo/Examen_A2-01_34_27.pdf",
-      "estado_asignacion": "SIN_ASIGNAR",
-      "referencia_detectada": "A2-01_34_27"
-    },
-    {
       "id": "examen-modelo-70-26",
       "tipo": "SIMULACRO_EXAMEN",
       "convocatoria_codigo": null,

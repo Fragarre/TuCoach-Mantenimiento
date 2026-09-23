@@ -2706,6 +2706,11 @@ def aprobar(
             "VALIDADA_IA",
             "ERROR_PUBLICACION",
         }
+        if modo_publicacion == "IA_REVIEW_CONFIRMADA" and g["estado"] != "VALIDADA_IA":
+            raise RuntimeError(
+                "El APPLY protegido solo puede publicar candidatas VALIDADA_IA; "
+                f"estado actual: {g['estado']}."
+            )
 
         if g["estado"] not in estados_aprobables:
             raise RuntimeError(

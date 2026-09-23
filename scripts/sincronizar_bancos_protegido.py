@@ -80,11 +80,11 @@ def revisar(db: Path) -> dict[str, object]:
     return {"fase": "REVIEW", "db_sha256": sha_antes, "db_modificada": False, "sincronizador_returncode": rc, "salida_sincronizador": salida[-12000:]}
 
 
-def aplicar(db: Path, db_esperado: str) -> dict[str, object]:
+def aplicar(db: Path, db_esperado: str, *, gestionar_lock: bool = True) -> dict[str, object]:
     db_esperado = validar_sha(db_esperado, "db_sha256_esperado")
     if not db.is_file():
         raise RuntimeError(f"No existe la base: {db}")
-    with bloqueo_exclusivo():
+    def _aplicar_bajo_lock() -> dict[str, object]:
         if sha256_fichero(db) != db_esperado:
             raise RuntimeError("La SQLite ha cambiado desde REVIEW. APPLY cancelado.")
         backup, backup_sha = _backup_sqlite(db)
@@ -94,6 +94,11 @@ def aplicar(db: Path, db_esperado: str) -> dict[str, object]:
         if rc != 0:
             raise RuntimeError(f"La sincronización falló con código {rc}. Backup global conservado: {backup.relative_to(RAIZ)}\n{salida[-12000:]}")
         return {"fase": "APPLY", "db_sha256_revisado": db_esperado, "backup_db": str(backup.relative_to(RAIZ)), "backup_db_sha256": backup_sha, "sincronizador_returncode": rc, "salida_sincronizador": salida[-12000:], "aplicado": True}
+
+    if gestionar_lock:
+        with bloqueo_exclusivo():
+            return _aplicar_bajo_lock()
+    return _aplicar_bajo_lock()
 
 
 def main() -> int:

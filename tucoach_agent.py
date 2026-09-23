@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.6.2"
+VERSION = "0.7.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -78,11 +78,27 @@ OPERACIONES_DIRECTAS: dict[str, list[str]] = {
 # definir dos comandos distintos: REVIEW (sin escritura) y APPLY (escritura).
 # Mientras este mapa esté vacío, el agente rechazará cualquier job que solicite
 # confirmación aunque el servidor lo marque por error.
-OPERACIONES_CONFIRMABLES: dict[str, dict[str, list[str]]] = {}
+OPERACIONES_CONFIRMABLES: dict[str, dict[str, list[str]]] = {
+    "MANTENIMIENTO_TEMARIO": {
+        "REVIEW": [
+            sys.executable,
+            str(RAIZ / "scripts" / "preparar_mantenimiento_temario.py"),
+            "--fase",
+            "review",
+        ],
+        "APPLY": [
+            sys.executable,
+            str(RAIZ / "scripts" / "preparar_mantenimiento_temario.py"),
+            "--fase",
+            "preparar-apply",
+        ],
+    },
+}
 
 OPERACIONES_CON_CONVOCATORIA = {
     "AUDITORIA_FUNCIONAL_BANCO",
     "AUDITORIA_CONSISTENCIA_GLOBAL",
+    "MANTENIMIENTO_TEMARIO",
 }
 
 
@@ -283,6 +299,38 @@ def ejecutar_job(job: dict[str, Any]) -> None:
             )
             return
         comando = [*comando, "--convocatoria-id", str(convocatoria_id)]
+        if tipo == "MANTENIMIENTO_TEMARIO" and fase == "APPLY":
+            review = resultado_revision.get("review")
+            if not isinstance(review, dict):
+                actualizar_estado(
+                    job_id,
+                    "ERROR",
+                    error_texto="Falta resultado.review estructurado para preparar APPLY.",
+                )
+                return
+            if review.get("convocatoria_id") != convocatoria_id:
+                actualizar_estado(
+                    job_id,
+                    "ERROR",
+                    error_texto="La convocatoria de REVIEW no coincide con la de APPLY.",
+                )
+                return
+            csv_sha256 = review.get("csv_sha256")
+            db_sha256 = review.get("db_sha256")
+            if not isinstance(csv_sha256, str) or not isinstance(db_sha256, str):
+                actualizar_estado(
+                    job_id,
+                    "ERROR",
+                    error_texto="REVIEW no contiene los SHA-256 requeridos para APPLY.",
+                )
+                return
+            comando = [
+                *comando,
+                "--csv-sha256-esperado",
+                csv_sha256,
+                "--db-sha256-esperado",
+                db_sha256,
+            ]
     elif tipo == "BUSCAR_NORMA_RESPUESTA_CORRECTA":
         if not isinstance(parametros, dict):
             actualizar_estado(

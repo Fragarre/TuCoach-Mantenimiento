@@ -22,7 +22,7 @@ for _nombre in dir(_base):
 _importar_temario_manual_base = _base.importar_temario_manual
 
 
-def seleccionar_convocatoria_temario() -> tuple[str, Path] | None:
+def seleccionar_convocatoria_temario() -> tuple[int, str, Path] | None:
     """Selecciona una convocatoria activa y resuelve su temario.csv real."""
     db = _base.RAIZ / "db" / "oposiciones.sqlite3"
     if not db.is_file():
@@ -78,7 +78,7 @@ def seleccionar_convocatoria_temario() -> tuple[str, Path] | None:
             if not ruta.is_file():
                 print(f"\nERROR: no existe el temario.csv de {codigo}:\n{ruta}")
                 return None
-            return codigo, ruta
+            return int(fila["id"]), codigo, ruta
         print("Opción no válida.")
 
 
@@ -91,7 +91,7 @@ def mantener_temario_convocatoria_menu() -> None:
     seleccion = seleccionar_convocatoria_temario()
     if seleccion is None:
         return
-    codigo, ruta_csv = seleccion
+    convocatoria_id, codigo, ruta_csv = seleccion
 
     print("\nSelección")
     print("-" * 78)
@@ -113,11 +113,22 @@ def mantener_temario_convocatoria_menu() -> None:
         _base.pausa()
         return
 
+    # El APPLY del menú usa la misma puerta protegida que el Agent.
+    import hashlib
+
+    def _sha256(path: Path) -> str:
+        h = hashlib.sha256()
+        with path.open("rb") as fh:
+            for bloque in iter(lambda: fh.read(1024 * 1024), b""):
+                h.update(bloque)
+        return h.hexdigest()
+
+    db = (_base.RAIZ / "db" / "oposiciones.sqlite3").resolve()
     if _base.ejecutar_script(
-        "orquestar_mantenimiento_temario.py",
-        "--codigo", codigo,
-        "--csv", str(ruta_csv),
-        "--aplicar",
+        "aplicar_mantenimiento_temario.py",
+        "--convocatoria-id", str(convocatoria_id),
+        "--csv-sha256-esperado", _sha256(ruta_csv),
+        "--db-sha256-esperado", _sha256(db),
     ) != 0:
         print("\nEl mantenimiento se ha detenido por una incidencia.")
         _base.pausa()

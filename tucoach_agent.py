@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.1.3"
+VERSION = "0.2.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -26,6 +26,27 @@ OPERACIONES: dict[str, list[str]] = {
     "VALIDACION_COMPLETA": [
         sys.executable,
         str(RAIZ / "scripts" / "validacion_completa.py"),
+    ],
+    "AUDITORIA_BD": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_bd.py"),
+    ],
+    "AUDITORIA_BANCOS_SELECCION": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_bancos_seleccion.py"),
+        "--db",
+        "db/oposiciones.sqlite3",
+        "--constructor",
+        "scripts/mantener_banco_preguntas.py",
+    ],
+    "AUDITORIA_ESTRUCTURA_BANCO": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_estructura_banco.py"),
+    ],
+    "AUDITORIA_MATERIALES_ESTUDIO": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_materiales_estudio.py"),
+        "--detalle",
     ],
 }
 
@@ -141,11 +162,11 @@ def ejecutar_job(job: dict[str, Any]) -> None:
         )
         return
 
-    if tipo == "VALIDACION_COMPLETA" and parametros:
+    if parametros:
         actualizar_estado(
             job_id,
             "ERROR",
-            error_texto="VALIDACION_COMPLETA no admite parámetros.",
+            error_texto=f"{tipo} no admite parámetros.",
         )
         return
 
@@ -181,12 +202,12 @@ def ejecutar_job(job: dict[str, Any]) -> None:
             mensaje = f"Trabajo completado: {job_id} | CORRECTO"
         else:
             estado_final = "ERROR"
-            error_final = f"VALIDACION_COMPLETA terminó con código {proceso.returncode}."
+            error_final = f"{tipo} terminó con código {proceso.returncode}."
             mensaje = f"Trabajo finalizado con error: {job_id} | código {proceso.returncode}"
     except subprocess.TimeoutExpired:
         estado_final = "ERROR"
         resultado = None
-        error_final = "VALIDACION_COMPLETA superó el límite de 60 minutos."
+        error_final = f"{tipo} superó el límite de 60 minutos."
         mensaje = f"Trabajo finalizado con error: {job_id} | timeout"
     except Exception as exc:
         estado_final = "ERROR"

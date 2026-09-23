@@ -82,8 +82,8 @@ def resolver_convocatoria(db: Path, convocatoria_id: int) -> tuple[str, Path]:
 def crear_backup_sqlite(db: Path, codigo: str) -> tuple[Path, str]:
     """Copia consistente usando la API backup de SQLite."""
     BACKUPS.mkdir(parents=True, exist_ok=True)
-    sello = datetime.now().strftime("%Y%m%d_%H%M%S")
-    destino = BACKUPS / f"oposiciones_antes_temario_{codigo}_{sello}.sqlite3"
+    sello = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    destino = BACKUPS / f"oposiciones_antes_temario_{codigo}_{sello}.sqlite3"\n    if destino.exists():\n        raise RuntimeError(f"Ya existe el backup de destino: {destino}")
     with sqlite3.connect(db) as origen, sqlite3.connect(destino) as copia:
         origen.backup(copia)
     return destino, sha256_fichero(destino)

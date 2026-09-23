@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -67,6 +67,10 @@ OPERACIONES: dict[str, list[str]] = {
     "AUDITORIA_CONSISTENCIA_GLOBAL": [
         sys.executable,
         str(RAIZ / "scripts" / "auditar_consistencia_global.py"),
+    ],
+    "BUSCAR_NORMA_RESPUESTA_CORRECTA": [
+        sys.executable,
+        str(RAIZ / "scripts" / "buscar_norma_por_respuesta_correcta.py"),
     ],
 }
 
@@ -204,6 +208,33 @@ def ejecutar_job(job: dict[str, Any]) -> None:
             )
             return
         comando = [*comando, "--convocatoria-id", str(convocatoria_id)]
+    elif tipo == "BUSCAR_NORMA_RESPUESTA_CORRECTA":
+        if not isinstance(parametros, dict):
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto="Los parámetros deben ser un objeto.",
+            )
+            return
+        claves = set(parametros)
+        if claves not in ({"pregunta_id"}, {"limite"}):
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto=f"{tipo} requiere exactamente pregunta_id o limite.",
+            )
+            return
+        clave = next(iter(claves))
+        valor = parametros.get(clave)
+        if isinstance(valor, bool) or not isinstance(valor, int) or valor <= 0:
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto=f"{clave} debe ser un entero positivo.",
+            )
+            return
+        argumento = "--id" if clave == "pregunta_id" else "--limite"
+        comando = [*comando, argumento, str(valor)]
     elif parametros:
         actualizar_estado(
             job_id,

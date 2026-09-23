@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -136,6 +136,43 @@ def actualizar_estado(
             "error_texto": error_texto,
         },
     )
+
+
+def confirmar_inicio_ejecucion(job_id: str) -> bool:
+    # El subprocess solo puede arrancar después de que el backend confirme
+    # inequívocamente EJECUTANDO. Si se pierde la respuesta, repetimos
+    # únicamente el ACK; el backend acepta EJECUTANDO -> EJECUTANDO de forma
+    # idempotente y no crea una segunda ejecución.
+    for intento in range(1, 4):
+        try:
+            actualizar_estado(job_id, "EJECUTANDO")
+            return True
+        except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+            if intento == 3:
+                print(
+                    f"No se pudo confirmar el inicio remoto de {job_id} tras "
+                    f"{intento} intentos. El proceso local NO se ejecutará: {exc}"
+                )
+                return False
+            print(
+                f"Confirmación de inicio pendiente para {job_id}; "
+                f"reintento {intento + 1}/3."
+            )
+            time.sleep(5)
+        except urllib.error.HTTPError as exc:
+            detalle = exc.read().decode("utf-8", errors="replace")
+            print(
+                f"El servidor rechazó el inicio de {job_id}: "
+                f"HTTP {exc.code}: {detalle}. El proceso local NO se ejecutará."
+            )
+            return False
+        except Exception as exc:
+            print(
+                f"Falló la confirmación de inicio de {job_id}: "
+                f"{type(exc).__name__}: {exc}. El proceso local NO se ejecutará."
+            )
+            return False
+    return False
 
 
 def confirmar_estado_final(
@@ -281,7 +318,8 @@ def ejecutar_job(job: dict[str, Any]) -> None:
         )
         return
 
-    actualizar_estado(job_id, "EJECUTANDO")
+    if not confirmar_inicio_ejecucion(job_id):
+        return
 
     try:
         proceso = subprocess.run(

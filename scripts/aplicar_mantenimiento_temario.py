@@ -57,8 +57,19 @@ def aplicar(db: Path, convocatoria_id: int, csv_esperado: str, db_esperado: str)
         backup, backup_sha = crear_backup_sqlite(db, codigo)
         if sha256_fichero(csv) != csv_esperado or sha256_fichero(db) != db_esperado:
             raise RuntimeError("CSV o SQLite cambiaron durante la preparacion. APPLY cancelado antes de orquestar.")
-        cmd = [sys.executable, str(ORQUESTADOR), "--codigo", codigo, "--csv", str(csv), "--db", str(db), "--aplicar"]
-        proceso = subprocess.run(cmd, cwd=RAIZ, shell=False, check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        cmd = [sys.executable, "-X", "utf8", str(ORQUESTADOR), "--codigo", codigo, "--csv", str(csv), "--db", str(db), "--aplicar"]
+        entorno = os.environ.copy()
+        entorno["PYTHONIOENCODING"] = "utf-8"
+        entorno["PYTHONUTF8"] = "1"
+        proceso = subprocess.run(
+            cmd,
+            cwd=RAIZ,
+            shell=False,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env=entorno,
+        )
         salida = (proceso.stdout or b"").decode("utf-8", errors="replace")
         if proceso.returncode != 0:
             raise RuntimeError(f"El orquestador fallo con codigo {proceso.returncode}. Backup conservado: {backup.relative_to(RAIZ)}\n{salida[-12000:]}")

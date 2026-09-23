@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -77,6 +77,20 @@ OPERACIONES_DIRECTAS: dict[str, list[str]] = {
 # Las operaciones con confirmación se declaran por separado y definen
 # dos comandos distintos: REVIEW (sin escritura) y APPLY (escritura).
 OPERACIONES_CONFIRMABLES: dict[str, dict[str, list[str]]] = {
+    "SINCRONIZAR_BANCOS": {
+        "REVIEW": [
+            sys.executable,
+            str(RAIZ / "scripts" / "sincronizar_bancos_protegido.py"),
+            "--fase",
+            "review",
+        ],
+        "APPLY": [
+            sys.executable,
+            str(RAIZ / "scripts" / "sincronizar_bancos_protegido.py"),
+            "--fase",
+            "apply",
+        ],
+    },
     "MANTENIMIENTO_TEMARIO": {
         "REVIEW": [
             sys.executable,
@@ -333,6 +347,20 @@ def ejecutar_job(job: dict[str, Any]) -> None:
                 "--db-sha256-esperado",
                 db_sha256,
             ]
+    elif tipo == "SINCRONIZAR_BANCOS":
+        if parametros:
+            actualizar_estado(job_id, "ERROR", error_texto="SINCRONIZAR_BANCOS no admite parámetros.")
+            return
+        if fase == "APPLY":
+            review = resultado_revision.get("review")
+            if not isinstance(review, dict) or review.get("fase") != "REVIEW":
+                actualizar_estado(job_id, "ERROR", error_texto="Falta resultado.review válido para ejecutar APPLY.")
+                return
+            db_sha256 = review.get("db_sha256")
+            if not isinstance(db_sha256, str):
+                actualizar_estado(job_id, "ERROR", error_texto="REVIEW no contiene db_sha256 para APPLY.")
+                return
+            comando = [*comando, "--db-sha256-esperado", db_sha256]
     elif tipo == "BUSCAR_NORMA_RESPUESTA_CORRECTA":
         if not isinstance(parametros, dict):
             actualizar_estado(

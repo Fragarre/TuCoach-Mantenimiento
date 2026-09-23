@@ -74,10 +74,8 @@ OPERACIONES_DIRECTAS: dict[str, list[str]] = {
     ],
 }
 
-# Las operaciones con confirmación se declararán de forma separada y deberán
-# definir dos comandos distintos: REVIEW (sin escritura) y APPLY (escritura).
-# Mientras este mapa esté vacío, el agente rechazará cualquier job que solicite
-# confirmación aunque el servidor lo marque por error.
+# Las operaciones con confirmación se declaran por separado y definen
+# dos comandos distintos: REVIEW (sin escritura) y APPLY (escritura).
 OPERACIONES_CONFIRMABLES: dict[str, dict[str, list[str]]] = {
     "MANTENIMIENTO_TEMARIO": {
         "REVIEW": [
@@ -310,6 +308,13 @@ def ejecutar_job(job: dict[str, Any]) -> None:
                     job_id,
                     "ERROR",
                     error_texto="La convocatoria de REVIEW no coincide con la de APPLY.",
+                )
+                return
+            if review.get("fase") != "REVIEW":
+                actualizar_estado(
+                    job_id,
+                    "ERROR",
+                    error_texto="El resultado almacenado no corresponde a una fase REVIEW.",
                 )
                 return
             csv_sha256 = review.get("csv_sha256")

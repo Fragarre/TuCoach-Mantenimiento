@@ -18,11 +18,15 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.9.0"
+VERSION = "1.0.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
 OPERACIONES_DIRECTAS: dict[str, list[str]] = {
+    "GENERAR_PREGUNTAS_JURIDICAS_IA": [
+        sys.executable,
+        str(RAIZ / "scripts" / "generar_preguntas_juridicas_ia.py"),
+    ],
     "VALIDACION_COMPLETA": [
         sys.executable,
         str(RAIZ / "scripts" / "validacion_completa.py"),
@@ -361,6 +365,51 @@ def ejecutar_job(job: dict[str, Any]) -> None:
                 actualizar_estado(job_id, "ERROR", error_texto="REVIEW no contiene db_sha256 para APPLY.")
                 return
             comando = [*comando, "--db-sha256-esperado", db_sha256]
+    elif tipo == "GENERAR_PREGUNTAS_JURIDICAS_IA":
+        if not isinstance(parametros, dict):
+            actualizar_estado(job_id, "ERROR", error_texto="Los parámetros deben ser un objeto.")
+            return
+        claves_permitidas = {"convocatoria_id", "tipo", "cantidad", "ambito", "tema_id"}
+        if not set(parametros).issubset(claves_permitidas):
+            actualizar_estado(job_id, "ERROR", error_texto="Parámetros no permitidos para generación jurídica IA.")
+            return
+        convocatoria_id = parametros.get("convocatoria_id")
+        tipo_pregunta = parametros.get("tipo")
+        cantidad = parametros.get("cantidad")
+        ambito = parametros.get("ambito")
+        tema_id = parametros.get("tema_id")
+        if isinstance(convocatoria_id, bool) or not isinstance(convocatoria_id, int) or convocatoria_id <= 0:
+            actualizar_estado(job_id, "ERROR", error_texto="convocatoria_id debe ser un entero positivo.")
+            return
+        if tipo_pregunta not in {"TEORICA", "PRACTICA"}:
+            actualizar_estado(job_id, "ERROR", error_texto="tipo debe ser TEORICA o PRACTICA.")
+            return
+        if isinstance(cantidad, bool) or not isinstance(cantidad, int) or cantidad <= 0:
+            actualizar_estado(job_id, "ERROR", error_texto="cantidad debe ser un entero positivo.")
+            return
+        if ambito not in {"MODELO_EXAMEN", "TEMA", "TODOS_TEMAS"}:
+            actualizar_estado(job_id, "ERROR", error_texto="Ámbito de generación no permitido.")
+            return
+        if tipo_pregunta == "PRACTICA" and ambito == "MODELO_EXAMEN":
+            actualizar_estado(job_id, "ERROR", error_texto="PRACTICA no admite reparto por modelo de examen.")
+            return
+        if ambito == "TEMA":
+            if isinstance(tema_id, bool) or not isinstance(tema_id, int) or tema_id <= 0:
+                actualizar_estado(job_id, "ERROR", error_texto="El ámbito TEMA requiere tema_id entero positivo.")
+                return
+        elif tema_id is not None:
+            actualizar_estado(job_id, "ERROR", error_texto="tema_id solo se admite con ámbito TEMA.")
+            return
+        comando = [
+            *comando,
+            "--convocatoria-id", str(convocatoria_id),
+            "--cantidad", str(cantidad),
+            "--tipo", tipo_pregunta,
+        ]
+        if ambito == "TEMA":
+            comando.extend(["--tema-id", str(tema_id)])
+        elif ambito == "TODOS_TEMAS":
+            comando.append("--todos-temas")
     elif tipo == "BUSCAR_NORMA_RESPUESTA_CORRECTA":
         if not isinstance(parametros, dict):
             actualizar_estado(

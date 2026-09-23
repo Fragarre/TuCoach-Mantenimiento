@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "descripcion": "Catálogo explícito de documentos permitidos para auditorías locales. Las rutas son relativas al repositorio y no autorizan rutas arbitrarias.",
+  "documentos": [
+    {
+      "id": "temario-a1-01-01-26-adm",
+      "tipo": "TEMARIO_OFICIAL",
+      "convocatoria_codigo": "A1-01_01_26_ADM",
+      "ruta": "data_convocatorias/CONV_A1-01_01_26_ADM/temario_A1.pdf",
+      "estado_asignacion": "ASIGNADO"
+    },
+    {
+      "id": "temario-c1-01-58-26",
+      "tipo": "TEMARIO_OFICIAL",
+      "convocatoria_codigo": "C1-01_58_26",
+      "ruta": "data_convocatorias/CONV_C1-01_58_26/temario_C1.pdf",
+      "estado_asignacion": "ASIGNADO"
+    },
+    {
+      "id": "temario-c2-01-70-26",
+      "tipo": "TEMARIO_OFICIAL",
+      "convocatoria_codigo": "C2-01_70_26",
+      "ruta": "data_convocatorias/CONV_C2-01_70_26/temario_C2.pdf",
+      "estado_asignacion": "ASIGNADO"
+    },
+    {
+      "id": "examen-a2-01-34-26",
+      "tipo": "SIMULACRO_EXAMEN",
+      "convocatoria_codigo": null,
+      "ruta": "data_examenes/apoyo/Examen_A2-01_34_26.pdf",
+      "estado_asignacion": "SIN_ASIGNAR",
+      "referencia_detectada": "A2-01_34_26"
+    },
+    {
+      "id": "examen-a2-01-34-27",
+      "tipo": "SIMULACRO_EXAMEN",
+      "convocatoria_codigo": null,
+      "ruta": "data_examenes/apoyo/Examen_A2-01_34_27.pdf",
+      "estado_asignacion": "SIN_ASIGNAR",
+      "referencia_detectada": "A2-01_34_27"
+    },
+    {
+      "id": "examen-modelo-70-26",
+      "tipo": "SIMULACRO_EXAMEN",
+      "convocatoria_codigo": null,
+      "ruta": "fuentes_normativas/Examen_modelo_70_26.pdf",
+      "estado_asignacion": "SIN_ASIGNAR",
+      "referencia_detectada": "70_26"
+    }
+  ]
+}

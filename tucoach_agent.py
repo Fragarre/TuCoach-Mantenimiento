@@ -18,7 +18,7 @@ API_BASE = os.environ.get(
     "https://opocoach-web-staging-backend.onrender.com/api/v1/agent",
 ).rstrip("/")
 TOKEN = os.environ.get("TUCOACH_AGENT_TOKEN", "").strip()
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 INTERVALO_SEGUNDOS = 15
 
 # Allowlist cerrada. El servidor nunca puede enviar un comando de shell.
@@ -60,6 +60,19 @@ OPERACIONES: dict[str, list[str]] = {
         sys.executable,
         str(RAIZ / "scripts" / "inventariar_denominaciones_normas.py"),
     ],
+    "AUDITORIA_FUNCIONAL_BANCO": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_banco_preguntas.py"),
+    ],
+    "AUDITORIA_CONSISTENCIA_GLOBAL": [
+        sys.executable,
+        str(RAIZ / "scripts" / "auditar_consistencia_global.py"),
+    ],
+}
+
+OPERACIONES_CON_CONVOCATORIA = {
+    "AUDITORIA_FUNCIONAL_BANCO",
+    "AUDITORIA_CONSISTENCIA_GLOBAL",
 }
 
 
@@ -174,7 +187,24 @@ def ejecutar_job(job: dict[str, Any]) -> None:
         )
         return
 
-    if parametros:
+    if tipo in OPERACIONES_CON_CONVOCATORIA:
+        if set(parametros) != {"convocatoria_id"}:
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto=f"{tipo} requiere únicamente convocatoria_id.",
+            )
+            return
+        convocatoria_id = parametros.get("convocatoria_id")
+        if isinstance(convocatoria_id, bool) or not isinstance(convocatoria_id, int) or convocatoria_id <= 0:
+            actualizar_estado(
+                job_id,
+                "ERROR",
+                error_texto="convocatoria_id debe ser un entero positivo.",
+            )
+            return
+        comando = [*comando, "--convocatoria-id", str(convocatoria_id)]
+    elif parametros:
         actualizar_estado(
             job_id,
             "ERROR",

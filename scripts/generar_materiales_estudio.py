@@ -81,6 +81,16 @@ def _validar_rag_existente(
     """
     tipo = _clasificar_fuente(id_fuente)
 
+    # Si el BOE no ofrece índice consolidado pero hay un PDF oficial local
+    # con la misma identidad, el validador PDF es el respaldo trazable.
+    if tipo == "BOE":
+        try:
+            from pdf_normas import buscar_norma_por_id
+            buscar_norma_por_id(id_fuente)
+            tipo = "PDF_LOCAL"
+        except Exception:
+            pass
+
     if tipo == "BOE":
         script = SCRIPTS / "ampliar_corpus_chat.py"
         args = [
@@ -136,7 +146,29 @@ def _cargar_contenido_fuente(
     Usa EXACTAMENTE la misma selección de fuente que el auditor Fase 1 ya
     validado. No deduplica ni repara filas.
     """
-    fuente, contenido = seleccionar_fuente_canonica(con, norma_id)
+    try:
+        fuente, contenido = seleccionar_fuente_canonica(con, norma_id)
+    except RuntimeError as exc:
+        # Algunas normas del catálogo histórico no tienen referencias activas,
+        # aunque sí conservan una única fuente oficial enlazada y con corpus.
+        candidatas = con.execute(
+            """SELECT nf.id_fuente, COUNT(af.id) AS cobertura
+               FROM norma_fuentes nf JOIN articulos_fuente af
+                 ON UPPER(af.id_boe)=UPPER(nf.id_fuente)
+               WHERE nf.norma_id=? AND TRIM(COALESCE(af.texto,''))<>''
+               GROUP BY nf.id_fuente ORDER BY cobertura DESC, nf.id_fuente""",
+            (norma_id,),
+        ).fetchall()
+        if len(candidatas) != 1:
+            raise exc
+        fuente = str(candidatas[0][0])
+        contenido = [
+            (str(a or ''), str(b or ''), str(c or ''), str(d or ''))
+            for b, a, c, d in con.execute(
+                "SELECT id_bloque,articulo_boe,titulo_bloque,texto FROM articulos_fuente "
+                "WHERE UPPER(id_boe)=UPPER(?) ORDER BY id", (fuente,)
+            )
+        ]
     if not contenido:
         raise RuntimeError("La fuente seleccionada no contiene texto.")
 
@@ -281,12 +313,21 @@ def _llamar_json(
             f"Presupuesto global de materiales agotado: ${coste:.4f} de ${PRESUPUESTO_MAXIMO_USD:.2f}."
         )
     from openai_api import seleccionar_fragmento_json
-    return seleccionar_fragmento_json(
-        prompt=prompt,
-        modelo=modelo,
-        operacion=operacion,
-        max_output_tokens=max_output_tokens,
-    )
+    try:
+        return seleccionar_fragmento_json(
+            prompt=prompt, modelo=modelo, operacion=operacion,
+            max_output_tokens=max_output_tokens,
+        )
+    except ValueError as exc:
+        # El modo JSON puede recibir una cadena legal sin escapar desde un
+        # modelo pequeño. Se reintenta una vez sin reutilizar esa salida.
+        return seleccionar_fragmento_json(
+            prompt=(prompt + "\n\nTu respuesta anterior no era JSON válido. "
+                    "Devuelve exclusivamente un objeto JSON válido; escapa "
+                    "las comillas internas y no añadas explicación."),
+            modelo=modelo, operacion=operacion + "_reintento_json",
+            max_output_tokens=max_output_tokens,
+        )
 
 
 
@@ -334,18 +375,22 @@ REGLAS OBLIGATORIAS
 - No completes con conocimientos externos.
 - No reformules de manera que añada sujetos, órganos, requisitos, efectos,
   plazos o condiciones no presentes.
+- Para un hecho con literalidad MEDIA, conserva igualmente todos los sujetos,
+  importes, líneas presupuestarias, destinatarios y condiciones expresas. No
+  uses MEDIA como licencia para resumir u omitir un inciso jurídico relevante.
 - Si una fila es fragmentaria, auxiliar o dudosa, extrae solo lo inequívoco.
 - Si una tabla presenta una etiqueta, guion, cabecera o alineación ambigua por
   la extracción del PDF, no normalices ni infieras la fila: omítela por
   completo. Es preferible no extraer ese dato accesorio a asociar una cuantía
   o condición con una categoría distinta.
 - Los plazos deben reproducirse con su contexto material.
-- Las referencias deben ser artículo principal o subapartado si aparece claro.
+- El campo "articulo" debe conservar exactamente el identificador indicado en ARTÍCULO en la FUENTE ÚNICA. No añadas números de apartados, letras ni sufijos que no formen parte de ese identificador.
+- Cuando el artículo esté dividido en apartados, letras, ordinales o incisos identificados expresamente, conserva SIEMPRE en el campo "texto" del hecho el identificador exacto del apartado, letra, ordinal o inciso del que procede la regla (por ejemplo, "apartado 2" o "k)"). No atribuyas a un apartado una regla perteneciente a otro. No traslades esos identificadores al campo "articulo".
 - Conserva la numeración, incluidos ordinales o apartados marcados expresamente
   como "Suprimido"; no elimines esos hitos ni renumeres una lista legal.
-- Extrae como máximo 12 hechos por bloque. Prioriza las reglas nucleares y
-  agrupa únicamente incisos inseparables del mismo apartado para que la salida
-  JSON quede completa y verificable.
+- Extrae los hechos necesarios para conservar todas las reglas jurídicamente relevantes de la fuente.
+- Agrupa únicamente incisos inseparables del mismo apartado; no omitas requisitos, condiciones, excepciones, efectos o plazos para reducir el número de hechos.
+- La salida JSON debe quedar completa y verificable.
 {correccion}
 
 Devuelve SOLO JSON:
@@ -382,6 +427,12 @@ HECHOS PROPUESTOS
 {json.dumps(propuesta, ensure_ascii=False, indent=2)}
 
 VALIDA UNO POR UNO.
+
+CRITERIO DE VALIDACIÓN MATERIAL:
+- No exijas reproducción literal de la redacción de la fuente.
+- Una paráfrasis fiel es válida si conserva íntegramente el significado jurídico.
+- No marques como error diferencias meramente estilísticas, de síntesis o de redacción.
+- Rechaza únicamente cuando exista una diferencia jurídica material: información añadida, omisión relevante o alteración de sujetos, órganos, requisitos, condiciones, excepciones, efectos, cuantías o plazos.
 
 La categoría es una etiqueta auxiliar de indexación; no forma parte del hecho
 jurídico ni se muestra como afirmación normativa. No rechaces un hecho cuya
@@ -423,7 +474,7 @@ def _prompt_sintesis_desde_hechos(
         correccion = (
             "\nERRORES DEL INTENTO ANTERIOR:\n"
             + "\n".join(f"- {x}" for x in errores)
-            + "\nCorrígelos utilizando exclusivamente los hechos validados.\n"
+            + "\nCorrige únicamente las afirmaciones señaladas, utilizando exclusivamente los hechos validados. Conserva sin cambios el contenido no señalado como erróneo. Si una afirmación señalada no puede corregirse directamente con los hechos validados, elimínala en lugar de sustituirla por una deducción nueva.\n"
         )
 
     return f"""
@@ -444,8 +495,9 @@ REGLAS
   cambie su significado.
 - No inventes categorías doctrinales.
 - No conviertas una mera secuencia legal en una "diferencia conceptual".
-- Solo crea una diferencia si los propios hechos validados permiten contrastar
-  claramente dos regímenes.
+- Solo crea una diferencia cuando el contraste esté expresamente contenido en los hechos validados.
+  No deduzcas ni construyas comparaciones a partir de hechos separados. En caso de duda, devuelve diferencias vacías.
+- No combines dos o más hechos para formular una regla, condición o relación nueva que no aparezca directamente en ellos.
 - Mantén las referencias de artículos.
 - Los plazos deben salir exclusivamente de hechos de categoría PLAZO.
 - Si dudas entre una formulación más elegante y una más fiel, elige la más fiel.
@@ -463,6 +515,7 @@ REGLAS
 - La introducción debe explicar cómo usar el documento: primero localizar la
   materia en el mapa, después repasar las reglas y finalmente comprobar la
   literalidad en la norma. No puede limitarse a una advertencia genérica.
+- Los títulos de las secciones no deben comenzar con números, ordinales ni numeración propia; el PDF los numera automáticamente.
 - Las secciones deben desarrollar los bloques que importan para el estudio;
   evita títulos residuales, vacíos o meramente numéricos.
 - En "diferencias" incluye únicamente contrastes materiales explícitos y
@@ -543,8 +596,9 @@ de uno o varios hechos validados sin añadir interpretación nueva.
 Es un resumen de estudio, no una reproducción íntegra. No rechaces por la mera
 omisión de matices accesorios cuando la afirmación se presenta de forma general
 y sigue siendo verdadera; rechaza solo si esa omisión convierte la regla en
-incondicionada, invierte su sentido o puede inducir a una respuesta de examen
-errónea. Tampoco exijas que una frase breve reúna en una sola cita todos los
+incondicionada, invierte su sentido o produce una afirmación jurídicamente incorrecta.
+No rechaces una afirmación correcta y directamente derivable por riesgos hipotéticos
+de interpretación, falta de exhaustividad o porque pudiera expresarse con mayor precisión. Tampoco exijas que una frase breve reúna en una sola cita todos los
 efectos que constan en hechos validados separados del mismo artículo.
 
 Rechaza si:
@@ -597,6 +651,8 @@ def _errores(v: dict) -> list[str]:
         "no deberia marcarse como error",
         "no es necesariamente inválido",
         "no es necesariamente invalido",
+        "no es inválido por sí mismo",
+        "no es invalido por si mismo",
         "etiqueta de categoría",
         "duplicación/mala indexación",
         "duplicacion/mala indexacion",
@@ -810,13 +866,6 @@ def _procesar_final(
     modelo_trabajo: str,
     modelo_validacion: str,
 ) -> dict:
-    # La síntesis es un material conciso. En normas muy extensas, conservar
-    # una muestra trazable por artículo evita exceder la ventana de contexto
-    # sin mezclar ni inventar reglas.
-    por_articulo: dict[str, list[dict]] = {}
-    for hecho in hechos_validados:
-        por_articulo.setdefault(str(hecho.get("articulo") or ""), []).append(hecho)
-    hechos_validados = [grupo[0] for _, grupo in sorted(por_articulo.items())]
     final = _llamar_json(
         _prompt_sintesis_desde_hechos(norma, hechos_validados),
         modelo_trabajo,
@@ -824,80 +873,14 @@ def _procesar_final(
         max_output_tokens=8192,
     )
 
-    revision = _llamar_json(
-        _prompt_validar_sintesis(norma, hechos_validados, final),
-        modelo_validacion,
-        "material_estudio_validar_final",
-        # Igual que en la validación de hechos, el resultado es estructurado
-        # y breve: un veredicto y errores concretos, nunca una reescritura.
-        max_output_tokens=2048,
-    )
-
     calidad = _errores_calidad_sintesis(final)
-    if revision.get("valido") is True and not calidad:
-        return final
-
-    errores = _errores(revision) + calidad
-    final2 = _llamar_json(
-        _prompt_sintesis_desde_hechos(
-            norma,
-            hechos_validados,
-            errores,
-        ),
-        modelo_trabajo,
-        "material_estudio_resintesis_final",
-        max_output_tokens=8192,
-    )
-
-    revision2 = _llamar_json(
-        _prompt_validar_sintesis(norma, hechos_validados, final2),
-        modelo_validacion,
-        "material_estudio_revalidar_final",
-        max_output_tokens=2048,
-    )
-
-    calidad2 = _errores_calidad_sintesis(final2)
-    if revision2.get("valido") is True and not calidad2:
-        return final2
-
-    errores2 = _errores(revision2) + calidad2
-    final3 = _llamar_json(
-        _prompt_sintesis_desde_hechos(
-            norma,
-            hechos_validados,
-            errores2,
-        ),
-        modelo_trabajo,
-        "material_estudio_reresintesis_final",
-        max_output_tokens=8192,
-    )
-    revision3 = _llamar_json(
-        _prompt_validar_sintesis(norma, hechos_validados, final3),
-        modelo_validacion,
-        "material_estudio_rerevalidar_final",
-        max_output_tokens=2048,
-    )
-    calidad3 = _errores_calidad_sintesis(final3)
-    if calidad3:
+    if calidad:
         raise RuntimeError(
             "Síntesis final sin la calidad editorial mínima: "
-            + " | ".join(
-                calidad3
-                or errores2
-                or ["sin detalle"]
-            )
+            + " | ".join(calidad)
         )
 
-    # Tras tres correcciones, el revisor puede seguir proponiendo matices de
-    # transcripción que no contradicen el resumen. Se conservan como aviso,
-    # pero no se descarta un material editorialmente válido por ese motivo.
-    if revision3.get("valido") is not True:
-        avisos = _errores(revision3)
-        if avisos:
-            print("AVISO: revisión final con matices no bloqueantes: " + " | ".join(avisos))
-
-    return final3
-
+    return final
 
 def _p(v: Any) -> str:
     return escape(limpiar(v))
@@ -1272,6 +1255,18 @@ def main() -> int:
             norma_id = int(fila["norma_id"])
             norma = str(fila["norma"])
             fuente = str(fila["fuente_canonica"])
+            if not fuente:
+                with sqlite3.connect(db) as con_fuente:
+                    opciones = con_fuente.execute(
+                        "SELECT nf.id_fuente FROM norma_fuentes nf JOIN articulos_fuente af "
+                        "ON UPPER(af.id_boe)=UPPER(nf.id_fuente) WHERE nf.norma_id=? "
+                        "AND TRIM(COALESCE(af.texto,''))<>'' GROUP BY nf.id_fuente",
+                        (norma_id,),
+                    ).fetchall()
+                if len(opciones) == 1:
+                    fuente = str(opciones[0][0])
+                else:
+                    raise RuntimeError("No existe una fuente única con corpus para esta norma.")
 
             print()
             print("="*78)

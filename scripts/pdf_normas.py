@@ -135,6 +135,40 @@ def _texto_pdf(ruta_str: str) -> str:
     return texto
 
 
+def _texto_pdf_decreto_legislativo_1_2021(ruta_str: str) -> str:
+    """Extrae el articulado castellano de la columna derecha del PDF bilingüe."""
+    ruta = Path(ruta_str)
+    try:
+        with fitz.open(ruta) as documento:
+            partes = []
+            # El articulado real está en las páginas PDF 12 a 163.
+            # En este documento, castellano = columna derecha (x0 > 300).
+            for numero_pagina in range(12, 164):
+                pagina = documento[numero_pagina - 1]
+                bloques = pagina.get_text("blocks")
+
+                bloques_castellano = [
+                    bloque
+                    for bloque in bloques
+                    if bloque[0] > 300 and bloque[3] > 90
+                ]
+
+                bloques_castellano.sort(key=lambda bloque: (bloque[1], bloque[0]))
+
+                partes.extend(
+                    bloque[4]
+                    for bloque in bloques_castellano
+                    if bloque[4].strip()
+                )
+    except Exception as exc:
+        raise BOEError(f"No se pudo leer el PDF local: {ruta}") from exc
+
+    texto = "\n".join(partes).replace("\r\n", "\n").replace("\r", "\n")
+    if not texto.strip():
+        raise BOEError(f"El PDF local no contiene texto extraíble: {ruta}")
+    return texto
+
+
 @lru_cache(maxsize=None)
 def _cabecera_pdf(ruta_str: str) -> str:
     ruta = Path(ruta_str)
@@ -520,7 +554,7 @@ def normalizar_articulo(articulo: str) -> str:
     valor = re.sub(r"\s+", " ", valor).strip().lower()
 
     m = re.fullmatch(
-        r"(\d+)(?:\.(\d+))?(?:\s+(bis|ter|quater))?",
+        r"(\d+(?:\.\d+-\d+)?)(?:\.(\d+))?(?:\s+(bis|ter|quater))?",
         valor,
     )
     if not m:
@@ -549,7 +583,7 @@ def _encabezados(
         )
     else:
         patron = re.compile(
-            r"(?im)^[ \t]*art[i\u00ed]culo[ \t]+([^\n.]+(?:\.[0-9]+)?)[ \t]*\.?[ \t]*([^\n]*)$"
+            r"(?im)^[ \t]*art[i\u00ed]culo[ \t]+([^\n.]+(?:\.[0-9]+(?:-[0-9]+)?)?)[ \t]*\.?[ \t]*([^\n]*)$"
         )
 
     salida: list[tuple[int, int, str, str]] = []
@@ -559,7 +593,7 @@ def _encabezados(
         num = None
 
         mn = re.match(
-            r"^(\d+(?:\.\d+)?)(?:\s+(bis|ter|quater))?\b",
+            r"^(\d+(?:\.\d+-\d+|\.\d+)?)(?:\s+(bis|ter|quater))?\b",
             bruto,
             flags=re.I,
         )
@@ -598,7 +632,10 @@ def _bloque_articulo(
         )
 
     base = solicitado
-    texto = _texto_pdf(str(pdf.ruta.resolve()))
+    if pdf.id_fuente == "LOCAL-PDF-DECRETO-LEGISLATIVO-1-2021":
+        texto = _texto_pdf_decreto_legislativo_1_2021(str(pdf.ruta.resolve()))
+    else:
+        texto = _texto_pdf(str(pdf.ruta.resolve()))
     es_gen = normalizar(pdf.ruta.stem).startswith("gen ")
     encabezados = _encabezados(texto, doctrinal=es_gen)
     candidatos = [h for h in encabezados if h[2] == base]
@@ -667,25 +704,42 @@ def obtener_articulo_por_id(id_fuente: str, articulo: str) -> ArticuloBOE:
 
 def obtener_todos_articulos_por_id(id_fuente: str) -> list[ArticuloBOE]:
     pdf = buscar_norma_por_id(id_fuente)
-    texto = _texto_pdf(str(pdf.ruta.resolve()))
+    if pdf.id_fuente == "LOCAL-PDF-DECRETO-LEGISLATIVO-1-2021":
+        texto = _texto_pdf_decreto_legislativo_1_2021(str(pdf.ruta.resolve()))
+    else:
+        texto = _texto_pdf(str(pdf.ruta.resolve()))
     es_gen = normalizar(pdf.ruta.stem).startswith("gen ")
     encabezados = _encabezados(texto, doctrinal=es_gen)
-    candidatos = {int(h[2]) for h in encabezados if h[2].isdigit()}
+    especiales = []
+    vistos = set()
+    for h in encabezados:
+        numero = h[2]
+        if re.fullmatch(r"\d+\.\d+-\d+", numero) and numero not in vistos:
+            especiales.append(numero)
+            vistos.add(numero)
 
-    # Tanto los artículos normativos como las unidades doctrinales GEN se
-    # numeran correlativamente desde 1. En normas reales, esto además excluye
-    # remisiones internas que puedan parecer encabezados.
-    ultimo = 0
-    while ultimo + 1 in candidatos:
-        ultimo += 1
+    if especiales:
+        numeros = especiales
+    elif pdf.id_fuente == "LOCAL-PDF-DECRETO-LEGISLATIVO-1-2021":
+        candidatos = {int(h[2]) for h in encabezados if h[2].isdigit()}
+        numeros = [str(n) for n in sorted(candidatos)]
+    else:
+        candidatos = {int(h[2]) for h in encabezados if h[2].isdigit()}
 
-    if ultimo == 0:
-        tipo = "unidades doctrinales" if es_gen else "artículos"
-        raise BOEError(
-            f"No se pudo determinar la secuencia de {tipo} de {pdf.ruta.name}."
-        )
+        # Tanto los artículos normativos como las unidades doctrinales GEN se
+        # numeran correlativamente desde 1. En normas reales, esto además excluye
+        # remisiones internas que puedan parecer encabezados.
+        ultimo = 0
+        while ultimo + 1 in candidatos:
+            ultimo += 1
 
-    numeros = [str(n) for n in range(1, ultimo + 1)]
+        if ultimo == 0:
+            tipo = "unidades doctrinales" if es_gen else "artículos"
+            raise BOEError(
+                f"No se pudo determinar la secuencia de {tipo} de {pdf.ruta.name}."
+            )
+
+        numeros = [str(n) for n in range(1, ultimo + 1)]
     resultado: list[ArticuloBOE] = []
 
     for numero in numeros:

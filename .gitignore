@@ -16,3 +16,14 @@ publicaciones_web/
 db/oposiciones_antes_*.sqlite3
 db/oposiciones_backup_*.sqlite3
 db/oposiciones.bak_*.sqlite3
+
+backups/
+materiales_estudio/backups/
+tmp/
+
+scripts/*.bak*
+scripts/*.seguridad_*
+
+tmp_*.py
+
+materiales_estudio/catalogo_materiales_antes_normalizar_ley4_*.json

@@ -1,17 +1,17 @@
-"""
-TuCoach - Ampliación del corpus del Chat.
-FASE 1: SOLO VALIDACIÓN (V4).
+﻿"""
+TuCoach - AmpliaciÃ³n del corpus del Chat.
+FASE 1: SOLO VALIDACIÃ“N (V4).
 
 Principios:
 - PRAGMA query_only = ON.
 - No crea, inserta, actualiza ni elimina nada.
-- Inventaría documentos BOE-A-* ya presentes en articulos_fuente.
-- La existencia jurídica se compara por número de artículo, no por id_bloque.
-- El id_bloque se conserva como identidad técnica de la fuente.
-- Si el índice BOE ofrece varios bloques para un mismo artículo, se comprueba
+- InventarÃ­a documentos BOE-A-* ya presentes en articulos_fuente.
+- La existencia jurÃ­dica se compara por nÃºmero de artÃ­culo, no por id_bloque.
+- El id_bloque se conserva como identidad tÃ©cnica de la fuente.
+- Si el Ã­ndice BOE ofrece varios bloques para un mismo artÃ­culo, se comprueba
   el contenido real de esos bloques y se aplica la misma regla temporal que
-  boe_api.py: versión/bloque actual inequívoco por fecha_actualizacion.
-- Admite encabezados "Artículo 32", "Art 32", "Artículo treinta y dos", etc.
+  boe_api.py: versiÃ³n/bloque actual inequÃ­voco por fecha_actualizacion.
+- Admite encabezados "ArtÃ­culo 32", "Art 32", "ArtÃ­culo treinta y dos", etc.
 """
 
 from __future__ import annotations
@@ -81,7 +81,7 @@ def registrar(numero: int, *variantes: str) -> None:
         anterior = VARIANTES_LETRAS.get(clave)
         if anterior is not None and anterior != str(numero):
             raise RuntimeError(
-                f"Variante numérica ambigua: {variante!r}"
+                f"Variante numÃ©rica ambigua: {variante!r}"
             )
         VARIANTES_LETRAS[clave] = str(numero)
 
@@ -126,13 +126,13 @@ registrar(100, "cien")
 
 def extraer_numero_encabezado(texto: str) -> str:
     """
-    Extrae SOLO un encabezado de artículo situado al inicio del texto.
+    Extrae SOLO un encabezado de artÃ­culo situado al inicio del texto.
 
     Acepta:
-      Artículo 32
+      ArtÃ­culo 32
       Art. 32
       Art 32
-      Artículo treinta y dos
+      ArtÃ­culo treinta y dos
       Art treinta y dos
     """
     texto_limpio = limpiar(texto)
@@ -140,7 +140,7 @@ def extraer_numero_encabezado(texto: str) -> str:
 
     m = re.match(
         r"^(?:articulo|art\.?)\s*"
-        r"(\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
+        r"(\d+(?:\.\d+)*(?:-\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
         r"sexies|septies|octies|nonies|decies))?|unico)"
         r"(?=\.|\s|$)",
         texto_n,
@@ -268,10 +268,10 @@ def numero_real_desde_bloque(
     bloque: BloqueArticulo,
 ) -> str:
     """
-    Verifica el número usando el CONTENIDO de la versión actual del bloque.
+    Verifica el nÃºmero usando el CONTENIDO de la versiÃ³n actual del bloque.
 
-    Se usa en casos ambiguos porque el índice puede contener una rúbrica
-    histórica errónea o dos bloques de épocas distintas.
+    Se usa en casos ambiguos porque el Ã­ndice puede contener una rÃºbrica
+    histÃ³rica errÃ³nea o dos bloques de Ã©pocas distintas.
     """
     raiz = obtener_bloque_texto(id_boe, bloque.id_bloque)
     version = _seleccionar_version_actualizada(
@@ -286,8 +286,8 @@ def numero_real_desde_bloque(
 
     # Si el cuerpo XML no repite el encabezado, no inventamos.
     raise BOEError(
-        f"{id_boe}/{bloque.id_bloque}: no se pudo confirmar el número "
-        "de artículo desde el contenido actual del bloque."
+        f"{id_boe}/{bloque.id_bloque}: no se pudo confirmar el nÃºmero "
+        "de artÃ­culo desde el contenido actual del bloque."
     )
 
 
@@ -296,8 +296,8 @@ def corregir_ambiguedades(
     candidatos: list[BloqueArticulo],
 ) -> tuple[list[BloqueArticulo], list[str]]:
     """
-    Sólo consulta el contenido de bloques cuando el índice asigna el mismo
-    número de artículo a más de un id_bloque.
+    SÃ³lo consulta el contenido de bloques cuando el Ã­ndice asigna el mismo
+    nÃºmero de artÃ­culo a mÃ¡s de un id_bloque.
     """
     grupos: dict[str, list[BloqueArticulo]] = {}
     for b in candidatos:
@@ -336,8 +336,8 @@ def seleccionar_bloques_actuales(
     candidatos: list[BloqueArticulo],
 ) -> tuple[dict[str, BloqueArticulo], list[str]]:
     """
-    Para cada número de artículo conserva el bloque inequívocamente más reciente,
-    igual que hace obtener_articulo() cuando hay varios bloques válidos.
+    Para cada nÃºmero de artÃ­culo conserva el bloque inequÃ­vocamente mÃ¡s reciente,
+    igual que hace obtener_articulo() cuando hay varios bloques vÃ¡lidos.
     """
     grupos: dict[str, list[BloqueArticulo]] = {}
     for b in candidatos:
@@ -450,11 +450,11 @@ def analizar_documento(
         estado = "AMPLIABLE"
 
     print(f"  Estado: {estado}")
-    print(f"  Artículos guardados en BD: {len(guardados)}")
-    print(f"  Artículos actuales identificados: {len(actuales)}")
-    print(f"  Artículos realmente ausentes: {len(faltantes)}")
-    print(f"  Artículos cubiertos con otro id_bloque: {distinto_bloque}")
-    print(f"  Guardados sin artículo actual equivalente: {len(guardados_sin_actual)}")
+    print(f"  ArtÃ­culos guardados en BD: {len(guardados)}")
+    print(f"  ArtÃ­culos actuales identificados: {len(actuales)}")
+    print(f"  ArtÃ­culos realmente ausentes: {len(faltantes)}")
+    print(f"  ArtÃ­culos cubiertos con otro id_bloque: {distinto_bloque}")
+    print(f"  Guardados sin artÃ­culo actual equivalente: {len(guardados_sin_actual)}")
     print(f"  Incidencias de identidad no resueltas: {len(incidencias)}")
 
     if mostrar_faltantes and faltantes:
@@ -466,7 +466,7 @@ def analizar_documento(
             )
 
     if guardados_sin_actual:
-        print("  Guardados sin artículo actual equivalente:")
+        print("  Guardados sin artÃ­culo actual equivalente:")
         for articulo in guardados_sin_actual:
             filas = por_articulo_guardado[articulo]
             detalle = ", ".join(
@@ -508,7 +508,7 @@ def departamento_documento(
     departamentos = {limpiar(f["departamento"]) for f in filas}
     if len(departamentos) != 1:
         raise RuntimeError(
-            f"{id_boe}: no existe un único departamento en articulos_fuente: "
+            f"{id_boe}: no existe un Ãºnico departamento en articulos_fuente: "
             f"{sorted(departamentos)}"
         )
     return next(iter(departamentos))
@@ -522,9 +522,9 @@ def recuperar_articulo_plan(
     """
     Recupera el texto vigente del bloque ya validado.
 
-    Primero usa bloque+fecha del índice. Sólo si ese bloque no proporciona un
+    Primero usa bloque+fecha del Ã­ndice. SÃ³lo si ese bloque no proporciona un
     cuerpo normativo suficiente se usa el respaldo HTML oficial que ya emplea
-    boe_api.py. Nunca se acepta texto vacío o mera rúbrica.
+    boe_api.py. Nunca se acepta texto vacÃ­o o mera rÃºbrica.
     """
     id_bloque = bloque.id_bloque
     titulo = bloque.titulo
@@ -560,7 +560,7 @@ def recuperar_articulo_plan(
     numero_titulo = extraer_numero_encabezado(titulo)
     if numero_titulo and numero_titulo != bloque.articulo:
         raise BOEError(
-            f"{id_boe}: el título recuperado identifica art. {numero_titulo}, "
+            f"{id_boe}: el tÃ­tulo recuperado identifica art. {numero_titulo}, "
             f"pero se esperaba art. {bloque.articulo}."
         )
 
@@ -652,7 +652,7 @@ def validar_plan_contra_bd(
                 item.articulo_boe
             ):
                 raise RuntimeError(
-                    f"{item.id_boe} art. {item.articulo_boe} ya está cubierto "
+                    f"{item.id_boe} art. {item.articulo_boe} ya estÃ¡ cubierto "
                     f"por articulos_fuente.id={fila['id']}."
                 )
 
@@ -662,9 +662,9 @@ def aplicar_plan(
     plan: list[ArticuloPlan],
 ) -> tuple[Path, int]:
     """
-    Inserta sólo filas nuevas. Nunca hace UPSERT ni UPDATE.
+    Inserta sÃ³lo filas nuevas. Nunca hace UPSERT ni UPDATE.
 
-    Todas las inserciones se ejecutan en una única transacción y se verifican
+    Todas las inserciones se ejecutan en una Ãºnica transacciÃ³n y se verifican
     antes del COMMIT. Ante cualquier incidencia se hace rollback.
     """
     copia = crear_copia_seguridad(ruta_db)
@@ -712,7 +712,7 @@ def aplicar_plan(
                 if datos_despues != datos_originales:
                     raise RuntimeError(
                         f"La fila preexistente articulos_fuente.id={id_original} "
-                        "ha cambiado durante la ampliación."
+                        "ha cambiado durante la ampliaciÃ³n."
                     )
 
             total_despues = conexion.execute(
@@ -749,14 +749,14 @@ def aplicar_plan(
                 )
                 if tuple(fila) != esperado_fila:
                     raise RuntimeError(
-                        f"Verificación de contenido fallida para "
+                        f"VerificaciÃ³n de contenido fallida para "
                         f"{item.id_boe}/{item.id_bloque}."
                     )
 
             fk = conexion.execute("PRAGMA foreign_key_check").fetchall()
             if fk:
                 raise RuntimeError(
-                    f"PRAGMA foreign_key_check detectó {len(fk)} incidencias."
+                    f"PRAGMA foreign_key_check detectÃ³ {len(fk)} incidencias."
                 )
 
             conexion.commit()
@@ -776,10 +776,10 @@ def ejecutar(args: argparse.Namespace) -> int:
         raise ValueError("--id-boe debe tener formato BOE-A-AAAA-NNNNN.")
 
     print("=" * 78)
-    print("AMPLIAR CORPUS CHAT - FASE 2 - PLANIFICACIÓN E INCORPORACIÓN")
+    print("AMPLIAR CORPUS CHAT - FASE 2 - PLANIFICACIÃ“N E INCORPORACIÃ“N")
     print("=" * 78)
     print(f"Base de datos: {ruta_db}")
-    print("Ámbito: documentos BOE-A-* ya presentes en articulos_fuente")
+    print("Ãmbito: documentos BOE-A-* ya presentes en articulos_fuente")
     print(f"Modo: {'APLICAR' if args.aplicar else 'SOLO PLAN / SIN ESCRITURAS'}")
     print()
 
@@ -800,7 +800,7 @@ def ejecutar(args: argparse.Namespace) -> int:
     plan: list[ArticuloPlan] = []
     errores_plan: list[str] = []
 
-    # Toda la fase de descubrimiento se hace sobre conexión de sólo lectura.
+    # Toda la fase de descubrimiento se hace sobre conexiÃ³n de sÃ³lo lectura.
     with sqlite3.connect(ruta_db) as conexion:
         conexion.row_factory = sqlite3.Row
         conexion.execute("PRAGMA query_only = ON")
@@ -896,7 +896,7 @@ def ejecutar(args: argparse.Namespace) -> int:
     print(f"NO_AMPLIABLE:                           {resumen['no_ampliables']}")
     print(f"SIN_INDICE_CONSOLIDADO_REQUIERE_FALLBACK: {resumen['sin_indice']}")
     print(f"Errores de consulta:                    {resumen['errores']}")
-    print(f"Artículos realmente faltantes:          {resumen['faltantes']}")
+    print(f"ArtÃ­culos realmente faltantes:          {resumen['faltantes']}")
     print(f"Textos recuperados y validados:         {len(plan)}")
     print(f"Errores al construir el plan:           {len(errores_plan)}")
 
@@ -911,11 +911,11 @@ def ejecutar(args: argparse.Namespace) -> int:
 
     if not global_limpio:
         print()
-        print("PLAN GLOBAL: REQUIERE REVISIÓN")
-        print("No se realizará ninguna escritura.")
+        print("PLAN GLOBAL: REQUIERE REVISIÃ“N")
+        print("No se realizarÃ¡ ninguna escritura.")
         return 1
 
-    # Revalidación estructural final contra la BD real antes de cualquier write.
+    # RevalidaciÃ³n estructural final contra la BD real antes de cualquier write.
     with sqlite3.connect(ruta_db) as conexion:
         conexion.row_factory = sqlite3.Row
         conexion.execute("PRAGMA query_only = ON")
@@ -933,30 +933,30 @@ def ejecutar(args: argparse.Namespace) -> int:
 
     if not plan:
         print()
-        print("No hay artículos nuevos que incorporar.")
-        print("APLICACIÓN: OK - 0 inserciones")
+        print("No hay artÃ­culos nuevos que incorporar.")
+        print("APLICACIÃ“N: OK - 0 inserciones")
         return 0
 
     print()
     print("=" * 78)
-    print("APLICACIÓN")
+    print("APLICACIÃ“N")
     print("=" * 78)
 
     copia, insertados = aplicar_plan(ruta_db, plan)
 
     print(f"Copia de seguridad: {copia}")
-    print(f"Artículos insertados: {insertados}")
+    print(f"ArtÃ­culos insertados: {insertados}")
     print("Filas preexistentes modificadas: 0")
     print("PRAGMA foreign_key_check: OK")
-    print("APLICACIÓN: OK")
+    print("APLICACIÃ“N: OK")
     return 0
 
 
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description=(
-            "Planifica e incorpora artículos BOE-A-* faltantes al corpus del "
-            "Chat. Por defecto no escribe; --aplicar habilita la inserción."
+            "Planifica e incorpora artÃ­culos BOE-A-* faltantes al corpus del "
+            "Chat. Por defecto no escribe; --aplicar habilita la inserciÃ³n."
         )
     )
     p.add_argument("--db", default=str(DB_POR_DEFECTO))
@@ -967,8 +967,8 @@ def construir_parser() -> argparse.ArgumentParser:
         "--aplicar",
         action="store_true",
         help=(
-            "Inserta el plan sólo si la validación global y todos los textos "
-            "son correctos. Sin esta opción no se escribe nada."
+            "Inserta el plan sÃ³lo si la validaciÃ³n global y todos los textos "
+            "son correctos. Sin esta opciÃ³n no se escribe nada."
         ),
     )
     return p
@@ -995,3 +995,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

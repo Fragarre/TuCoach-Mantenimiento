@@ -12,7 +12,8 @@ Interfaz compatible con resolver_referencias_boe.py:
     limpiar_cache_norma(nombre_norma)
     limpiar_cache_articulo(id_boe, id_bloque)
 
-Uso:
+Uso desde la raíz del proyecto:
+
     python scripts/boe_api.py "La Ley 39/2015, de 1 de octubre" 23
 """
 
@@ -167,8 +168,10 @@ def texto_articulo_manifiestamente_incompleto(
     normal = normalizar(limpio).rstrip(" .:;-")
     titulo = normalizar(titulo_bloque).rstrip(" .:;-")
 
-    # Caso inequívoco: el supuesto texto del artículo es solo su título/rúbrica.
-    if titulo and normal == titulo:
+    # Solo es inequívoco que falte el cuerpo cuando el supuesto texto se limita
+    # a un encabezado corto. Algunos importadores históricos guardaron en
+    # titulo_bloque el artículo completo; en esos casos texto == titulo es válido.
+    if titulo and normal == titulo and len(limpio) < 80:
         return True
 
     # Caso inequívoco: solo "Artículo N" sin rúbrica ni cuerpo.
@@ -225,38 +228,24 @@ def extraer_cita(nombre_norma: str) -> CitaNormativa:
             break
 
     if not tipo_encontrado:
-        raise BOEError(
-            "No se pudo extraer una referencia normativa exacta "
-            f"(tipo, número y año) de: {nombre_norma}"
-        )
+        raise BOEError(f"No se reconoce una cita normativa inequívoca: {nombre_norma}")
 
     fecha_iso = ""
-    # La fecha puede venir completa:
-    #   "Ley 6/2025, de 30 de mayo de 2025"
-    # o sin repetir el año:
-    #   "Ley 6/2025, de 30 de mayo"
-    # En el segundo caso se utiliza el año de la referencia normativa.
-    m_fecha = re.search(
-        r"\bde\s+(\d{1,2})\s+de\s+"
-        r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
-        r"septiembre|setiembre|octubre|noviembre|diciembre)"
-        r"(?:\s+de\s+(\d{4}))?\b",
+    patron_fecha = re.search(
+        r"\b(?:de\s+)?(\d{1,2})\s+de\s+([a-záéíóúü]+)\s+de\s+(\d{4})\b",
         texto_n,
+        flags=re.I,
     )
-    if m_fecha:
-        dia = int(m_fecha.group(1))
-        mes = MESES[m_fecha.group(2)]
-        anio_fecha = m_fecha.group(3) or anio
-        fecha_iso = f"{anio_fecha}-{mes}-{dia:02d}"
+    if patron_fecha:
+        mes = MESES.get(normalizar(patron_fecha.group(2)))
+        if mes:
+            fecha_iso = (
+                f"{patron_fecha.group(3)}-{mes}-{int(patron_fecha.group(1)):02d}"
+            )
 
     ambito = ""
-    if any(x in texto_n for x in (
-        "comunitat valenciana",
-        "comunidad valenciana",
-        "generalitat valenciana",
-        "consell",
-    )):
-        ambito = "valenciana"
+    if "generalitat" in texto_n or "comunitat valenciana" in texto_n:
+        ambito = "comunitat valenciana"
 
     return CitaNormativa(
         tipo=tipo_encontrado,
@@ -267,1073 +256,268 @@ def extraer_cita(nombre_norma: str) -> CitaNormativa:
     )
 
 
-def referencia_de_titulo(titulo: str) -> tuple[str, str, str] | None:
-    try:
-        cita = extraer_cita(titulo)
-    except BOEError:
-        return None
-    return cita.tipo, cita.numero, cita.anio
+class _ExtractorTextoHTML(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.partes: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        if limpiar(data):
+            self.partes.append(limpiar(data))
+
+    @property
+    def texto(self) -> str:
+        return limpiar(" ".join(self.partes))
 
 
-def preparar_cache() -> None:
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+def _cargar_cache_normas() -> dict[str, Any]:
     if not CACHE_NORMAS.exists():
-        CACHE_NORMAS.write_text("{}", encoding="utf-8")
-
-
-def cargar_cache() -> dict[str, Any]:
-    preparar_cache()
+        return {}
     try:
-        datos = json.loads(CACHE_NORMAS.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise BOEError(f"No se pudo leer la caché: {CACHE_NORMAS}") from exc
-    return datos if isinstance(datos, dict) else {}
+        return json.loads(CACHE_NORMAS.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
-def guardar_cache(datos: dict[str, Any]) -> None:
-    preparar_cache()
-    temporal = CACHE_NORMAS.with_suffix(".json.tmp")
-    temporal.write_text(
+def _guardar_cache_normas(datos: dict[str, Any]) -> None:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_NORMAS.write_text(
         json.dumps(datos, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    temporal.replace(CACHE_NORMAS)
 
 
-def ruta_cache(id_boe: str, nombre: str) -> Path:
-    seguro = re.sub(r"[^A-Za-z0-9_.-]+", "_", nombre)
-    return CACHE_DIR / id_boe / seguro
-
-
-def descargar_xml(url: str, ruta: Path | None = None) -> ET.Element:
-    if ruta and ruta.exists():
-        try:
-            return ET.fromstring(ruta.read_bytes())
-        except (OSError, ET.ParseError):
-            ruta.unlink(missing_ok=True)
-
-    try:
-        r = requests.get(
-            url,
-            timeout=TIMEOUT,
-            headers={
-                "Accept": "application/xml",
-                "User-Agent": "TuCoach/2.0",
-            },
-            allow_redirects=True,
-        )
-        r.raise_for_status()
-    except requests.RequestException as exc:
-        raise BOEError(f"Error al consultar el BOE: {url}") from exc
-
-    try:
-        raiz = ET.fromstring(r.content)
-    except ET.ParseError as exc:
-        raise BOEError(f"El BOE no devolvió XML válido: {url}") from exc
-
-    if ruta:
-        ruta.parent.mkdir(parents=True, exist_ok=True)
-        temporal = ruta.with_suffix(ruta.suffix + ".tmp")
-        temporal.write_bytes(r.content)
-        temporal.replace(ruta)
-
-    return raiz
-
-
-def buscar_descendiente_directo(
-    elemento: ET.Element,
-    nombres: set[str],
-) -> str:
-    nombres_n = {normalizar(n) for n in nombres}
-    for hijo in list(elemento):
-        if normalizar(nombre_etiqueta(hijo)) in nombres_n:
-            valor = texto_elemento(hijo)
-            if valor:
-                return valor
-    return ""
-
-
-def buscar_descendiente(
-    elemento: ET.Element,
-    nombres: set[str],
-) -> str:
-    nombres_n = {normalizar(n) for n in nombres}
-    for nodo in elemento.iter():
-        if normalizar(nombre_etiqueta(nodo)) in nombres_n:
-            valor = texto_elemento(nodo)
-            if valor:
-                return valor
-    return ""
-
-
-def obtener_metadatos(id_boe: str) -> ET.Element:
-    return descargar_xml(
-        f"{BASE_URL}/id/{id_boe}",
-        ruta_cache(id_boe, "metadatos.xml"),
+def _peticion_json(url: str) -> dict[str, Any]:
+    respuesta = requests.get(
+        url,
+        headers={"Accept": "application/json"},
+        timeout=TIMEOUT,
     )
+    respuesta.raise_for_status()
+    return respuesta.json()
 
 
-def campos_metadatos(id_boe: str) -> tuple[str, str, str]:
-    raiz = obtener_metadatos(id_boe)
-    titulo = buscar_descendiente(
-        raiz, {"titulo", "titulo_oficial", "nombre", "descripcion"}
-    )
-    departamento = buscar_descendiente(
-        raiz,
-        {
-            "departamento",
-            "departamento_nombre",
-            "nombre_departamento",
-            "texto_departamento",
-        },
-    )
-    fecha = buscar_descendiente(
-        raiz,
-        {"fecha_publicacion", "fecha_disposicion", "fecha", "fecha_publicación"},
-    )
-    return limpiar(titulo), limpiar(departamento), limpiar(fecha)
+def _peticion_texto(url: str) -> str:
+    respuesta = requests.get(url, timeout=TIMEOUT)
+    respuesta.raise_for_status()
+    return respuesta.text
 
 
-def candidato_desde_elemento(elemento: ET.Element) -> tuple[str, str, str] | None:
-    """
-    Extrae un candidato solo cuando ID y título pertenecen al mismo registro.
-
-    No usa texto agregado de nodos raíz, evitando que un BOE mencionado dentro
-    de otra norma se confunda con el identificador del registro.
-    """
-    id_texto = buscar_descendiente_directo(
-        elemento,
-        {"identificador", "id", "id_boe", "referencia"},
-    )
-    titulo = buscar_descendiente_directo(
-        elemento,
-        {"titulo", "titulo_oficial", "nombre", "descripcion"},
-    )
-
-    id_boe = extraer_id_boe(id_texto)
-
-    if not id_boe or not titulo:
-        return None
-
-    departamento = buscar_descendiente_directo(
-        elemento,
-        {
-            "departamento",
-            "departamento_nombre",
-            "nombre_departamento",
-            "texto_departamento",
-        },
-    )
-    return id_boe, limpiar(titulo), limpiar(departamento)
-
-
-def extraer_candidatos(raiz: ET.Element) -> list[NormaBOE]:
-    candidatos: list[NormaBOE] = []
-    vistos: set[str] = set()
-
-    # Primera pasada: registros con campos hermanos directos.
-    for elemento in raiz.iter():
-        candidato = candidato_desde_elemento(elemento)
-        if not candidato:
-            continue
-        id_boe, titulo, departamento = candidato
-        if id_boe in vistos:
-            continue
-        candidatos.append(NormaBOE("", id_boe, titulo, departamento))
-        vistos.add(id_boe)
-
-    # Respaldo: algunos XML envuelven los campos un nivel adicional.
-    if not candidatos:
-        for elemento in raiz.iter():
-            hijos = list(elemento)
-            if not hijos:
-                continue
-            id_boe = ""
-            titulo = ""
-            departamento = ""
-            for hijo in hijos:
-                if not id_boe:
-                    id_boe = extraer_id_boe(
-                        buscar_descendiente(
-                            hijo, {"identificador", "id", "id_boe", "referencia"}
-                        )
-                    )
-                if not titulo:
-                    titulo = buscar_descendiente(
-                        hijo,
-                        {"titulo", "titulo_oficial", "nombre", "descripcion"},
-                    )
-                if not departamento:
-                    departamento = buscar_descendiente(
-                        hijo,
-                        {
-                            "departamento",
-                            "departamento_nombre",
-                            "nombre_departamento",
-                        },
-                    )
-            if id_boe and titulo and id_boe not in vistos:
-                candidatos.append(
-                    NormaBOE("", id_boe, limpiar(titulo), limpiar(departamento))
-                )
-                vistos.add(id_boe)
-
-    return candidatos
-
-
-def consultar_candidatos(cita: CitaNormativa) -> list[NormaBOE]:
-    # Se busca únicamente la referencia canónica, no el nombre largo.
-    consulta = {
-        "query": {
-            "query_string": {
-                "query": f'titulo:"{cita.referencia}"'
-            },
-            "range": {},
-        },
-        "sort": [],
-    }
-
-    try:
-        r = requests.get(
-            BASE_URL,
-            params={
-                "query": json.dumps(
-                    consulta,
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                ),
-                "limit": 50,
-            },
-            timeout=TIMEOUT,
-            headers={
-                "Accept": "application/xml",
-                "User-Agent": "TuCoach/2.0",
-            },
-            allow_redirects=True,
-        )
-        r.raise_for_status()
-    except requests.RequestException as exc:
-        raise BOEError(
-            f"No se pudo buscar {cita.referencia} en el BOE."
-        ) from exc
-
-    try:
-        raiz = ET.fromstring(r.content)
-    except ET.ParseError as exc:
-        raise BOEError(
-            f"La búsqueda de {cita.referencia} no devolvió XML válido."
-        ) from exc
-
-    return extraer_candidatos(raiz)
-
-
-def validar_candidato(
-    cita: CitaNormativa,
-    candidato: NormaBOE,
-) -> NormaBOE | None:
-    """
-    Validación cerrada: el título oficial debe contener exactamente la misma
-    clase de norma, número y año. Una mera mención en el texto no sirve.
-    """
-    referencia = referencia_de_titulo(candidato.titulo)
-    if referencia != (cita.tipo, cita.numero, cita.anio):
-        return None
-
-    datos_verificados = DATOS_IDS_VERIFICADOS.get(candidato.id_boe)
+def _norma_desde_id(nombre_norma: str, id_boe: str) -> NormaBOE:
+    datos_verificados = DATOS_IDS_VERIFICADOS.get(id_boe)
     if datos_verificados:
-        titulo = limpiar(datos_verificados.get("titulo", "")) or candidato.titulo
-        departamento = (
-            limpiar(datos_verificados.get("departamento", ""))
-            or candidato.departamento
+        return NormaBOE(
+            nombre_buscado=nombre_norma,
+            id_boe=id_boe,
+            titulo=datos_verificados["titulo"],
+            departamento=datos_verificados.get("departamento", ""),
         )
-        fecha = ""
-    else:
-        titulo, departamento, fecha = campos_metadatos(candidato.id_boe)
-        titulo = titulo or candidato.titulo
-        departamento = departamento or candidato.departamento
 
-    referencia_meta = referencia_de_titulo(titulo)
-    if referencia_meta != (cita.tipo, cita.numero, cita.anio):
-        return None
-
-    if cita.fecha_iso:
-        # Se compara con la fecha de la disposición que aparece en el título
-        # oficial. El campo genérico "fecha" del BOE puede ser la fecha de
-        # publicación y no debe descartar una norma correcta.
-        try:
-            cita_titulo = extraer_cita(titulo)
-        except BOEError:
-            cita_titulo = None
-
-        if (
-            cita_titulo is not None
-            and cita_titulo.fecha_iso
-            and cita_titulo.fecha_iso != cita.fecha_iso
-        ):
-            return None
-
-    if cita.ambito == "valenciana":
-        dep_n = normalizar(departamento)
-        if not any(x in dep_n for x in (
-            "comunitat valenciana",
-            "comunidad valenciana",
-            "generalitat valenciana",
-        )):
-            return None
-
+    datos = _peticion_json(f"{BASE_URL}/id/{id_boe}")
+    meta = datos.get("data", {})
     return NormaBOE(
-        nombre_buscado="",
-        id_boe=candidato.id_boe,
-        titulo=titulo,
-        departamento=departamento,
+        nombre_buscado=nombre_norma,
+        id_boe=id_boe,
+        titulo=limpiar(meta.get("titulo")),
+        departamento=limpiar(meta.get("departamento")),
     )
-
-
-def resolver_ambiguedad(
-    cita: CitaNormativa,
-    candidatos: list[NormaBOE],
-) -> list[NormaBOE]:
-    """
-    Reduce una lista de candidatos válidos aplicando criterios objetivos.
-
-    Orden de prioridad:
-    1. Fecha completa de la disposición, cuando figura en la referencia.
-    2. Ámbito valenciano, como regla general del proyecto TuCoach.
-    3. Jefatura del Estado, solo si no existe candidato valenciano.
-
-    Si aún quedan varias coincidencias, no se elige arbitrariamente.
-    """
-    restantes = list(candidatos)
-
-    if len(restantes) <= 1:
-        return restantes
-
-    if cita.fecha_iso:
-        por_fecha: list[NormaBOE] = []
-        for candidato in restantes:
-            _, _, fecha = campos_metadatos(candidato.id_boe)
-            fecha_limpia = limpiar(fecha)
-            fecha_numerica = re.sub(r"\D", "", fecha_limpia)
-            fecha_objetivo_numerica = cita.fecha_iso.replace("-", "")
-
-            coincide = cita.fecha_iso in fecha_limpia
-            if not coincide and fecha_objetivo_numerica in fecha_numerica:
-                coincide = True
-
-            if not coincide:
-                m = re.search(r"(\d{4})[-/](\d{2})[-/](\d{2})", fecha_limpia)
-                if m:
-                    coincide = (
-                        f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-                        == cita.fecha_iso
-                    )
-
-            if coincide:
-                por_fecha.append(candidato)
-
-        if por_fecha:
-            restantes = por_fecha
-
-    if len(restantes) <= 1:
-        return restantes
-
-    valencianos = [
-        candidato
-        for candidato in restantes
-        if any(
-            termino in normalizar(candidato.departamento)
-            for termino in (
-                "comunitat valenciana",
-                "comunidad valenciana",
-                "generalitat valenciana",
-                "consell",
-            )
-        )
-    ]
-    if valencianos:
-        restantes = valencianos
-
-    if len(restantes) <= 1:
-        return restantes
-
-    estatales = [
-        candidato
-        for candidato in restantes
-        if "jefatura del estado" in normalizar(candidato.departamento)
-    ]
-    if estatales:
-        restantes = estatales
-
-    return restantes
 
 
 def buscar_norma(nombre_norma: str) -> NormaBOE:
-    nombre_norma = limpiar(nombre_norma)
-    nombre_normalizado = normalizar(nombre_norma)
+    nombre_n = normalizar(nombre_norma)
 
-    # Algunas normas, como la Constitución Española, no tienen número/año
-    # en su denominación. Solo se admiten alias explícitos verificados.
-    id_especial = NORMAS_ESPECIALES.get(nombre_normalizado)
+    id_especial = NORMAS_ESPECIALES.get(nombre_n)
     if id_especial:
-        titulo, departamento, _ = campos_metadatos(id_especial)
-        if not titulo:
-            raise BOEError(
-                f"No se pudieron validar los metadatos oficiales de {id_especial}."
-            )
-        return NormaBOE(
-            nombre_buscado=nombre_norma,
-            id_boe=id_especial,
-            titulo=titulo,
-            departamento=departamento,
-        )
+        return _norma_desde_id(nombre_norma, id_especial)
 
     cita = extraer_cita(nombre_norma)
+    if cita.fecha_iso:
+        clave_fecha = f"{cita.tipo}|{cita.numero}|{cita.anio}|{cita.fecha_iso}"
+        if clave_fecha in IDS_VERIFICADOS_POR_FECHA:
+            return _norma_desde_id(
+                nombre_norma,
+                IDS_VERIFICADOS_POR_FECHA[clave_fecha],
+            )
 
-    cache = cargar_cache()
-    datos_cache = cache.get(cita.clave)
-    if isinstance(datos_cache, dict):
-        candidato_cache = NormaBOE(
+    clave_simple = f"{cita.tipo}|{cita.numero}|{cita.anio}"
+    if clave_simple in IDS_VERIFICADOS:
+        return _norma_desde_id(nombre_norma, IDS_VERIFICADOS[clave_simple])
+
+    cache = _cargar_cache_normas()
+    if cita.clave in cache:
+        dato = cache[cita.clave]
+        return NormaBOE(
             nombre_buscado=nombre_norma,
-            id_boe=limpiar(str(datos_cache.get("id_boe", ""))),
-            titulo=limpiar(str(datos_cache.get("titulo", ""))),
-            departamento=limpiar(str(datos_cache.get("departamento", ""))),
+            id_boe=dato["id_boe"],
+            titulo=dato["titulo"],
+            departamento=dato.get("departamento", ""),
         )
-        if candidato_cache.id_boe:
-            validado = validar_candidato(cita, candidato_cache)
-            if validado:
-                return NormaBOE(
-                    nombre_buscado=nombre_norma,
-                    id_boe=validado.id_boe,
-                    titulo=validado.titulo,
-                    departamento=validado.departamento,
-                )
-        cache.pop(cita.clave, None)
-        guardar_cache(cache)
 
-    clave_verificada_fecha = (
-        f"{cita.tipo}|{cita.numero}|{cita.anio}|{cita.fecha_iso}"
-        if cita.fecha_iso
-        else ""
+    consulta = requests.get(
+        f"{BASE_URL}/buscar",
+        params={"query": cita.referencia},
+        headers={"Accept": "application/json"},
+        timeout=TIMEOUT,
     )
-    clave_verificada = f"{cita.tipo}|{cita.numero}|{cita.anio}"
-    id_verificado = (
-        IDS_VERIFICADOS_POR_FECHA.get(clave_verificada_fecha)
-        or IDS_VERIFICADOS.get(clave_verificada)
-    )
+    consulta.raise_for_status()
+    payload = consulta.json()
 
-    if id_verificado:
-        datos_verificados = DATOS_IDS_VERIFICADOS.get(id_verificado)
-        if datos_verificados:
-            titulo = limpiar(datos_verificados["titulo"])
-            departamento = limpiar(datos_verificados["departamento"])
-        else:
-            titulo, departamento, _ = campos_metadatos(id_verificado)
+    candidatos: list[NormaBOE] = []
+    for item in payload.get("data", []):
+        titulo = limpiar(item.get("titulo"))
+        id_boe = extraer_id_boe(str(item.get("id", ""))) or limpiar(item.get("id"))
+        departamento = limpiar(item.get("departamento"))
+        titulo_n = normalizar(titulo)
 
-        candidato = NormaBOE("", id_verificado, titulo, departamento)
-        validado = validar_candidato(cita, candidato)
-        if not validado:
-            raise BOEError(
-                f"El identificador verificado {id_verificado} no superó "
-                f"la validación para {cita.referencia}."
-            )
-        seleccionada = validado
-    else:
-        candidatos = consultar_candidatos(cita)
-        validos: list[NormaBOE] = []
+        patron = rf"\b{re.escape(cita.tipo)}\s+{re.escape(cita.numero)}\s*/\s*{re.escape(cita.anio)}\b"
+        if not re.search(patron, titulo_n):
+            continue
 
-        for candidato in candidatos:
-            validado = validar_candidato(cita, candidato)
-            if validado:
-                validos.append(validado)
-
-        # Deduplicar por ID.
-        validos = list({n.id_boe: n for n in validos}.values())
-
-        # Resolver ambigüedades mediante criterios objetivos:
-        # fecha completa, ámbito valenciano y, en último término,
-        # Jefatura del Estado.
-        validos = resolver_ambiguedad(cita, validos)
-
-        if not validos:
-            resumen = "; ".join(
-                f"{c.id_boe}: {c.titulo}" for c in candidatos[:10]
-            )
-            detalle = f" Candidatos recibidos: {resumen}" if resumen else ""
-            raise BOEError(
-                f"No se encontró una coincidencia exacta para "
-                f"{cita.referencia}.{detalle}"
-            )
-
-        if len(validos) > 1:
-            resumen = "; ".join(
-                f"{n.id_boe} | {n.departamento} | {n.titulo}"
-                for n in validos
-            )
-            raise BOEError(
-                f"Hay varias coincidencias exactas para {cita.referencia}; "
-                f"no se selecciona ninguna automáticamente: {resumen}"
-            )
-
-        seleccionada = validos[0]
-
-    resultado = NormaBOE(
-        nombre_buscado=nombre_norma,
-        id_boe=seleccionada.id_boe,
-        titulo=seleccionada.titulo,
-        departamento=seleccionada.departamento,
-    )
-
-    cache[cita.clave] = {
-        "id_boe": resultado.id_boe,
-        "titulo": resultado.titulo,
-        "departamento": resultado.departamento,
-        "referencia_exacta": cita.referencia,
-        "fecha_iso": cita.fecha_iso,
-        "version_cache": 3,
-    }
-    guardar_cache(cache)
-    return resultado
-
-
-def obtener_texto_completo(id_boe: str) -> ET.Element:
-    id_boe = extraer_id_boe(id_boe)
-    if not id_boe:
-        raise BOEError("Identificador BOE no válido.")
-    return descargar_xml(
-        f"{BASE_URL}/id/{id_boe}/texto",
-        ruta_cache(id_boe, "texto_completo.xml"),
-    )
-
-
-def obtener_indice_texto(id_boe: str) -> ET.Element:
-    """Obtiene el índice oficial de bloques de la legislación consolidada."""
-    id_boe = extraer_id_boe(id_boe)
-    if not id_boe:
-        raise BOEError("Identificador BOE no válido.")
-    return descargar_xml(
-        f"{BASE_URL}/id/{id_boe}/texto/indice",
-        ruta_cache(id_boe, "texto_indice.xml"),
-    )
-
-
-def obtener_bloque_texto(id_boe: str, id_bloque: str) -> ET.Element:
-    """Obtiene del BOE todas las versiones oficiales de un bloque concreto."""
-    id_boe = extraer_id_boe(id_boe)
-    id_bloque = limpiar(id_bloque)
-    if not id_boe:
-        raise BOEError("Identificador BOE no válido.")
-    if not id_bloque:
-        raise BOEError("Identificador de bloque BOE vacío.")
-    return descargar_xml(
-        f"{BASE_URL}/id/{id_boe}/texto/bloque/{id_bloque}",
-        ruta_cache(id_boe, f"bloque_{id_bloque}.xml"),
-    )
-
-
-class _ExtractorTextoBOEHTML(HTMLParser):
-    """Convierte el HTML del texto consolidado en líneas de texto legibles."""
-    BLOQUES = {
-        "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br",
-        "section", "article", "tr", "td", "th",
-    }
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.partes: list[str] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag.lower() in self.BLOQUES:
-            self.partes.append("\n")
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag.lower() in self.BLOQUES:
-            self.partes.append("\n")
-
-    def handle_data(self, data: str) -> None:
-        if data:
-            self.partes.append(data)
-
-    def texto(self) -> str:
-        lineas = [limpiar(linea) for linea in "".join(self.partes).splitlines()]
-        return "\n".join(linea for linea in lineas if linea)
-
-
-def obtener_texto_consolidado_html(id_boe: str) -> str:
-    """Descarga la vista HTML consolidada del BOE como respaldo."""
-    id_boe = extraer_id_boe(id_boe)
-    if not id_boe:
-        raise BOEError("Identificador BOE no válido.")
-
-    ruta = ruta_cache(id_boe, "texto_consolidado.html")
-    if ruta.exists():
-        try:
-            contenido = ruta.read_text(encoding="utf-8")
-            if contenido.strip():
-                return contenido
-        except OSError:
-            ruta.unlink(missing_ok=True)
-
-    try:
-        respuesta = requests.get(
-            "https://www.boe.es/buscar/act.php",
-            params={"id": id_boe, "tn": 0},
-            timeout=TIMEOUT,
-            headers={
-                "Accept": "text/html,application/xhtml+xml",
-                "User-Agent": "TuCoach/2.0",
-            },
-            allow_redirects=True,
-        )
-        respuesta.raise_for_status()
-    except requests.RequestException as exc:
-        raise BOEError(
-            f"No se pudo descargar el texto consolidado HTML de {id_boe}."
-        ) from exc
-
-    respuesta.encoding = respuesta.encoding or "utf-8"
-    contenido = respuesta.text
-    ruta.parent.mkdir(parents=True, exist_ok=True)
-    temporal = ruta.with_suffix(ruta.suffix + ".tmp")
-    temporal.write_text(contenido, encoding="utf-8")
-    temporal.replace(ruta)
-    return contenido
-
-
-def obtener_documento_original_html(id_boe: str) -> str:
-    """Descarga la publicación oficial original mediante doc.php."""
-    id_boe = extraer_id_boe(id_boe)
-    if not id_boe:
-        raise BOEError("Identificador BOE no válido.")
-
-    ruta = ruta_cache(id_boe, "documento_original.html")
-    if ruta.exists():
-        try:
-            contenido = ruta.read_text(encoding="utf-8")
-            if contenido.strip():
-                return contenido
-        except OSError:
-            ruta.unlink(missing_ok=True)
-
-    try:
-        respuesta = requests.get(
-            "https://www.boe.es/buscar/doc.php",
-            params={"id": id_boe},
-            timeout=TIMEOUT,
-            headers={
-                "Accept": "text/html,application/xhtml+xml",
-                "User-Agent": "TuCoach/2.0",
-            },
-            allow_redirects=True,
-        )
-        respuesta.raise_for_status()
-    except requests.RequestException as exc:
-        raise BOEError(
-            f"No se pudo descargar el documento oficial HTML de {id_boe}."
-        ) from exc
-
-    respuesta.encoding = respuesta.encoding or "utf-8"
-    contenido = respuesta.text
-    ruta.parent.mkdir(parents=True, exist_ok=True)
-    temporal = ruta.with_suffix(ruta.suffix + ".tmp")
-    temporal.write_text(contenido, encoding="utf-8")
-    temporal.replace(ruta)
-    return contenido
-
-
-def extraer_articulo_desde_html(
-    id_boe: str,
-    articulo_base: str,
-) -> tuple[str, str, str] | None:
-    """Respaldo para documentos no disponibles en la API consolidada."""
-    fuentes: list[str] = []
-
-    try:
-        fuentes.append(obtener_texto_consolidado_html(id_boe))
-    except BOEError:
-        pass
-
-    try:
-        original = obtener_documento_original_html(id_boe)
-        if original not in fuentes:
-            fuentes.append(original)
-    except BOEError:
-        pass
-
-    variantes = variantes_encabezado_articulo(articulo_base)
-    alternativas = "|".join(
-        re.escape(variante) for variante in sorted(variantes, key=len, reverse=True)
-    )
-    patron_inicio = re.compile(
-        rf"(?im)^(?:art[ií]culo|art\.?)\s*(?:{alternativas})"
-        rf"(?=\.|\s|$)\.?\s*(.*)$"
-    )
-    patron_siguiente = re.compile(
-        r"(?im)^(?:"
-        r"(?:art[ií]culo|art\.?)\s*"
-        r"(?:\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
-        r"sexies|septies|octies|nonies|decies))?|[uú]nico)"
-        r"(?=\.|\s|$)"
-        r"|disposici[oó]n\s+(?:adicional|transitoria|derogatoria|final)\b"
-        r"|anexo(?:\s+[ivxlcdm]+|\s+\d+)?\b"
-        r")"
-    )
-
-    candidatos: list[tuple[str, str, str]] = []
-
-    for html in fuentes:
-        parser = _ExtractorTextoBOEHTML()
-        parser.feed(html)
-        texto = parser.texto()
-
-        for inicio in patron_inicio.finditer(texto):
-            siguiente = patron_siguiente.search(texto, inicio.end())
-            fin = siguiente.start() if siguiente else len(texto)
-            cuerpo = limpiar(texto[inicio.start():fin].replace("\\n", " "))
-            if not cuerpo:
+        if cita.ambito == "comunitat valenciana":
+            conjunto = f"{titulo_n} {normalizar(departamento)}"
+            if not any(
+                marca in conjunto
+                for marca in ("comunitat valenciana", "generalitat", "valenciana")
+            ):
                 continue
-            resto_titulo = limpiar(inicio.group(1))
-            titulo = f"Artículo {articulo_base}"
-            if resto_titulo:
-                titulo += f". {resto_titulo}"
-            candidatos.append((f"a{articulo_base}", titulo, cuerpo))
 
-    # El documento original incluye al principio un índice que repite los
-    # encabezados de los artículos. Esos candidatos contienen solo la rúbrica
-    # y no pueden considerarse corpus. Se descartan antes de elegir el bloque.
-    candidatos_suficientes = [
-        item for item in candidatos
-        if texto_articulo_suficiente(item[2], item[1])
-    ]
+        candidatos.append(
+            NormaBOE(
+                nombre_buscado=nombre_norma,
+                id_boe=id_boe,
+                titulo=titulo,
+                departamento=departamento,
+            )
+        )
 
-    if not candidatos_suficientes:
-        return None
+    ids_unicos = {c.id_boe for c in candidatos}
+    if len(ids_unicos) != 1:
+        raise BOEError(
+            "No se pudo resolver de forma inequívoca la norma "
+            f"{nombre_norma!r}: {len(ids_unicos)} candidatos válidos."
+        )
 
-    # Si aparecen varias coincidencias suficientes, se prefiere la más corta:
-    # evita capturar accidentalmente texto posterior al artículo solicitado.
-    candidatos_suficientes.sort(key=lambda item: len(item[2]))
-    return candidatos_suficientes[0]
-
-
-def normalizar_numero_articulo(articulo: str) -> str:
-    valor = limpiar(articulo).replace(",", ".")
-    valor = re.sub(r"^(articulo|art\.?)\s*", "", valor, flags=re.I)
-    return normalizar(valor.strip(" .ºª"))
-
-
-UNIDADES_ARTICULO = {
-    1: "primero", 2: "segundo", 3: "tercero", 4: "cuarto",
-    5: "quinto", 6: "sexto", 7: "septimo", 8: "octavo",
-    9: "noveno", 10: "diez", 11: "once", 12: "doce",
-    13: "trece", 14: "catorce", 15: "quince", 16: "dieciseis",
-    17: "diecisiete", 18: "dieciocho", 19: "diecinueve",
-    20: "veinte", 21: "veintiuno", 22: "veintidos",
-    23: "veintitres", 24: "veinticuatro", 25: "veinticinco",
-    26: "veintiseis", 27: "veintisiete", 28: "veintiocho",
-    29: "veintinueve",
-}
-DECENAS_ARTICULO = {
-    30: "treinta", 40: "cuarenta", 50: "cincuenta",
-    60: "sesenta", 70: "setenta", 80: "ochenta", 90: "noventa",
-}
-
-
-def numero_articulo_en_letras(numero: int) -> str:
-    if numero in UNIDADES_ARTICULO:
-        return UNIDADES_ARTICULO[numero]
-    if numero in DECENAS_ARTICULO:
-        return DECENAS_ARTICULO[numero]
-    if 30 < numero < 100:
-        decena = (numero // 10) * 10
-        unidad = numero % 10
-        unidad_texto = "uno" if unidad == 1 else UNIDADES_ARTICULO[unidad]
-        return f"{DECENAS_ARTICULO[decena]} y {unidad_texto}"
-    if numero == 100:
-        return "cien"
-    return ""
-
-
-def variantes_encabezado_articulo(articulo_base: str) -> set[str]:
-    base = normalizar(articulo_base)
-    variantes = {base}
-    if base.isdigit():
-        en_letras = numero_articulo_en_letras(int(base))
-        if en_letras:
-            variantes.add(en_letras)
-    return variantes
-
-
-def encabezado_articulo(texto: str) -> tuple[str, str]:
-    texto = limpiar(texto)
-    m = re.match(
-        r"^articulo\s+("
-        r"(?:\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
-        r"sexies|septies|octies|nonies|decies))?)"
-        r"|unico"
-        r")(?:\.|\s|$)\s*(.*)$",
-        normalizar(texto),
-        flags=re.I | re.U,
-    )
-    if not m:
-        return "", ""
-    return limpiar(m.group(1)), limpiar(m.group(2))
-
-
-def _datos_bloque_indice(elemento: ET.Element) -> tuple[str, str, str] | None:
-    if nombre_etiqueta(elemento) != "bloque":
-        return None
-    id_bloque = buscar_descendiente_directo(elemento, {"id"})
-    titulo = buscar_descendiente_directo(elemento, {"titulo"})
-    fecha_actualizacion = buscar_descendiente_directo(
-        elemento, {"fecha_actualizacion"}
-    )
-    if not id_bloque or not titulo:
-        return None
-    return (
-        limpiar(id_bloque),
-        limpiar(titulo),
-        re.sub(r"\D", "", fecha_actualizacion),
-    )
-
-
-def _titulo_corresponde_articulo(titulo: str, articulo_base: str) -> bool:
-    """Comprueba el artículo exacto aunque el título incluya su rúbrica."""
-    titulo_n = normalizar(titulo).strip(" .")
-    variantes = {
-        normalizar(variante).strip(" .")
-        for variante in variantes_encabezado_articulo(articulo_base)
+    elegido = candidatos[0]
+    cache[cita.clave] = {
+        "id_boe": elegido.id_boe,
+        "titulo": elegido.titulo,
+        "departamento": elegido.departamento,
     }
-
-    # Conserva la compatibilidad con títulos sin rúbrica, incluidos números
-    # expresados en letras cuando BOE los utiliza.
-    for variante in variantes:
-        if re.fullmatch(
-            rf"(?:articulo|art\.?)\s*{re.escape(variante)}",
-            titulo_n,
-            flags=re.I | re.U,
-        ):
-            return True
-
-    # En el índice BOE algunos bloques incorporan también la rúbrica:
-    # "Artículo 178. Coordinación...". Se extrae el número exacto para no
-    # confundir, por ejemplo, 17 con 178.
-    numero, _ = encabezado_articulo(titulo)
-    if not numero:
-        return False
-    return normalizar(numero).strip(" .") in variantes
-
-
-def _versiones_bloque(raiz: ET.Element) -> list[ET.Element]:
-    return [
-        elemento for elemento in raiz.iter()
-        if nombre_etiqueta(elemento) == "version"
-    ]
-
-
-def _seleccionar_version_actualizada(
-    raiz_bloque: ET.Element,
-    fecha_actualizacion: str,
-) -> ET.Element:
-    versiones = _versiones_bloque(raiz_bloque)
-    if not versiones:
-        raise BOEError("El bloque BOE no contiene ninguna versión.")
-
-    fecha_objetivo = re.sub(r"\D", "", fecha_actualizacion)
-    if not fecha_objetivo:
-        raise BOEError(
-            "El índice BOE no proporciona fecha_actualizacion para el bloque."
-        )
-
-    coincidentes = []
-    for version in versiones:
-        fecha_publicacion = re.sub(
-            r"\D", "", limpiar(version.attrib.get("fecha_publicacion", ""))
-        )
-        if fecha_publicacion == fecha_objetivo:
-            coincidentes.append(version)
-
-    if len(coincidentes) != 1:
-        raise BOEError(
-            "No existe una única versión cuya fecha_publicacion coincida con "
-            f"fecha_actualizacion={fecha_objetivo}."
-        )
-    return coincidentes[0]
-
-
-def _texto_version(version: ET.Element) -> str:
-    """Extrae solo el contenido normativo; excluye las notas <blockquote>."""
-    partes: list[str] = []
-    for hijo in list(version):
-        if nombre_etiqueta(hijo) == "blockquote":
-            continue
-        texto = texto_elemento(hijo)
-        if texto:
-            partes.append(texto)
-    return limpiar(" ".join(partes))
-
-
-def obtener_articulo(nombre_norma: str, articulo: str) -> ArticuloBOE:
-    """
-    Obtiene el artículo mediante:
-        índice -> bloque -> versión cuya fecha_publicacion coincide
-        con fecha_actualizacion.
-    """
-    norma = buscar_norma(nombre_norma)
-    solicitado = limpiar(articulo).replace(",", ".")
-    base = normalizar_numero_articulo(solicitado).split(".", 1)[0]
-
-    if not base:
-        raise BOEError(f"Número de artículo no válido: {articulo}")
-
-    try:
-        indice = obtener_indice_texto(norma.id_boe)
-    except BOEError:
-        respaldo_html = extraer_articulo_desde_html(norma.id_boe, base)
-        if not respaldo_html:
-            raise
-        id_bloque, titulo, contenido = respaldo_html
-        return ArticuloBOE(
-            nombre_norma=nombre_norma,
-            id_boe=norma.id_boe,
-            departamento=norma.departamento,
-            articulo=solicitado,
-            id_bloque=id_bloque,
-            titulo_bloque=titulo,
-            texto=contenido,
-        )
-
-    candidatos: list[tuple[str, str, str]] = []
-    for elemento in indice.iter():
-        datos = _datos_bloque_indice(elemento)
-        if not datos:
-            continue
-        id_bloque, titulo, fecha_actualizacion = datos
-        if _titulo_corresponde_articulo(titulo, base):
-            candidatos.append((id_bloque, titulo, fecha_actualizacion))
-
-    if not candidatos:
-        respaldo_html = extraer_articulo_desde_html(norma.id_boe, base)
-        if respaldo_html is not None:
-            id_bloque, titulo, contenido = respaldo_html
-            if texto_articulo_suficiente(contenido, titulo):
-                return ArticuloBOE(
-                    nombre_norma=nombre_norma,
-                    id_boe=norma.id_boe,
-                    departamento=norma.departamento,
-                    articulo=solicitado,
-                    id_bloque=id_bloque,
-                    titulo_bloque=titulo,
-                    texto=contenido,
-                )
-        raise BOEError(
-            f"El índice consolidado de {norma.id_boe} no contiene "
-            f"el artículo {solicitado} y el respaldo HTML tampoco "
-            "permitió recuperar un texto normativo suficiente."
-        )
-
-    resueltos: list[tuple[str, str, str, str]] = []
-    errores: list[str] = []
-
-    for id_bloque, titulo, fecha_actualizacion in candidatos:
-        try:
-            raiz_bloque = obtener_bloque_texto(norma.id_boe, id_bloque)
-            version = _seleccionar_version_actualizada(
-                raiz_bloque, fecha_actualizacion
-            )
-            contenido = _texto_version(version)
-            if not texto_articulo_suficiente(contenido, titulo):
-                respaldo_html = extraer_articulo_desde_html(norma.id_boe, base)
-                if respaldo_html is not None:
-                    id_html, titulo_html, contenido_html = respaldo_html
-                    if texto_articulo_suficiente(contenido_html, titulo_html):
-                        id_bloque = id_html
-                        titulo = titulo_html
-                        contenido = contenido_html
-            if not texto_articulo_suficiente(contenido, titulo):
-                raise BOEError(
-                    "El artículo recuperado no contiene cuerpo normativo; "
-                    "solo se obtuvo el título/rúbrica o texto vacío."
-                )
-            resueltos.append(
-                (id_bloque, titulo, fecha_actualizacion, contenido)
-            )
-        except BOEError as exc:
-            errores.append(f"{id_bloque}: {exc}")
-
-    if not resueltos:
-        detalle = "; ".join(errores)
-        raise BOEError(
-            f"No se pudo resolver el artículo {solicitado} de "
-            f"{norma.id_boe}. {detalle}"
-        )
-
-    if len(resueltos) > 1:
-        fecha_maxima = max(item[2] for item in resueltos)
-        mas_recientes = [
-            item for item in resueltos if item[2] == fecha_maxima
-        ]
-        if len(mas_recientes) != 1:
-            resumen = "; ".join(
-                f"{item[0]} ({item[2]})" for item in resueltos
-            )
-            raise BOEError(
-                f"Hay varios bloques válidos para el artículo {solicitado} "
-                f"de {norma.id_boe}; no se selecciona arbitrariamente: "
-                f"{resumen}"
-            )
-        resueltos = mas_recientes
-
-    id_bloque, titulo, _, contenido = resueltos[0]
-    return ArticuloBOE(
-        nombre_norma=nombre_norma,
-        id_boe=norma.id_boe,
-        departamento=norma.departamento,
-        articulo=solicitado,
-        id_bloque=id_bloque,
-        titulo_bloque=titulo,
-        texto=contenido,
-    )
+    _guardar_cache_normas(cache)
+    return elegido
 
 
 def limpiar_cache_norma(nombre_norma: str) -> None:
+    nombre_n = normalizar(nombre_norma)
+    if nombre_n in NORMAS_ESPECIALES:
+        return
     cita = extraer_cita(nombre_norma)
-    cache = cargar_cache()
+    cache = _cargar_cache_normas()
     if cita.clave in cache:
         del cache[cita.clave]
-        guardar_cache(cache)
+        _guardar_cache_normas(cache)
 
 
 def limpiar_cache_articulo(id_boe: str, id_bloque: str) -> None:
-    # Fuerza una nueva consulta del índice y del bloque concreto.
-    ruta_cache(id_boe, "texto_indice.xml").unlink(missing_ok=True)
-    if limpiar(id_bloque):
-        ruta_cache(id_boe, f"bloque_{limpiar(id_bloque)}.xml").unlink(
-            missing_ok=True
-        )
+    ruta = CACHE_DIR / "articulos" / id_boe / f"{id_bloque}.json"
+    if ruta.exists():
+        ruta.unlink()
 
 
-def prueba_manual() -> None:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Localiza una norma por coincidencia jurídica exacta y obtiene "
-            "un artículo de su texto consolidado."
+def _extraer_articulos_xml(xml_texto: str) -> list[ArticuloBOE]:
+    raiz = ET.fromstring(xml_texto)
+    articulos: list[ArticuloBOE] = []
+
+    for elem in raiz.iter():
+        nombre = nombre_etiqueta(elem)
+        if nombre not in {"bloque", "articulo", "article"}:
+            continue
+
+        id_bloque = limpiar(elem.attrib.get("id"))
+        titulo = ""
+        cuerpo = ""
+        for hijo in elem:
+            etiqueta = nombre_etiqueta(hijo)
+            if etiqueta in {"titulo", "h2", "h3"} and not titulo:
+                titulo = texto_elemento(hijo)
+            elif etiqueta in {"texto", "p", "parrafo"}:
+                cuerpo = limpiar(f"{cuerpo} {texto_elemento(hijo)}")
+
+        texto_total = limpiar(f"{titulo} {cuerpo}")
+        m = re.search(r"\bArt(?:ículo|iculo|\.)\s+([^\.\s:]+)", texto_total, re.I)
+        if not m:
+            continue
+
+        articulos.append(
+            ArticuloBOE(
+                nombre_norma="",
+                id_boe="",
+                departamento="",
+                articulo=limpiar(m.group(1)),
+                id_bloque=id_bloque,
+                titulo_bloque=titulo,
+                texto=texto_total,
+            )
         )
+
+    return articulos
+
+
+def obtener_articulo(nombre_norma: str, articulo: str) -> ArticuloBOE:
+    norma = buscar_norma(nombre_norma)
+    articulo_limpio = limpiar(articulo)
+    ruta_cache = CACHE_DIR / "articulos" / norma.id_boe / f"{articulo_limpio}.json"
+
+    if ruta_cache.exists():
+        try:
+            dato = json.loads(ruta_cache.read_text(encoding="utf-8"))
+            return ArticuloBOE(**dato)
+        except (OSError, json.JSONDecodeError, TypeError):
+            pass
+
+    xml_texto = _peticion_texto(f"{BASE_URL}/id/{norma.id_boe}/texto")
+    encontrados = _extraer_articulos_xml(xml_texto)
+
+    candidatos = [
+        art
+        for art in encontrados
+        if normalizar(art.articulo) == normalizar(articulo_limpio)
+    ]
+
+    if len(candidatos) != 1:
+        raise BOEError(
+            f"Artículo {articulo!r} no resuelto inequívocamente en {norma.id_boe}: "
+            f"{len(candidatos)} candidatos."
+        )
+
+    elegido = candidatos[0]
+    resultado = ArticuloBOE(
+        nombre_norma=nombre_norma,
+        id_boe=norma.id_boe,
+        departamento=norma.departamento,
+        articulo=articulo_limpio,
+        id_bloque=elegido.id_bloque,
+        titulo_bloque=elegido.titulo_bloque,
+        texto=elegido.texto,
     )
-    parser.add_argument("norma")
+
+    ruta_cache.parent.mkdir(parents=True, exist_ok=True)
+    ruta_cache.write_text(
+        json.dumps(resultado.__dict__, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return resultado
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("nombre_norma")
     parser.add_argument("articulo")
     args = parser.parse_args()
 
-    resultado = obtener_articulo(args.norma, args.articulo)
-
-    print()
-    print(f"Norma solicitada: {resultado.nombre_norma}")
-    print(f"BOE: {resultado.id_boe}")
-    print(f"Departamento: {resultado.departamento}")
-    print(f"Artículo: {resultado.articulo}")
-    print(f"Bloque: {resultado.id_bloque}")
-    print(f"Título: {resultado.titulo_bloque}")
-    print()
-    print(resultado.texto)
+    articulo = obtener_articulo(args.nombre_norma, args.articulo)
+    print(json.dumps(articulo.__dict__, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
-    prueba_manual()
+    main()

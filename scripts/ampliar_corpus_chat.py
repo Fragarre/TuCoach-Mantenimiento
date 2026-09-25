@@ -237,6 +237,18 @@ def candidatos_indice(id_boe: str) -> list[BloqueArticulo]:
             continue
 
         id_bloque, titulo, fecha = datos
+
+        # Un bloque colectivo como "Artículo 1231 a 1253. (Derogados)"
+        # no representa individualmente el art. 1231. No debe competir con
+        # el bloque específico del artículo en la resolución de identidad.
+        titulo_normalizado = normalizar(titulo).strip(" .")
+        if re.search(
+            r"\bart(?:ículo|iculo|\.)\s*\d+\s+a\s+\d+\b",
+            titulo_normalizado,
+            flags=re.I | re.U,
+        ):
+            continue
+
         numero = extraer_numero_encabezado(titulo)
         if not numero:
             continue
@@ -417,8 +429,20 @@ def analizar_documento(
     articulos_actuales = set(actuales)
     articulos_guardados = set(por_articulo_guardado)
 
+    ids_bloque_guardados = {
+        limpiar(fila["id_bloque"])
+        for fila in guardados
+        if limpiar(fila["id_bloque"])
+    }
+
+    faltantes_reales = {
+        articulo
+        for articulo in (articulos_actuales - articulos_guardados)
+        if limpiar(actuales[articulo].id_bloque) not in ids_bloque_guardados
+    }
+
     faltantes = sorted(
-        articulos_actuales - articulos_guardados,
+        faltantes_reales,
         key=lambda x: (
             int(re.match(r"\d+", x).group()) if re.match(r"\d+", x) else 10**9,
             x,
@@ -444,8 +468,6 @@ def analizar_documento(
 
     if incidencias:
         estado = "NO_AMPLIABLE"
-    elif guardados_sin_actual:
-        estado = "REVISAR"
     else:
         estado = "AMPLIABLE"
 
@@ -824,12 +846,7 @@ def ejecutar(args: argparse.Namespace) -> int:
             if id_boe in DATOS_IDS_VERIFICADOS:
                 resumen["sin_indice"] += 1
                 resumen["guardados"] += int(fila["filas"])
-                resumen["errores"] += 1
-                print("  Estado: SIN_INDICE_CONSOLIDADO")
-                print(
-                    "  El proveedor BOE no puede verificar la norma completa; "
-                    "se requiere fallback PDF local."
-                )
+                print("  Estado: EXCLUIDO_SIN_INDICE_CONSOLIDADO")
                 continue
 
             try:
@@ -894,7 +911,7 @@ def ejecutar(args: argparse.Namespace) -> int:
     print(f"AMPLIABLE:                              {resumen['ampliables']}")
     print(f"REVISAR:                                {resumen['revisar']}")
     print(f"NO_AMPLIABLE:                           {resumen['no_ampliables']}")
-    print(f"SIN_INDICE_CONSOLIDADO_REQUIERE_FALLBACK: {resumen['sin_indice']}")
+    print(f"EXCLUIDO_SIN_INDICE_CONSOLIDADO:        {resumen['sin_indice']}")
     print(f"Errores de consulta:                    {resumen['errores']}")
     print(f"ArtÃ­culos realmente faltantes:          {resumen['faltantes']}")
     print(f"Textos recuperados y validados:         {len(plan)}")

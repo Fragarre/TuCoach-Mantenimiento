@@ -16,7 +16,7 @@ Revisa, cuando las tablas y columnas necesarias existen:
 - resoluciones rotas
 - artículos huérfanos
 - normas sin ningún artículo completado
-- inconsistencias entre temario_referencias y resoluciones_boe
+- diferencias históricas entre temario_referencias y resoluciones_boe
 - valores vacíos en campos esenciales
 - distribución general del corpus
 
@@ -760,6 +760,11 @@ def main() -> None:
                     "articulo_fuente_id",
                 }.issubset(cols_res)
             ):
+                # resoluciones_boe conserva el historial del resolvedor. La
+                # referencia COMPLETADO + articulo_fuente_id existente es la
+                # relación canónica actual del temario. Por eso la ausencia de
+                # resolución histórica o que esta apunte a otra copia válida del
+                # mismo artículo se informa como aviso, no como corrupción.
                 completadas_sin_resolucion = ejecutar_consulta(
                     conexion,
                     """
@@ -792,13 +797,23 @@ def main() -> None:
                         tr.articulo_solicitado,
                         tr.articulo_fuente_id AS referencia_articulo_fuente_id,
                         rb.id AS resolucion_id,
-                        rb.articulo_fuente_id AS resolucion_articulo_fuente_id
+                        rb.articulo_fuente_id AS resolucion_articulo_fuente_id,
+                        af_ref.hash_texto AS referencia_hash_texto,
+                        af_res.hash_texto AS resolucion_hash_texto,
+                        CASE
+                            WHEN af_ref.hash_texto = af_res.hash_texto THEN 1
+                            ELSE 0
+                        END AS mismo_texto
                     FROM temario_referencias tr
                     JOIN resoluciones_boe rb
                       ON rb.nombre_norma_normalizada =
                          tr.nombre_norma_normalizada
                      AND rb.articulo_solicitado_normalizado =
                          TRIM(CAST(tr.articulo_solicitado AS TEXT))
+                    LEFT JOIN articulos_fuente af_ref
+                      ON af_ref.id = tr.articulo_fuente_id
+                    LEFT JOIN articulos_fuente af_res
+                      ON af_res.id = rb.articulo_fuente_id
                     WHERE tr.articulo_fuente_id IS NOT
                           rb.articulo_fuente_id
                     ORDER BY tr.id
@@ -813,12 +828,12 @@ def main() -> None:
                 ] = len(desacuerdos)
 
                 lineas.append(
-                    "Referencias COMPLETADO sin resolución: "
-                    f"{len(completadas_sin_resolucion)}"
+                    "Referencias COMPLETADO sin resolución histórica "
+                    f"(aviso): {len(completadas_sin_resolucion)}"
                 )
                 lineas.append(
-                    "Desacuerdos de articulo_fuente_id entre "
-                    f"referencia y resolución: {len(desacuerdos)}"
+                    "Diferencias históricas de articulo_fuente_id "
+                    f"(aviso): {len(desacuerdos)}"
                 )
         else:
             resumen["comprobaciones_omitidas"].append(
@@ -917,8 +932,6 @@ def main() -> None:
         "duplicados_articulos_identidad",
         "duplicados_resoluciones",
         "resoluciones_enlace_roto",
-        "completadas_sin_resolucion",
-        "desacuerdo_referencia_resolucion",
         "referencias_campos_esenciales_vacios",
     }
 

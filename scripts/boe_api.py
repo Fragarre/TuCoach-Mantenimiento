@@ -100,6 +100,8 @@ MESES = {
     "noviembre": "11", "diciembre": "12",
 }
 
+# Atajos verificados para normas extremadamente frecuentes.
+# No sustituyen el buscador genérico: solo evitan una consulta innecesaria.
 IDS_VERIFICADOS = {
     "ley|39|2015": "BOE-A-2015-10565",
     "ley|40|2015": "BOE-A-2015-10566",
@@ -107,10 +109,17 @@ IDS_VERIFICADOS = {
     "real decreto legislativo|2|2015": "BOE-A-2015-11430",
 }
 
+# Identificadores verificados para referencias que incluyen fecha completa.
+# Esta tabla tiene prioridad sobre la clave genérica tipo|número|año y evita
+# que una búsqueda incompleta del BOE descarte una norma autonómica válida.
 IDS_VERIFICADOS_POR_FECHA = {
     "ley|6|2025|2025-05-30": "BOE-A-2025-11960",
 }
 
+# Algunos documentos oficiales existen en el BOE, pero todavía no forman
+# parte de la API de legislación consolidada. Para esos identificadores se
+# guardan los metadatos oficiales verificados y se evita consultar un endpoint
+# que responde 404.
 DATOS_IDS_VERIFICADOS = {
     "BOE-A-2025-11960": {
         "titulo": (
@@ -121,6 +130,9 @@ DATOS_IDS_VERIFICADOS = {
     },
 }
 
+# Normas cuyo nombre oficial no contiene el patrón tipo + número/año.
+# Se resuelven únicamente mediante alias explícitos y un identificador BOE
+# verificado. Nunca se seleccionan por semejanza textual.
 NORMAS_ESPECIALES = {
     "constitucion espanola": "BOE-A-1978-31229",
     "constitucion espanola de 1978": "BOE-A-1978-31229",
@@ -161,6 +173,7 @@ def texto_articulo_manifiestamente_incompleto(
     if titulo and normal == titulo and len(limpio) < 80:
         return True
 
+    # Caso inequívoco: solo "Artículo N" sin rúbrica ni cuerpo.
     return bool(
         re.fullmatch(
             r"(?:articulo|art\.?)\s+"
@@ -220,6 +233,11 @@ def extraer_cita(nombre_norma: str) -> CitaNormativa:
         )
 
     fecha_iso = ""
+    # La fecha puede venir completa:
+    #   "Ley 6/2025, de 30 de mayo de 2025"
+    # o sin repetir el año:
+    #   "Ley 6/2025, de 30 de mayo"
+    # En el segundo caso se utiliza el año de la referencia normativa.
     m_fecha = re.search(
         r"\bde\s+(\d{1,2})\s+de\s+"
         r"(enero|febrero|marzo|abril|mayo|junio|julio|agosto|"
@@ -379,6 +397,12 @@ def campos_metadatos(id_boe: str) -> tuple[str, str, str]:
 
 
 def candidato_desde_elemento(elemento: ET.Element) -> tuple[str, str, str] | None:
+    """
+    Extrae un candidato solo cuando ID y título pertenecen al mismo registro.
+
+    No usa texto agregado de nodos raíz, evitando que un BOE mencionado dentro
+    de otra norma se confunda con el identificador del registro.
+    """
     id_texto = buscar_descendiente_directo(
         elemento,
         {"identificador", "id", "id_boe", "referencia"},
@@ -409,6 +433,7 @@ def extraer_candidatos(raiz: ET.Element) -> list[NormaBOE]:
     candidatos: list[NormaBOE] = []
     vistos: set[str] = set()
 
+    # Primera pasada: registros con campos hermanos directos.
     for elemento in raiz.iter():
         candidato = candidato_desde_elemento(elemento)
         if not candidato:
@@ -419,6 +444,7 @@ def extraer_candidatos(raiz: ET.Element) -> list[NormaBOE]:
         candidatos.append(NormaBOE("", id_boe, titulo, departamento))
         vistos.add(id_boe)
 
+    # Respaldo: algunos XML envuelven los campos un nivel adicional.
     if not candidatos:
         for elemento in raiz.iter():
             hijos = list(elemento)
@@ -458,6 +484,7 @@ def extraer_candidatos(raiz: ET.Element) -> list[NormaBOE]:
 
 
 def consultar_candidatos(cita: CitaNormativa) -> list[NormaBOE]:
+    # Se busca únicamente la referencia canónica, no el nombre largo.
     consulta = {
         "query": {
             "query_string": {
@@ -506,6 +533,10 @@ def validar_candidato(
     cita: CitaNormativa,
     candidato: NormaBOE,
 ) -> NormaBOE | None:
+    """
+    Validación cerrada: el título oficial debe contener exactamente la misma
+    clase de norma, número y año. Una mera mención en el texto no sirve.
+    """
     referencia = referencia_de_titulo(candidato.titulo)
     if referencia != (cita.tipo, cita.numero, cita.anio):
         return None
@@ -528,6 +559,9 @@ def validar_candidato(
         return None
 
     if cita.fecha_iso:
+        # Se compara con la fecha de la disposición que aparece en el título
+        # oficial. El campo genérico "fecha" del BOE puede ser la fecha de
+        # publicación y no debe descartar una norma correcta.
         try:
             cita_titulo = extraer_cita(titulo)
         except BOEError:
@@ -561,6 +595,16 @@ def resolver_ambiguedad(
     cita: CitaNormativa,
     candidatos: list[NormaBOE],
 ) -> list[NormaBOE]:
+    """
+    Reduce una lista de candidatos válidos aplicando criterios objetivos.
+
+    Orden de prioridad:
+    1. Fecha completa de la disposición, cuando figura en la referencia.
+    2. Ámbito valenciano, como regla general del proyecto TuCoach.
+    3. Jefatura del Estado, solo si no existe candidato valenciano.
+
+    Si aún quedan varias coincidencias, no se elige arbitrariamente.
+    """
     restantes = list(candidatos)
 
     if len(restantes) <= 1:
@@ -629,6 +673,8 @@ def buscar_norma(nombre_norma: str) -> NormaBOE:
     nombre_norma = limpiar(nombre_norma)
     nombre_normalizado = normalizar(nombre_norma)
 
+    # Algunas normas, como la Constitución Española, no tienen número/año
+    # en su denominación. Solo se admiten alias explícitos verificados.
     id_especial = NORMAS_ESPECIALES.get(nombre_normalizado)
     if id_especial:
         titulo, departamento, _ = campos_metadatos(id_especial)
@@ -702,7 +748,12 @@ def buscar_norma(nombre_norma: str) -> NormaBOE:
             if validado:
                 validos.append(validado)
 
+        # Deduplicar por ID.
         validos = list({n.id_boe: n for n in validos}.values())
+
+        # Resolver ambigüedades mediante criterios objetivos:
+        # fecha completa, ámbito valenciano y, en último término,
+        # Jefatura del Estado.
         validos = resolver_ambiguedad(cita, validos)
 
         if not validos:
@@ -757,6 +808,7 @@ def obtener_texto_completo(id_boe: str) -> ET.Element:
 
 
 def obtener_indice_texto(id_boe: str) -> ET.Element:
+    """Obtiene el índice oficial de bloques de la legislación consolidada."""
     id_boe = extraer_id_boe(id_boe)
     if not id_boe:
         raise BOEError("Identificador BOE no válido.")
@@ -767,6 +819,7 @@ def obtener_indice_texto(id_boe: str) -> ET.Element:
 
 
 def obtener_bloque_texto(id_boe: str, id_bloque: str) -> ET.Element:
+    """Obtiene del BOE todas las versiones oficiales de un bloque concreto."""
     id_boe = extraer_id_boe(id_boe)
     id_bloque = limpiar(id_bloque)
     if not id_boe:
@@ -780,6 +833,7 @@ def obtener_bloque_texto(id_boe: str, id_bloque: str) -> ET.Element:
 
 
 class _ExtractorTextoBOEHTML(HTMLParser):
+    """Convierte el HTML del texto consolidado en líneas de texto legibles."""
     BLOQUES = {
         "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br",
         "section", "article", "tr", "td", "th",
@@ -807,6 +861,7 @@ class _ExtractorTextoBOEHTML(HTMLParser):
 
 
 def obtener_texto_consolidado_html(id_boe: str) -> str:
+    """Descarga la vista HTML consolidada del BOE como respaldo."""
     id_boe = extraer_id_boe(id_boe)
     if not id_boe:
         raise BOEError("Identificador BOE no válido.")
@@ -847,6 +902,7 @@ def obtener_texto_consolidado_html(id_boe: str) -> str:
 
 
 def obtener_documento_original_html(id_boe: str) -> str:
+    """Descarga la publicación oficial original mediante doc.php."""
     id_boe = extraer_id_boe(id_boe)
     if not id_boe:
         raise BOEError("Identificador BOE no válido.")
@@ -890,6 +946,7 @@ def extraer_articulo_desde_html(
     id_boe: str,
     articulo_base: str,
 ) -> tuple[str, str, str] | None:
+    """Respaldo para documentos no disponibles en la API consolidada."""
     fuentes: list[str] = []
 
     try:
@@ -942,6 +999,9 @@ def extraer_articulo_desde_html(
                 titulo += f". {resto_titulo}"
             candidatos.append((f"a{articulo_base}", titulo, cuerpo))
 
+    # El documento original incluye al principio un índice que repite los
+    # encabezados de los artículos. Esos candidatos contienen solo la rúbrica
+    # y no pueden considerarse corpus. Se descartan antes de elegir el bloque.
     candidatos_suficientes = [
         item for item in candidatos
         if texto_articulo_suficiente(item[2], item[1])
@@ -950,6 +1010,8 @@ def extraer_articulo_desde_html(
     if not candidatos_suficientes:
         return None
 
+    # Si aparecen varias coincidencias suficientes, se prefiere la más corta:
+    # evita capturar accidentalmente texto posterior al artículo solicitado.
     candidatos_suficientes.sort(key=lambda item: len(item[2]))
     return candidatos_suficientes[0]
 
@@ -1036,12 +1098,15 @@ def _datos_bloque_indice(elemento: ET.Element) -> tuple[str, str, str] | None:
 
 
 def _titulo_corresponde_articulo(titulo: str, articulo_base: str) -> bool:
+    """Comprueba el artículo exacto aunque el título incluya su rúbrica."""
     titulo_n = normalizar(titulo).strip(" .")
     variantes = {
         normalizar(variante).strip(" .")
         for variante in variantes_encabezado_articulo(articulo_base)
     }
 
+    # Conserva la compatibilidad con títulos sin rúbrica, incluidos números
+    # expresados en letras cuando BOE los utiliza.
     for variante in variantes:
         if re.fullmatch(
             rf"(?:articulo|art\.?)\s*{re.escape(variante)}",
@@ -1050,6 +1115,9 @@ def _titulo_corresponde_articulo(titulo: str, articulo_base: str) -> bool:
         ):
             return True
 
+    # En el índice BOE algunos bloques incorporan también la rúbrica:
+    # "Artículo 178. Coordinación...". Se extrae el número exacto para no
+    # confundir, por ejemplo, 17 con 178.
     numero, _ = encabezado_articulo(titulo)
     if not numero:
         return False
@@ -1094,6 +1162,7 @@ def _seleccionar_version_actualizada(
 
 
 def _texto_version(version: ET.Element) -> str:
+    """Extrae solo el contenido normativo; excluye las notas <blockquote>."""
     partes: list[str] = []
     for hijo in list(version):
         if nombre_etiqueta(hijo) == "blockquote":
@@ -1105,6 +1174,11 @@ def _texto_version(version: ET.Element) -> str:
 
 
 def obtener_articulo(nombre_norma: str, articulo: str) -> ArticuloBOE:
+    """
+    Obtiene el artículo mediante:
+        índice -> bloque -> versión cuya fecha_publicacion coincide
+        con fecha_actualizacion.
+    """
     norma = buscar_norma(nombre_norma)
     solicitado = limpiar(articulo).replace(",", ".")
     base = normalizar_numero_articulo(solicitado).split(".", 1)[0]
@@ -1231,6 +1305,7 @@ def limpiar_cache_norma(nombre_norma: str) -> None:
 
 
 def limpiar_cache_articulo(id_boe: str, id_bloque: str) -> None:
+    # Fuerza una nueva consulta del índice y del bloque concreto.
     ruta_cache(id_boe, "texto_indice.xml").unlink(missing_ok=True)
     if limpiar(id_bloque):
         ruta_cache(id_boe, f"bloque_{limpiar(id_bloque)}.xml").unlink(

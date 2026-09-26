@@ -341,7 +341,14 @@ def _prompt_extraer_hechos(
         correccion = (
             "\nERRORES DEL INTENTO ANTERIOR:\n"
             + "\n".join(f"- {x}" for x in errores)
-            + "\nCorrígelos sin añadir información externa.\n"
+            + "\nCorrígelos sin añadir información externa. "
+            "Si un hecho rechazado es solo una frase introductoria, definición "
+            "incompleta o regla cuyo sentido depende de requisitos, condiciones, "
+            "excepciones, bonificaciones, efectos o incisos contenidos en la misma "
+            "fila de la fuente, no lo mantengas como hecho autónomo incompleto: "
+            "incorpora el contenido material necesario de esa misma fila o elimina "
+            "ese hecho si no puede formularse fielmente como proposición jurídica "
+            "completa. No inventes ni completes con información externa.\n"
         )
 
     fuente = "\n\n---\n\n".join(_trozo(x) for x in bloque)
@@ -429,6 +436,9 @@ HECHOS PROPUESTOS
 VALIDA UNO POR UNO.
 
 CRITERIO DE VALIDACIÓN MATERIAL:
+- Valida exclusivamente contra la FUENTE ÚNICA incluida en este prompt.
+- No uses conocimiento previo, memoria ni expectativas externas sobre la norma para cuestionar, corregir o rechazar contenido que conste en la FUENTE ÚNICA.
+- Si un hecho propuesto está respaldado por la FUENTE ÚNICA, no lo rechaces porque su contenido, numeración, estructura o materia difiera de lo que esperabas encontrar en esa norma.
 - No exijas reproducción literal de la redacción de la fuente.
 - Una paráfrasis fiel es válida si conserva íntegramente el significado jurídico.
 - No marques como error diferencias meramente estilísticas, de síntesis o de redacción.
@@ -869,12 +879,170 @@ def _extraer_y_validar_hechos_sin_fallback(
 
 
 
+def _fragmentar_fila_sobredimensionada(
+    norma: str,
+    fila: dict[str, str],
+) -> list[dict[str, str]]:
+    """
+    Divide internamente una única fila cuyo prompt supera MAX_CHARS_BLOQUE.
+
+    La división es exclusivamente operativa para IA:
+    - no modifica el corpus;
+    - conserva articulo/id_bloque/titulo;
+    - no altera los bloques exteriores ni sus checkpoints;
+    - prioriza límites jurídicos de apartados;
+    - dentro de tablas extensas, corta antes de códigos de procedimiento.
+    """
+    texto = str(fila.get("texto") or "")
+    if not texto:
+        return [fila]
+
+    def crear(fragmento: str) -> dict[str, str]:
+        copia = dict(fila)
+        copia["texto"] = fragmento.strip()
+        return copia
+
+    def cabe(fragmento: str) -> bool:
+        if not fragmento.strip():
+            return True
+        return (
+            len(_prompt_extraer_hechos(norma, [crear(fragmento)]))
+            <= MAX_CHARS_BLOQUE
+        )
+
+    if cabe(texto):
+        return [fila]
+
+    # Primer nivel: apartados numerados que comienzan con una regla material.
+    # Evita interpretar como apartados números contenidos en códigos,
+    # importes, referencias o descripciones.
+    patron_apartado = re.compile(
+        r"(?<!\d)([1-9]|[1-9]\d|1\d\d)\.\s+"
+        r"(?=(?:La cuota íntegra|Para la liquidación|"
+        r"La cuota líquida|Están exentos|Estarán exentos|"
+        r"Constituye|Constituyen|Son sujetos|El devengo|"
+        r"La tasa|Las tasas)\b)"
+    )
+    marcas = list(patron_apartado.finditer(texto))
+
+    unidades: list[str] = []
+    if marcas:
+        # Conserva también el encabezamiento anterior al primer apartado.
+        if marcas[0].start() > 0:
+            prefijo = texto[:marcas[0].start()].strip()
+            if prefijo:
+                unidades.append(prefijo)
+
+        for i, marca in enumerate(marcas):
+            limite = (
+                marcas[i + 1].start()
+                if i + 1 < len(marcas)
+                else len(texto)
+            )
+            unidades.append(texto[marca.start():limite].strip())
+    else:
+        unidades = [texto]
+
+    # Segundo nivel: si un apartado sigue siendo demasiado grande y contiene
+    # una tabla, cada código inicia un registro. El texto previo al primer
+    # código se conserva como cabecera exacta de la fuente.
+    atomos: list[str] = []
+    patron_codigo = re.compile(
+        r"(?<![A-Z0-9])(?=[A-Z]{1,5}\d{2,6}(?![A-Z0-9]))"
+    )
+
+    for unidad in unidades:
+        if cabe(unidad):
+            atomos.append(unidad)
+            continue
+
+        cortes = list(patron_codigo.finditer(unidad))
+        if cortes:
+            posiciones = sorted({0, *(m.start() for m in cortes), len(unidad)})
+            partes = [
+                unidad[posiciones[i]:posiciones[i + 1]].strip()
+                for i in range(len(posiciones) - 1)
+                if unidad[posiciones[i]:posiciones[i + 1]].strip()
+            ]
+            atomos.extend(partes)
+        else:
+            # Último recurso seguro: cortar por límites de frase, nunca por
+            # número fijo de caracteres dentro de una proposición.
+            partes = re.split(r"(?<=[.;])\s+(?=[A-ZÁÉÍÓÚÜÑ])", unidad)
+            atomos.extend(x.strip() for x in partes if x.strip())
+
+    # Agrupa átomos consecutivos hasta el límite real del prompt.
+    fragmentos: list[dict[str, str]] = []
+    actual = ""
+
+    for atomo in atomos:
+        candidato = atomo if not actual else actual + " " + atomo
+
+        if cabe(candidato):
+            actual = candidato
+            continue
+
+        if actual:
+            fragmentos.append(crear(actual))
+            actual = ""
+
+        if cabe(atomo):
+            actual = atomo
+            continue
+
+        raise RuntimeError(
+            "No puede dividirse con seguridad una unidad jurídica "
+            f"sobredimensionada del artículo {fila.get('articulo')!r}."
+        )
+
+    if actual:
+        fragmentos.append(crear(actual))
+
+    if len(fragmentos) <= 1:
+        raise RuntimeError(
+            "La fila jurídica supera MAX_CHARS_BLOQUE y no se encontró "
+            "una división interna segura."
+        )
+
+    return fragmentos
+
+
 def _extraer_y_validar_hechos(
     norma: str,
     bloque: list[dict[str, str]],
     modelo_trabajo: str,
     modelo_validacion: str,
 ) -> list[dict]:
+    # Preflight: no enviar a IA una única fila cuyo propio prompt ya excede
+    # el límite de trabajo. Se fragmenta sólo dentro de este bloque exterior.
+    if (
+        len(bloque) == 1
+        and len(_prompt_extraer_hechos(norma, bloque)) > MAX_CHARS_BLOQUE
+    ):
+        subbloques = _fragmentar_fila_sobredimensionada(
+            norma,
+            bloque[0],
+        )
+        hechos: list[dict] = []
+
+        for subbloque in subbloques:
+            hechos_fragmento = _extraer_y_validar_hechos(
+                norma,
+                [subbloque],
+                modelo_trabajo,
+                modelo_validacion,
+            )
+
+            articulo_fuente = str(subbloque.get("articulo") or "").strip()
+            for hecho in hechos_fragmento:
+                hecho["articulo"] = articulo_fuente
+
+            hechos.extend(hechos_fragmento)
+
+        datos = {"hechos": hechos}
+        _deduplicar_hechos(datos)
+        return datos["hechos"]
+
     try:
         return _extraer_y_validar_hechos_sin_fallback(
             norma,
@@ -889,7 +1057,7 @@ def _extraer_y_validar_hechos(
         if len(bloque) <= 1:
             raise RuntimeError(
                 "La extracción de una única fila jurídica agotó "
-                "max_output_tokens; no se divide internamente la fila."
+                "max_output_tokens después de la división preventiva."
             ) from exc
 
         corte = len(bloque) // 2

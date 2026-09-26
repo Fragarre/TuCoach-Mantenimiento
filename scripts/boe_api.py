@@ -167,8 +167,10 @@ def texto_articulo_manifiestamente_incompleto(
     normal = normalizar(limpio).rstrip(" .:;-")
     titulo = normalizar(titulo_bloque).rstrip(" .:;-")
 
-    # Caso inequívoco: el supuesto texto del artículo es solo su título/rúbrica.
-    if titulo and normal == titulo:
+    # Solo es inequívoco que falte el cuerpo cuando texto == título y se trata
+    # de un encabezado corto. Algunos importadores históricos guardaron en
+    # titulo_bloque el artículo completo; no debe marcarse como incompleto.
+    if titulo and normal == titulo and len(limpio) < 80:
         return True
 
     # Caso inequívoco: solo "Artículo N" sin rúbrica ni cuerpo.

@@ -753,13 +753,13 @@
     "norma_id": 909,
     "norma": "Código Civil",
     "archivo": "0909_C_digo_Civil.pdf",
-    "hash_corpus": "ea7f210384ab19f82d6310b53fb0e1807cf076945989b95a668e0f89158ff546",
+    "hash_corpus": "d3cf96f9b8426cac643bd49f1bbfd61aead30cf06241a7e0802629c7ae92ee65",
     "fuente_canonica_actual": "BOE-A-1889-4763",
-    "articulos_corpus_actual": 126,
+    "articulos_corpus_actual": 1998,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-24T18:47:20"
+    "fecha_actualizacion": "2026-09-26T10:43:45"
   },
   {
     "norma_id": 914,

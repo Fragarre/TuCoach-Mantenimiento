@@ -866,8 +866,17 @@ def _procesar_final(
     modelo_trabajo: str,
     modelo_validacion: str,
 ) -> dict:
+    hechos_sintesis = list(hechos_validados)
+
+    while (
+        len(_prompt_sintesis_desde_hechos(norma, hechos_sintesis))
+        > MAX_CHARS_BLOQUE
+        and len(hechos_sintesis) > 1
+    ):
+        hechos_sintesis = hechos_sintesis[::2]
+
     final = _llamar_json(
-        _prompt_sintesis_desde_hechos(norma, hechos_validados),
+        _prompt_sintesis_desde_hechos(norma, hechos_sintesis),
         modelo_trabajo,
         "material_estudio_sintesis_final",
         max_output_tokens=8192,

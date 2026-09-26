@@ -474,11 +474,28 @@ Devuelve SOLO JSON:
 """.strip()
 
 
+def _minimos_editoriales(hechos_validados: list[dict]) -> tuple[int, int]:
+    articulos = {
+        str(h.get("articulo", "")).strip()
+        for h in hechos_validados
+        if isinstance(h, dict) and str(h.get("articulo", "")).strip()
+    }
+    n_articulos = len(articulos)
+
+    if n_articulos <= 1:
+        return 1, 1
+    if n_articulos <= 3:
+        return 2, 2
+    return 4, 8
+
+
 def _prompt_sintesis_desde_hechos(
     norma: str,
     hechos_validados: list[dict],
     errores: list[str] | None = None,
 ) -> str:
+    min_estructura, min_ideas = _minimos_editoriales(hechos_validados)
+
     correccion = ""
     if errores:
         correccion = (
@@ -514,7 +531,7 @@ REGLAS
 - No redactes artículo por artículo: organiza por materias, pero mantén
   trazabilidad jurídica. El mapa debe ser una vista de orientación, no un
   índice automático de intervalos de artículos.
-- El mapa tendrá entre 4 y 12 bloques sustantivos y cubrirá toda la norma.
+- El mapa tendrá entre {min_estructura} y 12 bloques sustantivos y cubrirá todo el contenido suministrado.
   Cada bloque debe llevar un nombre jurídico comprensible, su intervalo de
   artículos y una explicación breve de lo que regula. Nunca uses rótulos
   genéricos como "Bloque de artículos 31-40", "bis", "ter" ni una sucesión
@@ -532,8 +549,9 @@ REGLAS
   realmente útiles para evitar confusiones. Si no hay contrastes claros,
   devuelve una lista vacía.
 - El documento debe ser conciso: introducción y cierre, máximo 70 palabras
-  cada uno; mapa, 6-10 bloques con contenidos de hasta 28 palabras; secciones,
-  6-10 como máximo, con hasta 2 subapartados y 2 ideas por subapartado. Cada
+  cada uno; mapa y secciones, entre {min_estructura} y 10 elementos, con contenidos
+  de hasta 28 palabras en el mapa y hasta 2 subapartados y 2 ideas por subapartado.
+  El conjunto desarrollará al menos {min_ideas} ideas de estudio. Cada
   idea tendrá como máximo 30 palabras. No copies ni expliques el listado
   completo de artículos: selecciona las reglas que estructuran cada materia.
 - Antes de responder, comprueba que el JSON completo cabe holgadamente en
@@ -675,12 +693,18 @@ def _errores(v: dict) -> list[str]:
     ]
 
 
-def _errores_calidad_sintesis(final: dict) -> list[str]:
+def _errores_calidad_sintesis(
+    final: dict,
+    hechos_validados: list[dict],
+) -> list[str]:
     """Impide publicar índices automáticos como si fueran material de estudio."""
+    min_estructura, min_ideas = _minimos_editoriales(hechos_validados)
     errores: list[str] = []
     mapa = final.get("mapa") if isinstance(final, dict) else None
-    if not isinstance(mapa, list) or not 4 <= len(mapa) <= 12:
-        return ["El mapa debe contener entre 4 y 12 bloques temáticos."]
+    if not isinstance(mapa, list) or not min_estructura <= len(mapa) <= 12:
+        return [
+            f"El mapa debe contener entre {min_estructura} y 12 bloques temáticos."
+        ]
 
     patrones_genericos = re.compile(
         r"^(bloque de art[ií]culos|art[ií]culos?\s+\d|bis|ter|quater|quinquies)\b",
@@ -707,8 +731,13 @@ def _errores_calidad_sintesis(final: dict) -> list[str]:
             )
 
     secciones = final.get("secciones") if isinstance(final, dict) else None
-    if not isinstance(secciones, list) or not 4 <= len(secciones) <= 12:
-        errores.append("El resumen debe desarrollar entre 4 y 12 secciones temáticas.")
+    if (
+        not isinstance(secciones, list)
+        or not min_estructura <= len(secciones) <= 12
+    ):
+        errores.append(
+            f"El resumen debe desarrollar entre {min_estructura} y 12 secciones temáticas."
+        )
         return errores
 
     ideas_totales = 0
@@ -744,8 +773,10 @@ def _errores_calidad_sintesis(final: dict) -> list[str]:
                 ideas_totales += 1
                 if len(texto) < 25 or "..." in texto or "…" in texto:
                     errores.append(f"La sección {i} contiene una idea vacía o truncada.")
-    if ideas_totales < 8:
-        errores.append("El resumen contiene menos de ocho ideas de estudio desarrolladas.")
+    if ideas_totales < min_ideas:
+        errores.append(
+            f"El resumen contiene menos de {min_ideas} ideas de estudio desarrolladas."
+        )
     return errores
 
 
@@ -1098,7 +1129,7 @@ def _procesar_final(
         max_output_tokens=8192,
     )
 
-    calidad = _errores_calidad_sintesis(final)
+    calidad = _errores_calidad_sintesis(final, hechos_sintesis)
     if calidad:
         final = _llamar_json(
             _prompt_sintesis_desde_hechos(
@@ -1110,7 +1141,7 @@ def _procesar_final(
             "material_estudio_sintesis_final_reintento_calidad",
             max_output_tokens=8192,
         )
-        calidad = _errores_calidad_sintesis(final)
+        calidad = _errores_calidad_sintesis(final, hechos_sintesis)
 
     if calidad:
         raise RuntimeError(

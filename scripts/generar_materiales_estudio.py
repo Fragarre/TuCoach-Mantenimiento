@@ -884,6 +884,19 @@ def _procesar_final(
 
     calidad = _errores_calidad_sintesis(final)
     if calidad:
+        final = _llamar_json(
+            _prompt_sintesis_desde_hechos(
+                norma,
+                hechos_sintesis,
+                errores=calidad,
+            ),
+            modelo_trabajo,
+            "material_estudio_sintesis_final_reintento_calidad",
+            max_output_tokens=8192,
+        )
+        calidad = _errores_calidad_sintesis(final)
+
+    if calidad:
         raise RuntimeError(
             "Síntesis final sin la calidad editorial mínima: "
             + " | ".join(calidad)

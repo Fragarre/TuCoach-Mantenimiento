@@ -773,7 +773,15 @@ def _deduplicar_hechos(datos: dict) -> None:
     datos["hechos"] = unicos
 
 
-def _extraer_y_validar_hechos(
+
+def _es_truncamiento_salida(exc: Exception) -> bool:
+    return (
+        isinstance(exc, RuntimeError)
+        and str(exc) == "RESPUESTA_IA_TRUNCADA_MAX_OUTPUT_TOKENS"
+    )
+
+
+def _extraer_y_validar_hechos_sin_fallback(
     norma: str,
     bloque: list[dict[str, str]],
     modelo_trabajo: str,
@@ -858,6 +866,46 @@ def _extraer_y_validar_hechos(
         return propuesta3["hechos"]
 
     return propuesta2["hechos"]
+
+
+
+def _extraer_y_validar_hechos(
+    norma: str,
+    bloque: list[dict[str, str]],
+    modelo_trabajo: str,
+    modelo_validacion: str,
+) -> list[dict]:
+    try:
+        return _extraer_y_validar_hechos_sin_fallback(
+            norma,
+            bloque,
+            modelo_trabajo,
+            modelo_validacion,
+        )
+    except RuntimeError as exc:
+        if not _es_truncamiento_salida(exc):
+            raise
+
+        if len(bloque) <= 1:
+            raise RuntimeError(
+                "La extracción de una única fila jurídica agotó "
+                "max_output_tokens; no se divide internamente la fila."
+            ) from exc
+
+        corte = len(bloque) // 2
+        hechos: list[dict] = []
+
+        for subbloque in (bloque[:corte], bloque[corte:]):
+            hechos.extend(
+                _extraer_y_validar_hechos(
+                    norma,
+                    subbloque,
+                    modelo_trabajo,
+                    modelo_validacion,
+                )
+            )
+
+        return hechos
 
 
 def _procesar_final(

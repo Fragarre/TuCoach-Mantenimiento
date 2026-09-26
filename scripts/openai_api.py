@@ -316,6 +316,18 @@ def seleccionar_fragmento_json(
         max_output_tokens=max_output_tokens,
     )
 
+    if (
+        getattr(respuesta_api, "status", None) == "incomplete"
+        and getattr(
+            getattr(respuesta_api, "incomplete_details", None),
+            "reason",
+            None,
+        ) == "max_output_tokens"
+    ):
+        raise RuntimeError(
+            "RESPUESTA_IA_TRUNCADA_MAX_OUTPUT_TOKENS"
+        )
+
     texto = str(respuesta_api.output_text or "").strip()
 
     bloque = re.fullmatch(

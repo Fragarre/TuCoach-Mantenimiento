@@ -92,16 +92,38 @@ def fuentes_norma_activa(
 def contenido_fuente(
     con: sqlite3.Connection,
     id_fuente: str,
+    norma_id: int,
 ) -> list[tuple[str, str, str, str]]:
+    """
+    Devuelve únicamente las filas físicas del corpus que están enlazadas
+    desde referencias COMPLETADAS de temarios de convocatorias activas.
+
+    El vínculo se hace por articulo_fuente_id, no por el texto del número de
+    artículo: una referencia específica (por ejemplo, un apartado) puede
+    apuntar legítimamente a la fila física del artículo completo.
+    """
     filas = con.execute(
         """
-        SELECT id_bloque, articulo_boe, titulo_bloque, texto
-        FROM articulos_fuente
-        WHERE UPPER(id_boe) = UPPER(?)
-          AND TRIM(COALESCE(texto, '')) <> ''
-        ORDER BY id
+        SELECT DISTINCT
+            af.id,
+            af.id_bloque,
+            af.articulo_boe,
+            af.titulo_bloque,
+            af.texto
+        FROM convocatorias c
+        JOIN temarios t ON t.convocatoria_id = c.id
+        JOIN temario_temas tt ON tt.temario_id = t.id
+        JOIN temario_referencias tr ON tr.tema_id = tt.id
+        JOIN articulos_fuente af ON af.id = tr.articulo_fuente_id
+        WHERE c.activa = 1
+          AND tr.norma_id = ?
+          AND tr.estado = 'COMPLETADO'
+          AND tr.articulo_fuente_id IS NOT NULL
+          AND UPPER(af.id_boe) = UPPER(?)
+          AND TRIM(COALESCE(af.texto, '')) <> ''
+        ORDER BY af.id
         """,
-        (id_fuente,),
+        (norma_id, id_fuente),
     ).fetchall()
 
     contenido = [
@@ -158,7 +180,7 @@ def seleccionar_fuente_canonica(
         )
 
     candidatas = [
-        (fuente, contenido_fuente(con, fuente))
+        (fuente, contenido_fuente(con, fuente, norma_id))
         for fuente in fuentes
     ]
 

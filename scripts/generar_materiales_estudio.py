@@ -194,6 +194,7 @@ def _trozo(fila: dict[str, str]) -> str:
 
 
 def _dividir(
+    norma: str,
     filas: list[dict[str, str]],
 ) -> list[list[dict[str, str]]]:
     """
@@ -211,21 +212,18 @@ def _dividir(
     """
     bloques: list[list[dict[str, str]]] = []
     actual: list[dict[str, str]] = []
-    longitud = 0
 
     for fila in filas:
-        n = len(_trozo(fila))
+        candidato = [*actual, fila]
 
         if actual and (
-            longitud + n > MAX_CHARS_BLOQUE
+            len(_prompt_extraer_hechos(norma, candidato)) > MAX_CHARS_BLOQUE
             or len(actual) >= 4
         ):
             bloques.append(actual)
             actual = []
-            longitud = 0
 
         actual.append(fila)
-        longitud += n
 
     if actual:
         bloques.append(actual)
@@ -1580,7 +1578,7 @@ def main() -> int:
                     "La fuente cambió entre auditoría y generación."
                 )
 
-            bloques = _dividir(contenido)
+            bloques = _dividir(norma, contenido)
             print(f"Fuente................................ {fuente}")
             print(f"Filas de corpus....................... {len(contenido)}")
             print(f"Bloques IA............................ {len(bloques)}")

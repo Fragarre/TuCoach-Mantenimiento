@@ -679,12 +679,18 @@ def _errores(v: dict) -> list[str]:
         "no altera el sentido",
         "reproducción es esencialmente correcta",
         "no hay defecto material",
+        "está respaldado por la fuente",
+        "esta respaldado por la fuente",
+        "está respaldado por la fuente única",
+        "esta respaldado por la fuente unica",
         "no debería marcarse como error",
         "no deberia marcarse como error",
         "no es necesariamente inválido",
         "no es necesariamente invalido",
         "no es inválido por sí mismo",
         "no es invalido por si mismo",
+        "no puede considerarse inválido por sí mismo",
+        "no puede considerarse invalido por si mismo",
         "etiqueta de categoría",
         "duplicación/mala indexación",
         "duplicacion/mala indexacion",
@@ -892,6 +898,46 @@ def _extraer_y_validar_hechos_sin_fallback(
         )
         errores_revision3 = _errores(revision3)
         if revision3.get("valido") is not True and errores_revision3:
+            # Si, tras los tres intentos, el revisor rechaza únicamente hechos
+            # concretos por índice, conservar los hechos no rechazados evita
+            # perder todo el bloque por una proposición aislada no respaldada.
+            # Solo se descartan índices cuyo motivo siga siendo material después
+            # del filtro de falsos positivos; nunca se interpreta el texto legal.
+            errores_crudos = revision3.get("errores") or []
+            if isinstance(errores_crudos, dict):
+                errores_crudos = [errores_crudos]
+            indices_rechazados: set[int] = set()
+            if isinstance(errores_crudos, list):
+                for error_crudo in errores_crudos:
+                    if not isinstance(error_crudo, dict):
+                        continue
+                    if not _errores({"errores": [error_crudo]}):
+                        continue
+
+                    # El revisor ha usado históricamente dos formatos para
+                    # identificar el hecho: ``indice`` (posición base 0) e
+                    # ``id`` (posición base 1, a veces como texto). Admitir
+                    # ambos evita convertir un único rechazo material en el
+                    # rechazo del bloque completo.
+                    indice = error_crudo.get("indice")
+                    if isinstance(indice, int) and 0 <= indice < len(propuesta3["hechos"]):
+                        indices_rechazados.add(indice)
+                        continue
+
+                    id_crudo = error_crudo.get("id")
+                    try:
+                        posicion = int(id_crudo) - 1
+                    except (TypeError, ValueError):
+                        continue
+                    if 0 <= posicion < len(propuesta3["hechos"]):
+                        indices_rechazados.add(posicion)
+            if indices_rechazados and len(indices_rechazados) < len(propuesta3["hechos"]):
+                return [
+                    hecho
+                    for indice, hecho in enumerate(propuesta3["hechos"])
+                    if indice not in indices_rechazados
+                ]
+
             texto_errores = " ".join(errores_revision3).casefold()
             if (
                 ("fragmento" in texto_errores and "no plenamente determinado" in texto_errores)

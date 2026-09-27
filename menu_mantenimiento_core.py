@@ -1079,14 +1079,8 @@ def actualizar_bd_tucoach() -> None:
 
     try:
         if destino.is_file():
-            from datetime import datetime
-
             carpeta_copias.mkdir(parents=True, exist_ok=True)
-            marca = datetime.now().strftime("%Y%m%d_%H%M%S")
-            copia = (
-                carpeta_copias
-                / f"oposiciones_antes_actualizacion_{marca}.sqlite3"
-            )
+            copia = carpeta_copias / "oposiciones_backup_unico.sqlite3"
             shutil.copy2(destino, copia)
             print(f"\nCopia de seguridad creada:\n{copia}")
         else:

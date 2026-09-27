@@ -444,6 +444,9 @@ CRITERIO DE VALIDACIÓN MATERIAL:
 - No marques como error diferencias meramente estilísticas, de síntesis o de redacción.
 - Rechaza únicamente cuando exista una diferencia jurídica material: información añadida, omisión relevante o alteración de sujetos, órganos, requisitos, condiciones, excepciones, efectos, cuantías o plazos.
 - Una omisión solo es relevante si lo omitido es necesario para que la proposición concreta conserve su significado jurídico. No exijas que un hecho incorpore otras reglas autónomas que aparezcan antes o después en el mismo artículo o apartado.
+- Evalúa cada hecho contra el pasaje de la FUENTE ÚNICA que expresa esa misma proposición. No importes palabras, requisitos ni relaciones de otros apartados, incisos o proposiciones para fabricar una discrepancia.
+- Antes de rechazar por adición u omisión, identifica una diferencia material concreta entre el hecho y ese pasaje. Si la formulación propuesta reproduce o parafrasea fielmente lo que ese pasaje dice, el hecho es válido aunque otro pasaje del artículo añada reglas distintas.
+- Si el propio motivo de rechazo reconoce que las palabras cuestionadas aparecen en el pasaje aplicable de la FUENTE ÚNICA, no existe una adición por esas palabras y no puedes rechazarlas como contenido añadido.
 
 La categoría es una etiqueta auxiliar de indexación; no forma parte del hecho
 jurídico ni se muestra como afirmación normativa. No rechaces un hecho cuya

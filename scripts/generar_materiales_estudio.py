@@ -443,6 +443,7 @@ CRITERIO DE VALIDACIÓN MATERIAL:
 - Una paráfrasis fiel es válida si conserva íntegramente el significado jurídico.
 - No marques como error diferencias meramente estilísticas, de síntesis o de redacción.
 - Rechaza únicamente cuando exista una diferencia jurídica material: información añadida, omisión relevante o alteración de sujetos, órganos, requisitos, condiciones, excepciones, efectos, cuantías o plazos.
+- Una omisión solo es relevante si lo omitido es necesario para que la proposición concreta conserve su significado jurídico. No exijas que un hecho incorpore otras reglas autónomas que aparezcan antes o después en el mismo artículo o apartado.
 
 La categoría es una etiqueta auxiliar de indexación; no forma parte del hecho
 jurídico ni se muestra como afirmación normativa. No rechaces un hecho cuya

@@ -922,8 +922,9 @@ def _fragmentar_fila_sobredimensionada(
     - no modifica el corpus;
     - conserva articulo/id_bloque/titulo;
     - no altera los bloques exteriores ni sus checkpoints;
-    - prioriza límites jurídicos de apartados;
-    - dentro de tablas extensas, corta antes de códigos de procedimiento.
+    - prioriza límites jurídicos explícitos (apartados y enumeraciones);
+    - si una unidad sigue siendo grande, desciende recursivamente hasta
+      límites de frase o cláusula, sin cortar por número fijo de caracteres.
     """
     texto = str(fila.get("texto") or "")
     if not texto:
@@ -945,65 +946,43 @@ def _fragmentar_fila_sobredimensionada(
     if cabe(texto):
         return [fila]
 
-    # Primer nivel: apartados numerados que comienzan con una regla material.
-    # Evita interpretar como apartados números contenidos en códigos,
-    # importes, referencias o descripciones.
-    patron_apartado = re.compile(
-        r"(?<!\d)([1-9]|[1-9]\d|1\d\d)\.\s+"
-        r"(?=(?:La cuota íntegra|Para la liquidación|"
-        r"La cuota líquida|Están exentos|Estarán exentos|"
-        r"Constituye|Constituyen|Son sujetos|El devengo|"
-        r"La tasa|Las tasas)\b)"
-    )
-    marcas = list(patron_apartado.finditer(texto))
-
-    unidades: list[str] = []
-    if marcas:
-        # Conserva también el encabezamiento anterior al primer apartado.
-        if marcas[0].start() > 0:
-            prefijo = texto[:marcas[0].start()].strip()
-            if prefijo:
-                unidades.append(prefijo)
-
-        for i, marca in enumerate(marcas):
-            limite = (
-                marcas[i + 1].start()
-                if i + 1 < len(marcas)
-                else len(texto)
-            )
-            unidades.append(texto[marca.start():limite].strip())
-    else:
-        unidades = [texto]
-
-    # Segundo nivel: si un apartado sigue siendo demasiado grande y contiene
-    # una tabla, cada código inicia un registro. El texto previo al primer
-    # código se conserva como cabecera exacta de la fuente.
-    atomos: list[str] = []
-    patron_codigo = re.compile(
-        r"(?<![A-Z0-9])(?=[A-Z]{1,5}\d{2,6}(?![A-Z0-9]))"
+    patrones = (
+        re.compile(r"(?<![\d.])(?=[1-9]\d{0,2}\.\s+[A-ZÁÉÍÓÚÜÑ])"),
+        re.compile(r"\s+(?=\d{1,3}\)\s+[«\"A-ZÁÉÍÓÚÜÑ])"),
+        re.compile(r"\s+(?=[a-zñ]\)\s+[«\"A-ZÁÉÍÓÚÜÑ])"),
+        re.compile(r"(?<=[.])\s+(?=[A-ZÁÉÍÓÚÜÑ])"),
+        re.compile(r"(?<=[;])\s+(?=[A-ZÁÉÍÓÚÜÑ])"),
     )
 
-    for unidad in unidades:
-        if cabe(unidad):
-            atomos.append(unidad)
-            continue
+    def atomizar(segmento: str, nivel: int = 0) -> list[str]:
+        segmento = segmento.strip()
+        if not segmento or cabe(segmento):
+            return [segmento] if segmento else []
 
-        cortes = list(patron_codigo.finditer(unidad))
-        if cortes:
-            posiciones = sorted({0, *(m.start() for m in cortes), len(unidad)})
+        for i in range(nivel, len(patrones)):
             partes = [
-                unidad[posiciones[i]:posiciones[i + 1]].strip()
-                for i in range(len(posiciones) - 1)
-                if unidad[posiciones[i]:posiciones[i + 1]].strip()
+                parte.strip()
+                for parte in patrones[i].split(segmento)
+                if parte.strip()
             ]
-            atomos.extend(partes)
-        else:
-            # Último recurso seguro: cortar por límites de frase, nunca por
-            # número fijo de caracteres dentro de una proposición.
-            partes = re.split(r"(?<=[.;])\s+(?=[A-ZÁÉÍÓÚÜÑ])", unidad)
-            atomos.extend(x.strip() for x in partes if x.strip())
+            if len(partes) <= 1:
+                continue
 
-    # Agrupa átomos consecutivos hasta el límite real del prompt.
+            resultado: list[str] = []
+            try:
+                for parte in partes:
+                    resultado.extend(atomizar(parte, i + 1))
+            except RuntimeError:
+                continue
+            return resultado
+
+        raise RuntimeError(
+            "No puede dividirse con seguridad una unidad jurídica "
+            f"sobredimensionada del artículo {fila.get('articulo')!r}."
+        )
+
+    atomos = atomizar(texto)
+
     fragmentos: list[dict[str, str]] = []
     actual = ""
 
@@ -1016,16 +995,7 @@ def _fragmentar_fila_sobredimensionada(
 
         if actual:
             fragmentos.append(crear(actual))
-            actual = ""
-
-        if cabe(atomo):
-            actual = atomo
-            continue
-
-        raise RuntimeError(
-            "No puede dividirse con seguridad una unidad jurídica "
-            f"sobredimensionada del artículo {fila.get('articulo')!r}."
-        )
+        actual = atomo
 
     if actual:
         fragmentos.append(crear(actual))
@@ -1037,7 +1007,6 @@ def _fragmentar_fila_sobredimensionada(
         )
 
     return fragmentos
-
 
 def _extraer_y_validar_hechos(
     norma: str,

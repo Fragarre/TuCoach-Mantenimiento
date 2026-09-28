@@ -27,3 +27,5 @@ scripts/*.seguridad_*
 tmp_*.py
 
 materiales_estudio/catalogo_materiales_antes_normalizar_ley4_*.json
+
+db/oposiciones.sqlite3

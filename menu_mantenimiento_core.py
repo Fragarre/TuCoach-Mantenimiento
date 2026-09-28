@@ -2401,6 +2401,31 @@ def construir_materiales_convocatoria_menu() -> None:
 
 
 
+
+def publicar_materiales_web_menu() -> None:
+    cabecera_submenu(
+        "PUBLICAR MATERIALES DE ESTUDIO EN TUCOACH-WEB LOCAL",
+        "[PLAN -> VALIDAR -> CONFIRMAR -> BACKUP -> COPIA] Valida todos los "
+        "resúmenes preparados y sincroniza los PDF y el catálogo con TuCoach-Web.",
+    )
+
+    if ejecutar_script("publicar_materiales_web.py") != 0:
+        print("\nPublicación cancelada: la validación previa ha fallado.")
+        pausa()
+        return
+
+    print()
+    if not pedir_si_no(
+        "¿Publicar ahora los materiales validados en TuCoach-Web LOCAL?"
+    ):
+        print("Operación cancelada.")
+        pausa()
+        return
+
+    ejecutar_script("publicar_materiales_web.py", "--aplicar")
+    pausa()
+
+
 def submenu_administracion() -> None:
     while True:
         cabecera_submenu(
@@ -2416,6 +2441,7 @@ def submenu_administracion() -> None:
         print("6. Mostrar componentes internos                       [INFORMATIVO]")
         print("7. Actualizar materiales de estudio                   [PLAN → VALIDAR RAG → IA → BACKUP → PDF]")
         print("8. Construir materiales por convocatoria              [PLAN → RAG → EXTRACTO → RESUMEN]")
+        print("9. Publicar materiales en TuCoach-Web LOCAL           [PLAN → VALIDAR → BACKUP → COPIA]")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
@@ -2428,6 +2454,7 @@ def submenu_administracion() -> None:
             "6":mostrar_componentes_internos,
             "7":actualizar_materiales_estudio_menu,
             "8":construir_materiales_convocatoria_menu,
+            "9":publicar_materiales_web_menu,
         }
         fn=acciones.get(op)
         if fn: fn()

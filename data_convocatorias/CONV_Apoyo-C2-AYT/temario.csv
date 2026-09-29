@@ -790,6 +790,6 @@ ESPECIAL,32,Control interno y externo de la actividad económico-financiera loca
 ESPECIAL,32,Control interno y externo de la actividad económico-financiera local,"Real Decreto Legislativo 2/2004, de 5 de marzo, texto refundido de la Ley Reguladora de las Haciendas Locales",221,JURIDICO,
 ESPECIAL,32,Control interno y externo de la actividad económico-financiera local,"Real Decreto Legislativo 2/2004, de 5 de marzo, texto refundido de la Ley Reguladora de las Haciendas Locales",222,JURIDICO,
 ESPECIAL,32,Control interno y externo de la actividad económico-financiera local,"Real Decreto Legislativo 2/2004, de 5 de marzo, texto refundido de la Ley Reguladora de las Haciendas Locales",223,JURIDICO,
-ESPECIAL,33,Procesador de textos: funciones básicas y edición de documentos,,,NO_JURIDICO,Procesador de textos: funciones básicas y edición de documentos
-ESPECIAL,34,"Hojas de cálculo: operaciones, fórmulas y gestión de datos",,,NO_JURIDICO,"Hojas de cálculo: operaciones, fórmulas y gestión de datos"
-ESPECIAL,35,"Correo electrónico, navegación, seguridad y gestión de archivos",,,NO_JURIDICO,"Correo electrónico, navegación, seguridad y gestión de archivos"
+ESPECIAL,33,Procesador de textos: funciones básicas y edición de documentos,,,INFORMATICA,Procesador de textos: funciones básicas y edición de documentos
+ESPECIAL,34,"Hojas de cálculo: operaciones, fórmulas y gestión de datos",,,INFORMATICA,"Hojas de cálculo: operaciones, fórmulas y gestión de datos"
+ESPECIAL,35,"Correo electrónico, navegación, seguridad y gestión de archivos",,,INFORMATICA,"Correo electrónico, navegación, seguridad y gestión de archivos"

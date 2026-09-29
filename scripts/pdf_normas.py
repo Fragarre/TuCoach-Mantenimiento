@@ -27,6 +27,16 @@ RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 DIRECTORIO_PDFS = RAIZ_PROYECTO / "fuentes_normativas"
 
 MAPA_PDFS = {
+    "decreto|500|1990": {
+        "archivo": "Real Decreto 500_1990, de 20 de abril.pdf",
+        "titulo": (
+            "Real Decreto 500/1990, de 20 de abril, por el que se desarrolla "
+            "el capítulo primero del título sexto de la Ley reguladora de las "
+            "Haciendas Locales, en materia de presupuestos"
+        ),
+        "departamento": "Ministerio de Economía y Hacienda",
+        "id_fuente": "BOE-A-1990-9664",
+    },
     "reglamento|2016|679": {
         "archivo": "Reglamento UE 2016_679.pdf",
         "titulo": "Reglamento (UE) 2016/679, de 27 de abril de 2016, General de Protección de Datos",
@@ -588,8 +598,12 @@ def _encabezados(
             r"(?im)^[ \t]*unidad[ \t]+doctrinal[ \t]+([^\n.]+(?:\.[0-9]+)?)[ \t]*\.?[ \t]*([^\n]*)$"
         )
     else:
+        # Algunos PDF oficiales codifican la vocal acentuada de "Artículo"
+        # como carácter de sustitución durante la extracción. Se acepta esa
+        # variante exclusivamente en el encabezado para no perder artículos
+        # presentes y legibles en el documento original.
         patron = re.compile(
-            r"(?im)^[ \t]*art[i\u00ed]culo[ \t]+([^\n.]+(?:\.[0-9]+(?:-[0-9]+)?)?)[ \t]*\.?[ \t]*([^\n]*)$"
+            r"(?im)^[ \t]*art[i\u00ed\ufffd]culo[ \t]+([^\n.]+(?:\.[0-9]+(?:-[0-9]+)?)?)[ \t]*\.?[ \t]*([^\n]*)$"
         )
 
     salida: list[tuple[int, int, str, str]] = []

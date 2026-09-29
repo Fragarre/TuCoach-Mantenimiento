@@ -309,7 +309,10 @@ def leer_y_validar_csv(
                         raise ValueError(
                             f"CSV línea {numero_linea}: título vacío."
                         )
-                    if tipo not in {"JURIDICO", "INFORMATICA"}:
+                    # Los CSV históricos usan ambos nombres para materias sin
+                    # referencia normativa. Se preservan para que el alta no
+                    # rechace el mismo formato que acepta importar_temario.py.
+                    if tipo not in {"JURIDICO", "INFORMATICA", "NO_JURIDICO"}:
                         raise ValueError(
                             f"CSV línea {numero_linea}: "
                             f"tipo no admitido: {tipo!r}."

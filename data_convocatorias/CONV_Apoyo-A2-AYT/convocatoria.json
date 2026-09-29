@@ -1,0 +1,34 @@
+﻿{
+  "temario": {
+    "sincronizar_eliminaciones": true,
+    "nombre": "Temario síntesis Apoyo-A2-AYT",
+    "encoding": "utf-8-sig",
+    "csv": "data_convocatorias/CONV_Apoyo-A2-AYT/temario.csv"
+  },
+  "partes": [
+    {
+      "orden": 1,
+      "nombre": "general",
+      "numero_preguntas": 30
+    },
+    {
+      "orden": 2,
+      "nombre": "especial_teoria",
+      "numero_preguntas": 70
+    }
+  ],
+  "convocatoria": {
+    "valoracion_test_no_contesta": 0,
+    "valoracion_test_acierto": 1,
+    "numero_preguntas": 100,
+    "anio": 2026,
+    "formula_nota": "(acertadas - falladas / 3) / numero_preguntas",
+    "puesto": "Técnico/a de Gestión de Administración General",
+    "tiene_partes": 1,
+    "valoracion_test_fallo": -0.3333333333333333,
+    "numero": "Apoyo",
+    "codigo": "Apoyo-A2-AYT",
+    "factor_escala_nota": 10,
+    "temario_csv": "data_convocatorias/CONV_Apoyo-A2-AYT/temario.csv"
+  }
+}

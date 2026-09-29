@@ -1,0 +1,39 @@
+﻿{
+  "temario": {
+    "sincronizar_eliminaciones": true,
+    "nombre": "Temario síntesis Apoyo-C1-AYT",
+    "encoding": "utf-8-sig",
+    "csv": "data_convocatorias/CONV_Apoyo-C1-AYT/temario.csv"
+  },
+  "partes": [
+    {
+      "orden": 1,
+      "nombre": "general",
+      "numero_preguntas": 30
+    },
+    {
+      "orden": 2,
+      "nombre": "especial_teoria",
+      "numero_preguntas": 50
+    },
+    {
+      "orden": 3,
+      "nombre": "especial_informatica",
+      "numero_preguntas": 20
+    }
+  ],
+  "convocatoria": {
+    "valoracion_test_no_contesta": 0,
+    "valoracion_test_acierto": 1,
+    "numero_preguntas": 100,
+    "anio": 2026,
+    "formula_nota": "(acertadas - falladas / 3) / numero_preguntas",
+    "puesto": "Administrativo/a de Administración General",
+    "tiene_partes": 1,
+    "valoracion_test_fallo": -0.3333333333333333,
+    "numero": "Apoyo",
+    "codigo": "Apoyo-C1-AYT",
+    "factor_escala_nota": 10,
+    "temario_csv": "data_convocatorias/CONV_Apoyo-C1-AYT/temario.csv"
+  }
+}

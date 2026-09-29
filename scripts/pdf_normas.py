@@ -27,6 +27,12 @@ RAIZ_PROYECTO = Path(__file__).resolve().parent.parent
 DIRECTORIO_PDFS = RAIZ_PROYECTO / "fuentes_normativas"
 
 MAPA_PDFS = {
+    "reglamento|2016|679": {
+        "archivo": "Reglamento UE 2016_679.pdf",
+        "titulo": "Reglamento (UE) 2016/679, de 27 de abril de 2016, General de Protección de Datos",
+        "departamento": "Unión Europea",
+        "id_fuente": "DOUE-CELEX-32016R0679",
+    },
     "decreto|30|2025": {
         "archivo": "Decreto 30_2025.pdf",
         "titulo": (

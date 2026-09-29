@@ -162,6 +162,13 @@ def main() -> None:
                             cargar_catalogo(con)
                         )
 
+                    # Una referencia abreviada (sin la fecha de publicación)
+                    # puede corresponder de forma segura a la única norma ya
+                    # catalogada con ese tipo/número/año. No se altera el
+                    # catálogo: solamente se enlaza la referencia existente.
+                    elif len(candidatos) == 1:
+                        nid_nuevo = candidatos[0][0]
+
                     elif candidatos:
                         bloqueadas.append(
                             (

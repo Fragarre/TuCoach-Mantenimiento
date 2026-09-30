@@ -12,13 +12,16 @@ No hay ejecución implícita: --simular y --listar-referencias son de lectura.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sqlite3
 from difflib import SequenceMatcher
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import generar_preguntas_juridicas_ia as base
+from calibrar_dificultad_ia import PerfilDificultad, calibrar
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -168,6 +171,39 @@ def cargar_ejemplos_ayto(
     return [dict(fila) for fila in filas]
 
 
+def perfil_dificultad_ayto(
+    con: sqlite3.Connection,
+    convocatoria_id: int,
+    codigo: str,
+    modelo: str,
+) -> PerfilDificultad:
+    filas = [dict(fila) for fila in con.execute(
+        """
+        SELECT lp.id, lp.enunciado, lp.opcion_a, lp.opcion_b, lp.opcion_c, lp.opcion_d
+        FROM banco_preguntas bp JOIN lote_preguntas lp ON lp.id=bp.pregunta_id
+        WHERE bp.convocatoria_id=? AND bp.estado='INCLUIDA'
+          AND lp.tipo_clasificacion='JURIDICA'
+        ORDER BY lp.id
+        """, (convocatoria_id,)
+    )]
+    if len(filas) > 18:
+        paso = (len(filas) - 1) / 17
+        filas = [filas[round(indice * paso)] for indice in range(18)]
+    from openai_api import seleccionar_fragmento_json
+    return calibrar(
+        filas, ambito=f"{codigo} · preguntas jurídicas", modelo=modelo,
+        seleccionar_json=seleccionar_fragmento_json,
+    )
+
+
+def guardar_perfil(perfil: PerfilDificultad, codigo: str) -> Path:
+    carpeta = ROOT / "auditorias" / "calibracion_dificultad_ia"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    ruta = carpeta / f"{codigo}_{datetime.now():%Y%m%d_%H%M%S}.json"
+    ruta.write_text(json.dumps(perfil.serializar(), ensure_ascii=False, indent=2), encoding="utf-8")
+    return ruta
+
+
 def comprobar_no_duplicada_ayto(
     con: sqlite3.Connection,
     pregunta: dict[str, Any],
@@ -314,6 +350,16 @@ def main() -> int:
             print("Simulación: no se invoca IA ni se modifica la base.")
             return 0
 
+        perfil = perfil_dificultad_ayto(
+            con, int(convocatoria["id"]), str(convocatoria["codigo"]), args.modelo_validacion
+        )
+        ruta_perfil = guardar_perfil(perfil, str(convocatoria["codigo"]))
+        print(
+            "Calibración de dificultad: "
+            f"mediana={perfil.mediana}/4, p75={perfil.percentil_75}/4, "
+            f"p90={perfil.percentil_90}/4\nInforme: {ruta_perfil}"
+        )
+
         # Se preserva el motor común: generación, doble check, desempate,
         # auditoría ciega y control de originalidad. Solo se intercepta la
         # publicación para usar el banco municipal y evitar la sincronización
@@ -322,6 +368,15 @@ def main() -> int:
         base.cargar_ejemplos = cargar_ejemplos_ayto
         base.comprobar_no_duplicada = comprobar_no_duplicada_ayto
         base.aprobar = aprobar_ayto
+        prompt_generacion = base.construir_prompt_generacion
+        prompt_validacion = base.construir_prompt_validacion
+        prompt_desempate = base.construir_prompt_desempate
+        prompt_auditoria = base.construir_prompt_auditoria_ciega
+        anexo = "\n\n" + perfil.texto_prompt()
+        base.construir_prompt_generacion = lambda *a, **k: prompt_generacion(*a, **k) + anexo
+        base.construir_prompt_validacion = lambda *a, **k: prompt_validacion(*a, **k) + anexo
+        base.construir_prompt_desempate = lambda *a, **k: prompt_desempate(*a, **k) + anexo
+        base.construir_prompt_auditoria_ciega = lambda *a, **k: prompt_auditoria(*a, **k) + anexo
         base.generar_lote(
             con, contextos, args.cantidad, args.tipo,
             args.modelo_generacion, args.modelo_validacion,

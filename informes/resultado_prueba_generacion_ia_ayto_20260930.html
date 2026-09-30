@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prueba IA jurídica · Apoyo Ayuntamientos · 30-09-2026</title>
+  <style>
+    body{font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033;background:#f5f7fa;margin:0}
+    main{max-width:1050px;margin:auto;padding:32px 20px 54px}.card{background:#fff;border:1px solid #dbe2ea;border-radius:10px;padding:20px;margin:18px 0}
+    h1,h2{color:#102f59}h1{margin-top:0}.ok{color:#087443;font-weight:700}.bad{color:#b42318;font-weight:700}.warn{color:#8a5300;font-weight:700}
+    table{border-collapse:collapse;width:100%;margin-top:12px}th,td{padding:10px;border:1px solid #d8dee7;text-align:left;vertical-align:top}th{background:#edf3fa}
+    code{background:#edf1f5;padding:2px 5px;border-radius:4px}.note{border-left:4px solid #d48600;padding-left:14px}
+  </style>
+</head>
+<body><main>
+  <h1>Prueba de generación IA jurídica · Apoyo Ayuntamientos</h1>
+  <p>Ejecutada el 30/09/2026 sobre la base activa de mantenimiento. Se solicitaron tres candidatas por cada convocatoria A1, A2, C1 y C2. No se ha publicado ninguna pregunta nueva.</p>
+
+  <section class="card">
+    <h2>Resultado</h2>
+    <table>
+      <thead><tr><th>Convocatoria</th><th>Origen</th><th>Solicitadas</th><th>Publicadas</th><th>Resultado verificable</th></tr></thead>
+      <tbody>
+        <tr><td>Apoyo-A1-AYT</td><td>AYTO-A1</td><td>3</td><td class="ok">0</td><td>No alteró el banco (220 preguntas antes y después).</td></tr>
+        <tr><td>Apoyo-A2-AYT</td><td>AYTO-A2</td><td>3</td><td class="ok">0</td><td>No alteró el banco (362 preguntas antes y después).</td></tr>
+        <tr><td>Apoyo-C1-AYT</td><td>AYTO-C1</td><td>3</td><td class="ok">0</td><td>No alteró el banco (224 preguntas antes y después).</td></tr>
+        <tr><td>Apoyo-C2-AYT</td><td>AYTO-C2</td><td>3</td><td class="ok">0</td><td>Dos confirmadas por la IA, pero rechazadas al publicar; una no determinable.</td></tr>
+      </tbody>
+    </table>
+    <p><b>Total:</b> 12 candidatas solicitadas; <b>0</b> incorporadas a <code>lote_preguntas</code> ni a los bancos.</p>
+  </section>
+
+  <section class="card">
+    <h2>Diagnóstico</h2>
+    <p>La causa no es la dificultad ni la comprobación de duplicados. Las cuatro pruebas usaron la misma referencia del temario: <b>Real Decreto Legislativo 2/2004, artículo 85</b> (fuente <code>articulos_fuente.id=14720</code>).</p>
+    <p>El texto enlazado a esa referencia tiene 19.367 caracteres y no contiene solo el artículo 85: comienza a mitad de un texto anterior y continúa con disposiciones adicionales. La IA genera preguntas que puede justificar con ese texto, pero sobre disposiciones adicionales 9.ª, 15.ª y 16.ª, no sobre el artículo 85 solicitado. La publicación exige que la referencia de la candidata se normalice y coincida con el artículo principal del temario; correctamente la bloquea.</p>
+    <p class="note"><b>Conclusión:</b> el rechazo es una salvaguarda correcta al detectar una fuente artículo-texto mal segmentada. El fallo está antes, en la idoneidad de algunas entradas de <code>articulos_fuente</code> o en la selección de referencias, no en la validación de dificultad.</p>
+  </section>
+
+  <section class="card">
+    <h2>Detalle conservado de la última ejecución (C2)</h2>
+    <table>
+      <thead><tr><th>Candidata</th><th>Dictamen IA</th><th>Resultado de publicación</th><th>Motivo</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="ok">Confirmada</td><td class="bad">No publicada</td><td>Referencia devuelta: disposición adicional 16.ª, apartado 1, regla 1; no puede normalizarse como artículo 85.</td></tr>
+        <tr><td>2</td><td class="ok">Confirmada</td><td class="bad">No publicada</td><td>Referencia devuelta: disposición adicional 15.ª; no pertenece al artículo 85.</td></tr>
+        <tr><td>3</td><td class="warn">No determinable</td><td class="bad">No publicada</td><td>Referencia devuelta: disposición adicional 9.ª; la auditoría detecta que no corresponde al artículo fuente 85.</td></tr>
+      </tbody>
+    </table>
+    <p>Las dos candidatas confirmadas superaron doble validación, auditoría de respuesta única, control de originalidad y la exigencia de dificultad alta/muy alta. Fallaron exclusivamente en la coherencia de su referencia normativa durante la integración.</p>
+  </section>
+
+  <section class="card">
+    <h2>Observación operativa</h2>
+    <p>El generador conserva por diseño un único informe temporal, <code>registros/preguntas_ia_ultima_ejecucion.html</code>, y elimina su base auxiliar al finalizar cada lote. Por ello el detalle candidato a candidato disponible tras las cuatro ejecuciones es el del último lote C2; el resultado material de los cuatro lotes sí está comprobado mediante los contadores de banco, que permanecen intactos.</p>
+  </section>
+</main></body>
+</html>

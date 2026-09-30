@@ -26,6 +26,16 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent
 CARPETA_SCRIPTS = RAIZ / "scripts"
 
+# Ámbito aislado de las convocatorias virtuales municipales. Los códigos, IDs
+# y orígenes son explícitos para no mezclarlos con las convocatorias GVA A1,
+# A2, C1 y C2 que comparten denominación de grupo.
+APOYO_AYUNTAMIENTOS = (
+    ("Apoyo-A1-AYT", 4, "A1 · Técnico/a de Administración General", "AYTO-A1"),
+    ("Apoyo-A2-AYT", 5, "A2 · Gestión de Administración General", "AYTO-A2"),
+    ("Apoyo-C1-AYT", 6, "C1 · Administrativo/a", "AYTO-C1"),
+    ("Apoyo-C2-AYT", 7, "C2 · Auxiliar Administrativo/a", "AYTO-C2"),
+)
+
 
 def limpiar_pantalla() -> None:
     """Limpia la consola al cambiar de pantalla de menú."""
@@ -2367,6 +2377,286 @@ def publicar_materiales_web_menu() -> None:
     pausa()
 
 
+# =============================================================================
+# APOYO AYUNTAMIENTOS
+# =============================================================================
+
+
+def seleccionar_apoyo_ayuntamiento(
+    *, permitir_todos: bool = False, solo_informatica: bool = False
+) -> tuple[str, int, str, str] | None:
+    opciones = [
+        item for item in APOYO_AYUNTAMIENTOS
+        if not solo_informatica or item[0] in {"Apoyo-C1-AYT", "Apoyo-C2-AYT"}
+    ]
+    print("\nCONVOCATORIAS DE APOYO AYUNTAMIENTOS")
+    for indice, (codigo, _id, puesto, _origen) in enumerate(opciones, 1):
+        print(f"{indice}. {codigo} — {puesto}")
+    if permitir_todos:
+        print("T. Todas las anteriores")
+    print("0. Volver")
+    valor = input("Opción: ").strip().upper()
+    if valor == "0":
+        return None
+    if permitir_todos and valor == "T":
+        return ("__TODAS__", 0, "Todas", "")
+    if valor.isdigit() and 1 <= int(valor) <= len(opciones):
+        return opciones[int(valor) - 1]
+    print("Opción no válida.")
+    pausa()
+    return None
+
+
+def resumen_apoyo_ayuntamientos() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · RESUMEN DE ESTADO",
+        "[SOLO LECTURA] Revisa temarios, referencias normalizadas, corpus, "
+        "bancos y materiales de las cuatro convocatorias municipales.",
+    )
+    db = RAIZ / "db" / "oposiciones.sqlite3"
+    try:
+        with sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True) as con:
+            for codigo, convocatoria_id, puesto, origen in APOYO_AYUNTAMIENTOS:
+                temas = con.execute(
+                    "SELECT COUNT(*) FROM temario_temas tt JOIN temarios t ON t.id=tt.temario_id WHERE t.convocatoria_id=?",
+                    (convocatoria_id,),
+                ).fetchone()[0]
+                referencias = con.execute(
+                    """SELECT COUNT(*), SUM(CASE WHEN norma_id IS NOT NULL THEN 1 ELSE 0 END),
+                              SUM(CASE WHEN articulo_fuente_id IS NOT NULL THEN 1 ELSE 0 END)
+                       FROM temario_referencias tr JOIN temario_temas tt ON tt.id=tr.tema_id
+                       JOIN temarios t ON t.id=tt.temario_id WHERE t.convocatoria_id=?""",
+                    (convocatoria_id,),
+                ).fetchone()
+                banco = con.execute(
+                    "SELECT COUNT(*) FROM banco_preguntas WHERE convocatoria_id=? AND estado='INCLUIDA'",
+                    (convocatoria_id,),
+                ).fetchone()[0]
+                origen_lote = con.execute(
+                    "SELECT COUNT(*) FROM lote_preguntas WHERE origen_oposicion=?",
+                    (origen,),
+                ).fetchone()[0]
+                print(f"\n{codigo} — {puesto}")
+                print(f"  Temas: {temas} | referencias: {referencias[0]} | norma_id: {referencias[1] or 0} | texto: {referencias[2] or 0}")
+                print(f"  Preguntas origen {origen}: {origen_lote} | banco incluidas: {banco}")
+    except sqlite3.Error as error:
+        print(f"ERROR al consultar la base: {error}")
+    pausa()
+
+
+def validar_temario_apoyo_ayuntamientos() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · VALIDAR TEMARIO",
+        "[SOLO LECTURA] Comprueba CSV/temario importado, referencias normalizadas y textos enlazados.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento(permitir_todos=True)
+    if seleccion is None:
+        return
+    codigos = [x[0] for x in APOYO_AYUNTAMIENTOS] if seleccion[0] == "__TODAS__" else [seleccion[0]]
+    for codigo in codigos:
+        if ejecutar_script("validar_temario_convocatoria.py", "--codigo", codigo) != 0:
+            break
+    pausa()
+
+
+def corpus_apoyo_ayuntamientos() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · CORPUS IA Y RAG",
+        "[PLAN → APLICAR] Construye o valida el corpus de artículos del temario y las normas completas, sólo para la convocatoria municipal elegida.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento()
+    if seleccion is None:
+        return
+    codigo = seleccion[0]
+    if ejecutar_script("construir_corpus_doble_convocatoria.py", "--codigo", codigo) != 0:
+        pausa()
+        return
+    if pedir_si_no("¿Aplicar únicamente las ampliaciones necesarias para esta convocatoria?"):
+        ejecutar_script("construir_corpus_doble_convocatoria.py", "--codigo", codigo, "--aplicar")
+    pausa()
+
+
+def generar_juridicas_ia_apoyo_menu() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · PREGUNTAS JURÍDICAS IA",
+        "Usa el corpus IA, las preguntas municipales ya existentes y la calibración de dificultad del banco de la convocatoria seleccionada.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento()
+    if seleccion is None:
+        return
+    cantidad = pedir_texto("Preguntas por referencia [1]: ", obligatorio=False) or "1"
+    if not cantidad.isdigit() or int(cantidad) <= 0:
+        print("La cantidad debe ser un entero positivo.")
+        pausa()
+        return
+    base = ("--codigo", seleccion[0], "--cantidad", cantidad)
+    print("1. Simulación / revisión (sin IA ni escrituras)")
+    print("2. Generar e incorporar al banco municipal")
+    print("0. Volver")
+    opcion = input("Opción: ").strip()
+    if opcion == "1":
+        ejecutar_script("generar_preguntas_juridicas_ia_ayto.py", *base, "--simular")
+    elif opcion == "2":
+        if pedir_si_no("¿Generar preguntas jurídicas y publicarlas en el banco municipal?"):
+            ejecutar_script("generar_preguntas_juridicas_ia_ayto.py", *base)
+    elif opcion != "0":
+        print("Opción no válida.")
+    pausa()
+
+
+def generar_informatica_ia_apoyo_menu() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · PREGUNTAS DE INFORMÁTICA IA",
+        "Disponible sólo para C1 y C2. Usa exclusivamente los temas INFORMATICA del temario y calibra la dificultad contra su banco.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento(solo_informatica=True)
+    if seleccion is None:
+        return
+    cantidad = pedir_texto("Preguntas por tema [9]: ", obligatorio=False) or "9"
+    if not cantidad.isdigit() or int(cantidad) <= 0:
+        print("La cantidad debe ser un entero positivo.")
+        pausa()
+        return
+    base = ("--codigo", seleccion[0], "--cantidad", cantidad)
+    print("1. Simulación / revisión (sin IA ni escrituras)")
+    print("2. Generar e incorporar al banco municipal")
+    print("0. Volver")
+    opcion = input("Opción: ").strip()
+    if opcion == "1":
+        ejecutar_script("generar_preguntas_informatica_ia_ayto.py", *base, "--simular")
+    elif opcion == "2":
+        if pedir_si_no("¿Generar preguntas de informática y publicarlas en el banco municipal?"):
+            ejecutar_script("generar_preguntas_informatica_ia_ayto.py", *base, "--guardar")
+    elif opcion != "0":
+        print("Opción no válida.")
+    pausa()
+
+
+def normalizar_referencias_materiales_apoyo_menu() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · NORMALIZAR REFERENCIAS PARA MATERIALES",
+        "[PLAN → APLICAR] Completa sólo temario_referencias.norma_id cuando el catálogo da una correspondencia inequívoca. No altera textos ni artículos.",
+    )
+    if ejecutar_script("normalizar_referencias_materiales.py") != 0:
+        pausa()
+        return
+    if pedir_si_no("¿Aplicar las correspondencias inequívocas con copia de seguridad?"):
+        ejecutar_script("normalizar_referencias_materiales.py", "--aplicar")
+    pausa()
+
+
+def materiales_apoyo_ayuntamientos() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · EXTRACTOS Y RESÚMENES",
+        "[PLAN → RAG → EXTRACTO] Genera extractos de artículos del temario para la convocatoria elegida. Los resúmenes son compartidos por norma y se mantienen mediante el catálogo general.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento()
+    if seleccion is None:
+        return
+    argumentos = ("--codigo", seleccion[0])
+    if ejecutar_script("generar_materiales_convocatoria.py", *argumentos) != 0:
+        pausa()
+        return
+    if pedir_si_no("¿Crear o actualizar los extractos de esta convocatoria?"):
+        ejecutar_script("generar_materiales_convocatoria.py", *argumentos, "--aplicar")
+    pausa()
+
+
+def resumenes_apoyo_ayuntamientos() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · RESÚMENES DE NORMAS",
+        "[PLAN → IA] Genera el resumen reutilizable de una norma incluida en el temario municipal elegido. No genera extractos ni afecta a otras convocatorias.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento()
+    if seleccion is None:
+        return
+    codigo, convocatoria_id, _puesto, _origen = seleccion
+    db = RAIZ / "db" / "oposiciones.sqlite3"
+    with sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True) as con:
+        normas = con.execute(
+            """SELECT DISTINCT n.id, n.nombre_canonico
+               FROM temarios t JOIN temario_temas tt ON tt.temario_id=t.id
+               JOIN temario_referencias tr ON tr.tema_id=tt.id
+               JOIN normas n ON n.id=tr.norma_id
+               WHERE t.convocatoria_id=? ORDER BY UPPER(n.nombre_canonico), n.id""",
+            (convocatoria_id,),
+        ).fetchall()
+    print(f"\nNORMAS DE {codigo}")
+    for norma_id, nombre in normas:
+        print(f"{norma_id:>5} | {nombre}")
+    valor = pedir_texto("ID de norma para generar/actualizar resumen (0 = volver): ")
+    if valor == "0":
+        return
+    if not valor.isdigit() or int(valor) not in {int(x[0]) for x in normas}:
+        print("Ese ID no pertenece al temario municipal seleccionado.")
+        pausa()
+        return
+    args = ("--norma-id", valor)
+    if ejecutar_script("generar_materiales_estudio.py", *args) != 0:
+        pausa()
+        return
+    if pedir_si_no("¿Generar o actualizar el resumen de esta norma con IA?"):
+        ejecutar_script("generar_materiales_estudio.py", "--aplicar", *args)
+    pausa()
+
+
+def verificar_apoyo_ayuntamientos() -> None:
+    cabecera_submenu(
+        "APOYO AYUNTAMIENTOS · VERIFICACIÓN INTEGRAL",
+        "[SOLO LECTURA] Ejecuta la validación de temario, la auditoría del doble corpus y el resumen del banco para una convocatoria municipal.",
+    )
+    seleccion = seleccionar_apoyo_ayuntamiento()
+    if seleccion is None:
+        return
+    codigo, convocatoria_id, _puesto, _origen = seleccion
+    pasos = (
+        ("validar_temario_convocatoria.py", ("--codigo", codigo)),
+        ("auditar_doble_corpus_exhaustivo_v2.py", ("--convocatoria-id", str(convocatoria_id))),
+        ("mostrar_resumen_banco_convocatoria.py", ("--convocatoria-id", str(convocatoria_id))),
+    )
+    for script, argumentos in pasos:
+        if ejecutar_script(script, *argumentos) != 0:
+            break
+    pausa()
+
+
+def submenu_apoyo_ayuntamientos() -> None:
+    while True:
+        cabecera_submenu(
+            "8. APOYO AYUNTAMIENTOS",
+            "Operaciones aisladas para Apoyo-A1/A2/C1/C2-AYT. No utiliza ni modifica las convocatorias GVA homónimas.",
+        )
+        print("1. Resumen de estado")
+        print("2. Validar temarios y referencias")
+        print("3. Construir / validar corpus IA + RAG")
+        print("4. Generar preguntas jurídicas con IA")
+        print("5. Generar preguntas de informática con IA (C1/C2)")
+        print("6. Normalizar referencias para materiales")
+        print("7. Generar extractos de convocatoria")
+        print("8. Generar resúmenes de normas")
+        print("9. Verificación integral de una convocatoria")
+        print("0. Volver")
+        opcion = input("Opción: ").strip()
+        if opcion == "0":
+            return
+        acciones = {
+            "1": resumen_apoyo_ayuntamientos,
+            "2": validar_temario_apoyo_ayuntamientos,
+            "3": corpus_apoyo_ayuntamientos,
+            "4": generar_juridicas_ia_apoyo_menu,
+            "5": generar_informatica_ia_apoyo_menu,
+            "6": normalizar_referencias_materiales_apoyo_menu,
+            "7": materiales_apoyo_ayuntamientos,
+            "8": resumenes_apoyo_ayuntamientos,
+            "9": verificar_apoyo_ayuntamientos,
+        }
+        funcion = acciones.get(opcion)
+        if funcion:
+            funcion()
+        else:
+            print("Opción no válida.")
+
+
 def submenu_convocatorias_tareas() -> None:
     while True:
         cabecera_submenu("1. CONVOCATORIAS Y TEMARIOS", "Alta y mantenimiento de la estructura oficial de cada convocatoria.")
@@ -2554,6 +2844,7 @@ def mostrar_menu() -> None:
     print("5. PUBLICACIÓN")
     print("6. DIAGNÓSTICO Y REPARACIÓN")
     print("7. HERRAMIENTAS AVANZADAS")
+    print("8. APOYO AYUNTAMIENTOS")
     print("0. SALIR")
     print("=" * 78)
 
@@ -2562,7 +2853,7 @@ def main() -> int:
     if not CARPETA_SCRIPTS.is_dir():
         print(f"No existe la carpeta de scripts: {CARPETA_SCRIPTS}")
         return 1
-    acciones={"1":submenu_convocatorias_tareas,"2":submenu_preguntas_tareas,"3":submenu_bancos_tareas,"4":submenu_materiales_tareas,"5":submenu_publicacion_tareas,"6":submenu_diagnostico_tareas,"7":submenu_herramientas_avanzadas}
+    acciones={"1":submenu_convocatorias_tareas,"2":submenu_preguntas_tareas,"3":submenu_bancos_tareas,"4":submenu_materiales_tareas,"5":submenu_publicacion_tareas,"6":submenu_diagnostico_tareas,"7":submenu_herramientas_avanzadas,"8":submenu_apoyo_ayuntamientos}
     while True:
         mostrar_menu()
         opcion=input("Opción: ").strip()

@@ -2108,7 +2108,8 @@ def sincronizar_todos_bancos_menu() -> None:
     cabecera_submenu(
         "SINCRONIZAR TODOS LOS BANCOS",
         "Usa mantener_banco_preguntas.py como única fuente de reglas. "
-        "Primero revisa TODAS las convocatorias activas; solo después permite aplicar.",
+        "Revisa las convocatorias ordinarias activas; las Apoyo-*-AYT usan "
+        "bancos municipales propios y quedan excluidas. Solo después permite aplicar.",
     )
     if ejecutar_script("sincronizar_bancos.py") != 0:
         pausa()

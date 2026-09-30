@@ -9,7 +9,8 @@ Contrato entre procesos:
 - este sincronizador lee ese JSON y NO interpreta textos de consola.
 
 Proceso:
-1. Ejecuta el constructor en SOLO REVISIÓN para todas las convocatorias activas.
+1. Ejecuta el constructor en SOLO REVISIÓN para las convocatorias ordinarias
+   activas. Las Apoyo-*-AYT tienen un banco municipal propio y quedan fuera.
 2. Si alguna revisión falla o presenta bloqueos/incidencias, no modifica ningún banco.
 3. Con --aplicar, ejecuta --guardar solo para convocatorias con novedades.
 4. Ejecuta validacion_completa.py al terminar.
@@ -33,6 +34,8 @@ DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 CONSTRUCTOR = SCRIPTS / "mantener_banco_preguntas.py"
 VALIDADOR = SCRIPTS / "validacion_completa.py"
 AUDITORIAS = RAIZ / "auditorias"
+PREFIJO_APOYO_AYUNTAMIENTOS = "APOYO-"
+SUFIJO_APOYO_AYUNTAMIENTOS = "-AYT"
 
 
 @dataclass(frozen=True)
@@ -66,7 +69,17 @@ def _convocatorias(db: Path) -> list[tuple[int, str]]:
             filas = con.execute(
                 "SELECT id, codigo FROM convocatorias ORDER BY id"
             ).fetchall()
-    return [(int(i), str(c)) for i, c in filas]
+    # Los bancos Apoyo-*-AYT se construyen y mantienen mediante su flujo
+    # municipal específico. El constructor genérico no puede reconstruirlos
+    # desde norma-artículo sin expulsar sus preguntas históricas permitidas.
+    return [
+        (int(i), str(c))
+        for i, c in filas
+        if not (
+            str(c).strip().upper().startswith(PREFIJO_APOYO_AYUNTAMIENTOS)
+            and str(c).strip().upper().endswith(SUFIJO_APOYO_AYUNTAMIENTOS)
+        )
+    ]
 
 
 def _estado_resumenes() -> dict[Path, tuple[int, int]]:
@@ -226,7 +239,8 @@ def sincronizar_todos_bancos(
     print("SINCRONIZACIÓN COMÚN DE BANCOS")
     print("=" * 78)
     print(f"Base: {db}")
-    print("Fase 1: revisión de TODAS las convocatorias activas")
+    print("Fase 1: revisión de convocatorias ordinarias activas")
+    print("Excluidas: Apoyo-A1/A2/C1/C2-AYT (bancos municipales propios)")
     print()
 
     revisiones: list[RevisionBanco] = []

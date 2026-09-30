@@ -15,6 +15,7 @@ import argparse
 import json
 import re
 import sqlite3
+import random
 from difflib import SequenceMatcher
 from datetime import datetime
 from pathlib import Path
@@ -163,6 +164,8 @@ def cargar_ejemplos_ayto(
         JOIN lote_preguntas lp ON lp.id=bp.pregunta_id
         WHERE bp.convocatoria_id=? AND bp.estado='INCLUIDA'
           AND lp.tipo_clasificacion='JURIDICA'
+          AND lp.norma_id_normalizada IS NOT NULL
+          AND TRIM(COALESCE(lp.articulo_normalizado, ''))<>''
         ORDER BY lp.id
         LIMIT ?
         """,
@@ -194,6 +197,34 @@ def perfil_dificultad_ayto(
         filas, ambito=f"{codigo} · preguntas jurídicas", modelo=modelo,
         seleccionar_json=seleccionar_fragmento_json,
     )
+
+
+def modelo_bloques_significativo(con: sqlite3.Connection, convocatoria_id: int) -> bool:
+    """Solo prevalece el modelo si realmente concreta partes o normas."""
+    filas = con.execute("""
+        SELECT b.convocatoria_parte_id, b.tipo_bloque, b.cantidad
+        FROM convocatoria_modelo_bloques b
+        WHERE b.convocatoria_parte_id IN
+          (SELECT id FROM convocatoria_partes WHERE convocatoria_id=?)
+          AND b.cantidad>0
+    """, (convocatoria_id,)).fetchall()
+    return any(str(f["tipo_bloque"]).upper() == "NORMA" for f in filas) or len({int(f["convocatoria_parte_id"]) for f in filas}) >= 2
+
+
+def secuencia_proporcional_normas(contextos: list[base.ContextoReferencia], cantidad: int) -> list[base.ContextoReferencia]:
+    """Respaldo: cuota proporcional al número de artículos del temario por ley."""
+    por_norma: dict[int, list[base.ContextoReferencia]] = {}
+    for ctx in contextos:
+        por_norma.setdefault(int(ctx.norma_id), []).append(ctx)
+    elementos = [{"clave": nid, "peso": len({(x.articulo_solicitado, x.tema_id) for x in filas})} for nid, filas in por_norma.items()]
+    cupos = base._repartir_cantidad_por_pesos(elementos, cantidad)
+    rng = random.SystemRandom(); resultado: list[base.ContextoReferencia] = []
+    for nid, filas in por_norma.items():
+        ciclo = list(filas); rng.shuffle(ciclo)
+        for i in range(int(cupos.get(nid, 0))):
+            resultado.append(ciclo[i % len(ciclo)])
+    rng.shuffle(resultado)
+    return resultado
 
 
 def guardar_perfil(perfil: PerfilDificultad, codigo: str) -> Path:
@@ -347,7 +378,19 @@ def main() -> int:
                 print(f"{ctx.referencia_id} | tema {ctx.numero_tema} | {ctx.nombre_norma_csv} | art. {ctx.articulo_solicitado}")
             return 0
         if args.simular:
-            print("Simulación: no se invoca IA ni se modifica la base.")
+            usar_modelo = modelo_bloques_significativo(con, int(convocatoria["id"]))
+            if usar_modelo:
+                modelo = base.cargar_modelo_generacion_ia(con, int(convocatoria["id"]))
+                secuencia, avisos = base.secuencia_contextos_segun_modelo(contextos, modelo, args.cantidad)
+                print("Simulación: reparto por partes/bloques.")
+                for aviso in avisos:
+                    print("AVISO:", aviso)
+            else:
+                secuencia = secuencia_proporcional_normas(contextos, args.cantidad)
+                print("Simulación: reparto proporcional norma-artículo del temario.csv.")
+            for parte, norma, n in base.resumen_reparto_secuencia(secuencia):
+                print(f"  {parte:<10} | {norma:<45} | {n:>3}")
+            print(f"Total planificado: {len(secuencia)}. No se invoca IA ni se modifica la base.")
             return 0
 
         perfil = perfil_dificultad_ayto(
@@ -377,11 +420,24 @@ def main() -> int:
         base.construir_prompt_validacion = lambda *a, **k: prompt_validacion(*a, **k) + anexo
         base.construir_prompt_desempate = lambda *a, **k: prompt_desempate(*a, **k) + anexo
         base.construir_prompt_auditoria_ciega = lambda *a, **k: prompt_auditoria(*a, **k) + anexo
-        base.generar_lote(
-            con, contextos, args.cantidad, args.tipo,
-            args.modelo_generacion, args.modelo_validacion,
-            args.max_ejemplos, usar_modelo_examen=False,
-        )
+        usar_modelo = modelo_bloques_significativo(con, int(convocatoria["id"]))
+        secuencia_original = base.secuencia_contextos_lote
+        if not usar_modelo:
+            secuencia = secuencia_proporcional_normas(contextos, args.cantidad)
+            print("Reparto municipal: proporcional a norma-artículo del temario.csv")
+            for parte, norma, n in base.resumen_reparto_secuencia(secuencia):
+                print(f"  {parte:<10} | {norma:<45} | {n:>3}")
+            base.secuencia_contextos_lote = lambda _contextos, _cantidad: list(secuencia)
+        else:
+            print("Reparto municipal: partes/bloques de convocatoria")
+        try:
+            base.generar_lote(
+                con, contextos, args.cantidad, args.tipo,
+                args.modelo_generacion, args.modelo_validacion,
+                args.max_ejemplos, usar_modelo_examen=usar_modelo,
+            )
+        finally:
+            base.secuencia_contextos_lote = secuencia_original
     return 0
 
 

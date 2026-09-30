@@ -97,8 +97,11 @@ def enlazar_banco(con: sqlite3.Connection, convocatoria_id: int, importacion_id:
         if tema_id is None:
             raise RuntimeError("La pregunta generada no corresponde a un tema de informática del temario.")
         cur = con.execute(
+            # `tipo_vinculacion` describe la familia del vínculo del banco,
+            # no la clasificación de la pregunta. El esquema solo admite
+            # JURIDICA o NO_JURIDICA; informática pertenece a esta última.
             """INSERT INTO banco_preguntas(convocatoria_id,pregunta_id,convocatoria_parte_id,tipo_vinculacion,estado,metodo_vinculacion,motivo_revision)
-               VALUES(?,?,?,'INFORMATICA','INCLUIDA','ORIGEN_AYTO_TEMA_INFORMATICA',NULL)""",
+               VALUES(?,?,?,'NO_JURIDICA','INCLUIDA','ORIGEN_AYTO_TEMA_INFORMATICA',NULL)""",
             (convocatoria_id, int(pregunta["id"]), int(parte["id"])),
         )
         con.execute("INSERT INTO banco_preguntas_temas(banco_pregunta_id,tema_id,es_principal) VALUES(?,?,1)", (int(cur.lastrowid), tema_id))

@@ -1942,7 +1942,8 @@ def exportar_informe_ultima_ejecucion(
             ).fetchall()
 
     tarjetas: list[str] = []
-    n_validadas = 0
+    n_publicadas = 0
+    n_confirmadas_no_publicadas = 0
     n_rechazadas = 0
 
     for f in filas:
@@ -1999,8 +2000,15 @@ def exportar_informe_ultima_ejecucion(
         ).strip().upper()
         validada = clasificacion == "CONFIRMADA" and str(f["estado"]).upper() == "APROBADA"
 
-        if clasificacion == "CONFIRMADA":
-            n_validadas += 1
+        # Una clasificación probatoria CONFIRMADA no implica que la pregunta
+        # haya pasado todos los filtros de publicación (especialmente el de
+        # dificultad). El informe debe separar ambos casos: llamar
+        # "validada" a una candidata no publicada llevaba a conclusiones
+        # equivocadas sobre la tasa efectiva de aceptación.
+        if validada:
+            n_publicadas += 1
+        elif clasificacion == "CONFIRMADA":
+            n_confirmadas_no_publicadas += 1
         else:
             n_rechazadas += 1
 
@@ -2191,7 +2199,8 @@ table{{border-collapse:collapse;width:100%;margin:10px 0}}th,td{{border:1px soli
 <h1>Preguntas jurídicas IA · última ejecución</h1>
 <div class="resumen">
 <p><b>Generadas:</b> {len(filas)}
- · <b>Validadas:</b> {n_validadas}
+ · <b>Publicadas:</b> {n_publicadas}
+ · <b>Confirmadas sin publicar:</b> {n_confirmadas_no_publicadas}
  · <b>Rechazadas:</b> {n_rechazadas}
  · <b>Errores:</b> {len(errores)}</p>
 <p>Este es el ÚNICO registro conservado. Al iniciar otra generación se borra.</p>

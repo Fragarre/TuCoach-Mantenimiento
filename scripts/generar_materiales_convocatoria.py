@@ -70,11 +70,15 @@ def _extraer_normas(filas: list[sqlite3.Row]) -> dict[int, dict]:
     salida: dict[int, dict] = {}
     for f in filas:
         norma_id = int(f["norma_id"])
-        item = salida.setdefault(norma_id, {"norma": limpiar(f["norma"]), "filas": [], "temas": set()})
+        item = salida.setdefault(
+            norma_id,
+            {"norma": limpiar(f["norma"]), "filas": [], "temas": set(), "fuentes": set()},
+        )
         if not limpiar(f["fuente"]) or not limpiar(f["texto"]):
             raise RuntimeError(f"La norma {norma_id} contiene una referencia sin artículo fuente completo.")
         item["filas"].append({k: limpiar(f[k]) for k in ("fuente", "articulo", "titulo", "texto")})
         item["temas"].add(f"Tema {f['tema']}: {limpiar(f['tema_titulo'])}")
+        item["fuentes"].add(limpiar(f["fuente"]))
     for item in salida.values():
         vistos: set[tuple[str, str]] = set()
         articulos_unicos = []
@@ -87,6 +91,24 @@ def _extraer_normas(filas: list[sqlite3.Row]) -> dict[int, dict]:
         item["filas"].sort(key=lambda x: clave_articulo(x["articulo"]))
         item["temas"] = sorted(item["temas"])
     return salida
+
+
+def _corpus_de_fuente(con: sqlite3.Connection, fuente: str) -> list[tuple[str, str, str, str]]:
+    """Carga el corpus íntegro de la misma fuente que enlaza el temario.
+
+    Una norma puede conservar varias fuentes físicas válidas (por ejemplo,
+    DOUE y PDF local). El extracto debe validar contra la fuente que suministra
+    sus artículos, nunca contra otra equivalente cuyo identificador difiera.
+    """
+    return con.execute(
+        """
+        SELECT articulo_boe, id_bloque, titulo_bloque, texto
+        FROM articulos_fuente
+        WHERE id_boe=?
+        ORDER BY id
+        """,
+        (fuente,),
+    ).fetchall()
 
 
 def _pdf_extracto(destino: Path, codigo: str, puesto: str, norma: str, temas: list[str], filas: list[dict]) -> None:
@@ -125,7 +147,16 @@ def main() -> int:
         normas = _extraer_normas(_referencias(con, int(convocatoria["id"]), args.norma_id))
         if not normas: raise RuntimeError("No hay referencias normalizadas para la selección.")
         for norma_id, item in normas.items():
-            fuente, corpus = seleccionar_fuente_canonica(con, norma_id)
+            fuentes = item["fuentes"]
+            if len(fuentes) != 1:
+                raise RuntimeError(
+                    f"La norma {norma_id} enlaza varias fuentes desde el temario: "
+                    + ", ".join(sorted(fuentes))
+                )
+            fuente = next(iter(fuentes))
+            corpus = _corpus_de_fuente(con, fuente)
+            if not corpus:
+                raise RuntimeError(f"La fuente {fuente} no tiene corpus almacenado.")
             articulos = {(x["fuente"], x["articulo"]) for x in item["filas"]}
             corpus_ids = {(fuente, limpiar(x[0])) for x in corpus}
             faltan = [(fuente, articulo) for fuente, articulo in articulos if (fuente, articulo) not in corpus_ids]

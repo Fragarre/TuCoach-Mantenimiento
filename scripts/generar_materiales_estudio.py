@@ -130,7 +130,12 @@ def _validar_rag_existente(
         f"Validando RAG con proveedor existente "
         f"({tipo}) para {id_fuente}..."
     )
-    resultado = subprocess.run(args, check=False)
+    # Los corpus históricos pueden contener caracteres de control procedentes
+    # de OCR. Forzar UTF-8 evita que la consola Windows (cp1252) aborte la
+    # auditoría RAG antes de que ésta pueda informar su resultado real.
+    entorno = dict(os.environ)
+    entorno["PYTHONIOENCODING"] = "utf-8"
+    resultado = subprocess.run(args, check=False, env=entorno)
     if resultado.returncode != 0:
         raise RuntimeError(
             f"El validador RAG de {id_fuente} terminó con código "

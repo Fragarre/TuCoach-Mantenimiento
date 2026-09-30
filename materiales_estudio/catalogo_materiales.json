@@ -1372,5 +1372,53 @@
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
     "fecha_actualizacion": "2026-09-27T20:24:49"
+  },
+  {
+    "norma_id": 890,
+    "norma": "Ley Orgánica 5/1985, de 19 de junio, del Régimen Electoral General",
+    "archivo": "0890_Ley_Org_nica_5_1985_de_19_de_junio_del_R_gimen_Electoral_General.pdf",
+    "hash_corpus": "06943d1f77a6514858e40fd8c8ecdeec139ef6a16db3a71392bd77a37e3c76e2",
+    "fuente_canonica_actual": "BOE-A-1985-11672",
+    "articulos_corpus_actual": 23,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-09-30T11:59:15"
+  },
+  {
+    "norma_id": 1021,
+    "norma": "Real Decreto 500/1990, de 20 de abril, por el que se desarrolla el capítulo primero del título sexto de la Ley reguladora de las Haciendas Locales, en materia de presupuestos",
+    "archivo": "1021_Real_Decreto_500_1990_de_20_de_abril_por_el_que_se_desarrolla_el_cap_tulo_primero_del_t_tulo_se.pdf",
+    "hash_corpus": "aa3a9d03e383d3211b610dfdbea4e9c09d813585df7f99513b4271e3a3853049",
+    "fuente_canonica_actual": "BOE-A-1990-9664",
+    "articulos_corpus_actual": 35,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-09-30T12:02:08"
+  },
+  {
+    "norma_id": 8594,
+    "norma": "Real Decreto Legislativo 781/1986, de 18 de abril, por el que se aprueba el Texto Refundido de las Disposiciones Legales Vigentes en materia de Régimen Local",
+    "archivo": "8594_Real_Decreto_Legislativo_781_1986_de_18_de_abril_por_el_que_se_aprueba_el_Texto_Refundido_de_la.pdf",
+    "hash_corpus": "99d05f9588661e99b10d82f5b15ff88bb0c20c0e3d184aa1cb48bea1cf5013f5",
+    "fuente_canonica_actual": "BOE-A-1986-9865",
+    "articulos_corpus_actual": 14,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-09-30T12:07:37"
+  },
+  {
+    "norma_id": 11850,
+    "norma": "Real Decreto Legislativo 2/2004, de 5 de marzo, texto refundido de la Ley Reguladora de las Haciendas Locales",
+    "archivo": "11850_Real_Decreto_Legislativo_2_2004_de_5_de_marzo_texto_refundido_de_la_Ley_Reguladora_de_las_Hacie.pdf",
+    "hash_corpus": "c883c5f410d99806aba58769a03b06dedab9ed0b388fad7fdc4b61b884d3ba88",
+    "fuente_canonica_actual": "BOE-A-2004-4214",
+    "articulos_corpus_actual": 149,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-09-30T12:21:10"
   }
 ]

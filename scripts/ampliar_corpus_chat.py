@@ -882,9 +882,11 @@ def ejecutar(args: argparse.Namespace) -> int:
             if estado != "AMPLIABLE":
                 continue
 
-            departamento = departamento_documento(conexion, id_boe)
-
             if faltantes:
+                # El departamento sólo se necesita para insertar artículos que
+                # falten. Un corpus ya completo puede conservar metadatos
+                # históricos heterogéneos sin que ello afecte a su integridad.
+                departamento = departamento_documento(conexion, id_boe)
                 print(f"  Recuperando y validando {len(faltantes)} textos faltantes...")
 
             for articulo, bloque in faltantes.items():

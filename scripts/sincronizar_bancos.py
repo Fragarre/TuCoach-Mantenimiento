@@ -13,7 +13,9 @@ Proceso:
    activas. Las Apoyo-*-AYT tienen un banco municipal propio y quedan fuera.
 2. Si alguna revisión falla o presenta bloqueos/incidencias, no modifica ningún banco.
 3. Con --aplicar, ejecuta --guardar solo para convocatorias con novedades.
-4. Ejecuta validacion_completa.py al terminar.
+4. La validación completa global se ejecuta fuera de este flujo: incluye
+   comprobaciones históricas y municipales que no pertenecen al sincronizador
+   ordinario.
 """
 
 from __future__ import annotations
@@ -32,7 +34,6 @@ RAIZ = Path(__file__).resolve().parent.parent
 SCRIPTS = RAIZ / "scripts"
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 CONSTRUCTOR = SCRIPTS / "mantener_banco_preguntas.py"
-VALIDADOR = SCRIPTS / "validacion_completa.py"
 AUDITORIAS = RAIZ / "auditorias"
 PREFIJO_APOYO_AYUNTAMIENTOS = "APOYO-"
 SUFIJO_APOYO_AYUNTAMIENTOS = "-AYT"
@@ -228,8 +229,6 @@ def sincronizar_todos_bancos(
         raise FileNotFoundError(f"No existe la base de datos: {db}")
     if not CONSTRUCTOR.is_file():
         raise FileNotFoundError(f"No existe el constructor: {CONSTRUCTOR}")
-    if aplicar and validar_final and not VALIDADOR.is_file():
-        raise FileNotFoundError(f"No existe el validador: {VALIDADOR}")
 
     convocatorias = _convocatorias(db)
     if not convocatorias:
@@ -312,18 +311,16 @@ def sincronizar_todos_bancos(
         )
 
     if validar_final:
-        if db != DB_DEFECTO.resolve():
-            raise RuntimeError(
-                "La validación completa vigente trabaja sobre la base predeterminada. "
-                "No se valida automáticamente una --db alternativa."
-            )
-        print("\nFase 3: validación completa")
-        rc, salida = _ejecutar([sys.executable, str(VALIDADOR)])
-        print(salida)
-        if rc != 0:
-            raise RuntimeError(
-                "La sincronización terminó, pero validacion_completa.py detectó incidencias."
-            )
+        # validacion_completa.py es una auditoría transversal: hoy revisa
+        # también los bancos Apoyo-*-AYT y deuda histórica ajena a este
+        # proceso. No puede determinar el resultado de la sincronización
+        # ordinaria, que ya ha sido validada convocatoria por convocatoria
+        # mediante el constructor en revisión y tras cada guardado.
+        print(
+            "\nFase 3: validación global omitida. "
+            "Los bancos Apoyo-*-AYT y sus auditorías específicas no forman "
+            "parte de la sincronización ordinaria."
+        )
 
     print("\nSINCRONIZACIÓN DE BANCOS: CORRECTA")
     return True

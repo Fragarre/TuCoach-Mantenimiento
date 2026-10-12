@@ -141,7 +141,9 @@ def extraer_numero_encabezado(texto: str) -> str:
     m = re.match(
         r"^(?:articulo|art\.?)\s*"
         r"(\d+(?:\.\d+)*(?:-\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
-        r"sexies|septies|octies|nonies|decies))?|unico)"
+        r"sexies|septies|octies|nonies|decies|undecies|duodecies|terdecies|"
+        r"quaterdecies|quindecies|sexdecies|septdecies|octodecies|novodecies|"
+        r"vicies|unvicies|duovicies|tervicies))?|unico)"
         r"(?=\.|\s|$)",
         texto_n,
         flags=re.I | re.U,

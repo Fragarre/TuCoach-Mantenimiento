@@ -61,6 +61,22 @@ ORIGEN_OPOSICION_PREDETERMINADO = "C2"
 TAMANO_LOTE_PREDETERMINADO = 5
 EJEMPLOS_POR_CATEGORIA = 12
 
+# Las convocatorias municipales usan tres epígrafes propios. Las categorías
+# genéricas se mantienen como semilla de contenido para el prompt, pero se
+# publican con el título exacto que figura en su temario.
+ORIGENES_MUNICIPALES = {
+    "APOYO-C1-AYT": "AYTO-C1",
+    "APOYO-C2-AYT": "AYTO-C2",
+}
+PREFIJOS_TEMA_MUNICIPAL = {
+    "PROCESADOR DE TEXTOS": {"OFIMATICA_WORD"},
+    "HOJAS DE CALCULO": {"OFIMATICA_EXCEL"},
+    "CORREO ELECTRONICO": {
+        "SISTEMA_OPERATIVO", "NAVEGADORES", "MICROSOFT_365", "OUTLOOK",
+        "TEAMS", "INTELIGENCIA_ARTIFICIAL", "SEGURIDAD",
+    },
+}
+
 # Distribución inicial. Puede modificarse aquí o limitarse con los argumentos
 # --categoria y --cantidad.
 PLAN_GENERACION = {
@@ -753,6 +769,63 @@ def construir_plan(args: argparse.Namespace) -> dict[str, dict[str, Any]]:
         for nombre, cantidad in categorias_repartidas
     }
 
+
+def _sin_acentos(texto: object) -> str:
+    valor = unicodedata.normalize("NFKD", str(texto or ""))
+    return "".join(c for c in valor if not unicodedata.combining(c)).upper()
+
+
+def resolver_contexto_convocatoria(
+    con: sqlite3.Connection,
+    codigo: str | None,
+    origen_indicado: str,
+) -> tuple[str, dict[str, str]]:
+    """Devuelve el origen de publicación y, si procede, destino por categoría.
+
+    La tabla lote_preguntas sigue siendo común. En convocatorias municipales,
+    el origen específico evita que preguntas con los mismos temas C1/C2 se
+    crucen entre bancos y el destino usa la equivalencia real del temario.
+    """
+    if not codigo:
+        return origen_indicado, {}
+    fila = con.execute(
+        "SELECT id,codigo FROM convocatorias WHERE UPPER(codigo)=?",
+        (codigo.strip().upper(),),
+    ).fetchone()
+    if fila is None:
+        raise ErrorProceso(f"No existe la convocatoria: {codigo}.")
+    codigo_real = str(fila["codigo"]).upper()
+    origen = ORIGENES_MUNICIPALES.get(codigo_real, origen_indicado)
+    if codigo_real not in ORIGENES_MUNICIPALES:
+        return origen, {}
+
+    filas = con.execute(
+        """SELECT e.tema_no_juridico,tt.titulo
+           FROM temarios t
+           JOIN temario_temas tt ON tt.temario_id=t.id
+           JOIN equivalencias_temas_no_juridicos e ON e.tema_id=tt.id
+           WHERE t.convocatoria_id=? AND UPPER(tt.tipo_contenido)='INFORMATICA'
+           ORDER BY tt.numero_tema,e.id""",
+        (int(fila["id"]),),
+    ).fetchall()
+    destinos: dict[str, str] = {}
+    for tema in filas:
+        titulo = str(tema["titulo"])
+        normalizado = _sin_acentos(titulo)
+        for prefijo, categorias in PREFIJOS_TEMA_MUNICIPAL.items():
+            if normalizado.startswith(prefijo):
+                for categoria in categorias:
+                    destinos[categoria] = str(tema["tema_no_juridico"])
+                break
+    faltantes = set(PLAN_GENERACION) - set(destinos)
+    if faltantes:
+        raise ErrorProceso(
+            f"{codigo_real}: faltan equivalencias informáticas para "
+            + ", ".join(sorted(faltantes))
+            + "."
+        )
+    return origen, destinos
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Genera preguntas de informática y las incorpora a lote_preguntas."
@@ -763,6 +836,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cantidad", type=int)
     parser.add_argument("--tamano-lote", type=int, default=TAMANO_LOTE_PREDETERMINADO)
     parser.add_argument("--modelo", default=MODELO_PREDETERMINADO)
+    parser.add_argument(
+        "--codigo",
+        help="Código de convocatoria cuyo temario contextualiza la generación.",
+    )
     parser.add_argument(
         "--origen-oposicion",
         default=ORIGEN_OPOSICION_PREDETERMINADO,
@@ -787,21 +864,27 @@ def main() -> int:
     print(f"Base de datos: {args.db}")
     print(f"Modo: {'GUARDAR' if args.guardar else 'VISTA PREVIA'}")
     print(f"Modelo: {args.modelo}")
+    if args.codigo:
+        print(f"Convocatoria: {args.codigo}")
     print(f"Origen oposición: {args.origen_oposicion}")
     print(f"Total solicitado: {sum(v['cantidad'] for v in plan.values())}")
     print("=" * 78)
 
     con = sqlite3.connect(args.db)
     try:
+        con.row_factory = sqlite3.Row
         comprobar_esquema(con)
+        origen_publicacion, destinos_por_categoria = resolver_contexto_convocatoria(
+            con, args.codigo, args.origen_oposicion
+        )
+        print(f"Origen efectivo: {origen_publicacion}")
         existentes = cargar_enunciados_existentes(con)
         generados_globales: set[str] = set()
         todas: list[Pregunta] = []
 
         for categoria, cfg in plan.items():
             print(f"\nGenerando {categoria}: {cfg['cantidad']}")
-            todas.extend(
-                generar_categoria(
+            generadas = generar_categoria(
                     con=con,
                     categoria=categoria,
                     subtemas=cfg["subtemas"],
@@ -811,7 +894,13 @@ def main() -> int:
                     existentes=existentes,
                     generados_globales=generados_globales,
                 )
-            )
+            destino = destinos_por_categoria.get(categoria)
+            if destino:
+                generadas = [
+                    Pregunta(**{**pregunta.__dict__, "tema_no_juridico": destino})
+                    for pregunta in generadas
+                ]
+            todas.extend(generadas)
 
         ruta_csv = guardar_csv(todas, carpeta_auditoria)
         print(f"\nCSV generado: {ruta_csv}")
@@ -828,7 +917,7 @@ def main() -> int:
                 con=con,
                 preguntas=todas,
                 ruta_csv=ruta_csv,
-                origen_oposicion=args.origen_oposicion,
+                origen_oposicion=origen_publicacion,
             )
             con.commit()
         except Exception:
@@ -842,7 +931,11 @@ def main() -> int:
         # Flujo común: el generador no implementa reglas propias de banco.
         con.close()
         con = None
-        sincronizar_todos_bancos(args.db, aplicar=True, validar_final=True)
+        if not sincronizar_todos_bancos(args.db, aplicar=True, validar_final=True):
+            raise ErrorProceso(
+                "La sincronización se aplicó, pero la validación global falló. "
+                "Revise el log antes de continuar."
+            )
         print("Preguntas y bancos sincronizados correctamente.")
         return 0
 

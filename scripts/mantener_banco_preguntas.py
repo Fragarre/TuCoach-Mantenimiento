@@ -107,40 +107,15 @@ TIPO_NO_JURIDICA = "NO_JURIDICA"
 CLASIFICACION_JURIDICA = "JURIDICA"
 CLASIFICACION_NO_JURIDICA = "INFORMATICA"
 
+ORIGENES_MUNICIPALES = {
+    "APOYO-C1-AYT": "AYTO-C1",
+    "APOYO-C2-AYT": "AYTO-C2",
+}
+
 ESTADO_INCLUIDA = "INCLUIDA"
 
 METODO_JURIDICO = "NORMA_ID_ARTICULO"
 METODO_NO_JURIDICO = "TEMA_NO_JURIDICO_EXPLICITO"
-
-
-def filtro_lote_apoyo(
-    conexion: sqlite3.Connection,
-    convocatoria_id: int,
-) -> tuple[str, tuple[str, ...]]:
-    """Restringe los bancos de apoyo a sus preguntas municipales aprobadas.
-
-    Las convocatorias ordinarias mantienen su alcance histórico. En las
-    convocatorias Apoyo-<nivel>-AYT se exige, además de la clasificación
-    JURIDICA/INFORMATICA que aplique, que la pregunta indique el nivel, la
-    fuente municipal y el criterio explícito de inclusión del banco.
-    """
-    fila = conexion.execute(
-        "SELECT codigo FROM convocatorias WHERE id=?", (convocatoria_id,)
-    ).fetchone()
-    codigo = str(fila[0] if fila else "").strip().upper()
-    match = re.fullmatch(r"APOYO-(A1|A2|C1|C2)-AYT", codigo)
-    if not match:
-        return "", ()
-
-    nivel = match.group(1)
-    return (
-        """
-          AND UPPER(TRIM(COALESCE(origen_oposicion, ''))) = ?
-          AND UPPER(TRIM(COALESCE(tipo_fuente, ''))) = 'AYTO-EXAMEN'
-          AND UPPER(TRIM(COALESCE(criterio_inclusion_banco, ''))) = ?
-        """,
-        (nivel, f"INCLUIR_APOYO_{nivel}_AYT"),
-    )
 
 
 def crear_parser() -> argparse.ArgumentParser:
@@ -878,9 +853,6 @@ def seleccionar_juridicas(
         "fuera_temario": [],
     }
 
-    filtro_apoyo, parametros_apoyo = filtro_lote_apoyo(
-        conexion, convocatoria_id
-    )
     filas = conexion.execute(
         f"""
         SELECT
@@ -900,7 +872,6 @@ def seleccionar_juridicas(
             estado_vigencia
         FROM lote_preguntas
         WHERE tipo_clasificacion = ?
-        {filtro_apoyo}
           AND NOT EXISTS (
               SELECT 1
               FROM preguntas_exclusiones AS pe
@@ -909,7 +880,7 @@ def seleccionar_juridicas(
           )
         ORDER BY id
         """,
-        (CLASIFICACION_JURIDICA, *parametros_apoyo),
+        (CLASIFICACION_JURIDICA,),
     ).fetchall()
 
     admite_practica = convocatoria_admite_practica(conexion, convocatoria_id)
@@ -1059,9 +1030,6 @@ def detectar_juridicas_reasignables(
     reasignables: list[dict[str, Any]] = []
     ambiguas: list[dict[str, Any]] = []
 
-    filtro_apoyo, parametros_apoyo = filtro_lote_apoyo(
-        conexion, convocatoria_id
-    )
     filas = conexion.execute(
         f"""
         SELECT
@@ -1073,7 +1041,6 @@ def detectar_juridicas_reasignables(
             tema_no_juridico
         FROM lote_preguntas
         WHERE tipo_clasificacion = ?
-        {filtro_apoyo}
           AND NOT EXISTS (
               SELECT 1
               FROM preguntas_exclusiones AS pe
@@ -1082,7 +1049,7 @@ def detectar_juridicas_reasignables(
           )
         ORDER BY id
         """,
-        (CLASIFICACION_JURIDICA, *parametros_apoyo),
+        (CLASIFICACION_JURIDICA,),
     ).fetchall()
 
     for fila_sql in filas:
@@ -1151,18 +1118,14 @@ def detectar_juridicas_retirables(
 ):
     """Vínculos jurídicos existentes que ya no son elegibles."""
     retirables=[]
-    filtro_apoyo, parametros_apoyo = filtro_lote_apoyo(
-        conexion, convocatoria_id
-    )
     filas=conexion.execute(
         f"""
         SELECT id,enunciado,norma_id_normalizada,articulo_normalizado,
                tipo_norma_normalizado,nombre_norma_normalizado,estado_vigencia
         FROM lote_preguntas
         WHERE tipo_clasificacion=?
-        {filtro_apoyo}
         ORDER BY id
-        """,(CLASIFICACION_JURIDICA, *parametros_apoyo)
+        """,(CLASIFICACION_JURIDICA,)
     ).fetchall()
     for fila_sql in filas:
         p=dict(fila_sql); pid=int(p["id"]); existente=existentes.get(pid)
@@ -1185,6 +1148,7 @@ def seleccionar_no_juridicas(
     convocatoria_id: int,
     equivalencias: dict[str, dict[str, Any]],
     existentes: dict[int, dict[str, Any]],
+    origen_requerido: str | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     resultado = {
         "nuevas": [],
@@ -1193,9 +1157,11 @@ def seleccionar_no_juridicas(
         "fuera_temario": [],
     }
 
-    filtro_apoyo, parametros_apoyo = filtro_lote_apoyo(
-        conexion, convocatoria_id
-    )
+    filtro_origen = ""
+    parametros: list[Any] = [CLASIFICACION_NO_JURIDICA]
+    if origen_requerido:
+        filtro_origen = " AND origen_oposicion = ?"
+        parametros.append(origen_requerido)
     filas = conexion.execute(
         f"""
         SELECT
@@ -1208,7 +1174,7 @@ def seleccionar_no_juridicas(
             teorica_practica
         FROM lote_preguntas
         WHERE tipo_clasificacion = ?
-        {filtro_apoyo}
+          {filtro_origen}
           AND NOT EXISTS (
               SELECT 1
               FROM preguntas_exclusiones AS pe
@@ -1217,7 +1183,7 @@ def seleccionar_no_juridicas(
           )
         ORDER BY id
         """,
-        (CLASIFICACION_NO_JURIDICA, *parametros_apoyo),
+        parametros,
     ).fetchall()
 
     for fila_sql in filas:
@@ -1938,6 +1904,7 @@ def main() -> None:
             convocatoria_id,
             equivalencias_no_juridicas,
             existentes,
+            ORIGENES_MUNICIPALES.get(str(convocatoria["codigo"]).upper()),
         )
 
         bloqueos = (

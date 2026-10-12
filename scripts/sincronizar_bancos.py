@@ -9,13 +9,11 @@ Contrato entre procesos:
 - este sincronizador lee ese JSON y NO interpreta textos de consola.
 
 Proceso:
-1. Ejecuta el constructor en SOLO REVISIÓN para las convocatorias ordinarias
-   activas. Las Apoyo-*-AYT tienen un banco municipal propio y quedan fuera.
+1. Ejecuta el constructor en SOLO REVISIÓN para todas las convocatorias
+   activas.
 2. Si alguna revisión falla o presenta bloqueos/incidencias, no modifica ningún banco.
 3. Con --aplicar, ejecuta --guardar solo para convocatorias con novedades.
-4. La validación completa global se ejecuta fuera de este flujo: incluye
-   comprobaciones históricas y municipales que no pertenecen al sincronizador
-   ordinario.
+4. Ejecuta la validación completa global al terminar el guardado.
 """
 
 from __future__ import annotations
@@ -34,9 +32,8 @@ RAIZ = Path(__file__).resolve().parent.parent
 SCRIPTS = RAIZ / "scripts"
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 CONSTRUCTOR = SCRIPTS / "mantener_banco_preguntas.py"
+VALIDADOR = SCRIPTS / "validacion_completa.py"
 AUDITORIAS = RAIZ / "auditorias"
-PREFIJO_APOYO_AYUNTAMIENTOS = "APOYO-"
-SUFIJO_APOYO_AYUNTAMIENTOS = "-AYT"
 
 
 @dataclass(frozen=True)
@@ -70,17 +67,7 @@ def _convocatorias(db: Path) -> list[tuple[int, str]]:
             filas = con.execute(
                 "SELECT id, codigo FROM convocatorias ORDER BY id"
             ).fetchall()
-    # Los bancos Apoyo-*-AYT se construyen y mantienen mediante su flujo
-    # municipal específico. El constructor genérico no puede reconstruirlos
-    # desde norma-artículo sin expulsar sus preguntas históricas permitidas.
-    return [
-        (int(i), str(c))
-        for i, c in filas
-        if not (
-            str(c).strip().upper().startswith(PREFIJO_APOYO_AYUNTAMIENTOS)
-            and str(c).strip().upper().endswith(SUFIJO_APOYO_AYUNTAMIENTOS)
-        )
-    ]
+    return [(int(i), str(c)) for i, c in filas]
 
 
 def _estado_resumenes() -> dict[Path, tuple[int, int]]:
@@ -238,8 +225,7 @@ def sincronizar_todos_bancos(
     print("SINCRONIZACIÓN COMÚN DE BANCOS")
     print("=" * 78)
     print(f"Base: {db}")
-    print("Fase 1: revisión de convocatorias ordinarias activas")
-    print("Excluidas: Apoyo-A1/A2/C1/C2-AYT (bancos municipales propios)")
+    print("Fase 1: revisión de todas las convocatorias activas")
     print()
 
     revisiones: list[RevisionBanco] = []
@@ -311,16 +297,12 @@ def sincronizar_todos_bancos(
         )
 
     if validar_final:
-        # validacion_completa.py es una auditoría transversal: hoy revisa
-        # también los bancos Apoyo-*-AYT y deuda histórica ajena a este
-        # proceso. No puede determinar el resultado de la sincronización
-        # ordinaria, que ya ha sido validada convocatoria por convocatoria
-        # mediante el constructor en revisión y tras cada guardado.
-        print(
-            "\nFase 3: validación global omitida. "
-            "Los bancos Apoyo-*-AYT y sus auditorías específicas no forman "
-            "parte de la sincronización ordinaria."
-        )
+        print("\nFase 3: validación global")
+        rc, salida = _ejecutar([sys.executable, str(VALIDADOR)])
+        if salida.strip():
+            print(salida)
+        if rc != 0:
+            return False
 
     print("\nSINCRONIZACIÓN DE BANCOS: CORRECTA")
     return True
@@ -340,8 +322,7 @@ def crear_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = crear_parser().parse_args()
     try:
-        sincronizar_todos_bancos(args.db, aplicar=args.aplicar)
-        return 0
+        return 0 if sincronizar_todos_bancos(args.db, aplicar=args.aplicar) else 1
     except Exception as exc:
         print(f"\nERROR: {exc}", file=sys.stderr)
         return 1

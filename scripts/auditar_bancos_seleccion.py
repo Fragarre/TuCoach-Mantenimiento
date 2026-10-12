@@ -103,7 +103,15 @@ def main() -> int:
             refs, inv_refs, dup_refs, _ = constructor.cargar_referencias_juridicas(con, tid)
             eqs, inv_eq, dup_eq = constructor.cargar_equivalencias_no_juridicas(con, tid)
             jur = constructor.seleccionar_juridicas(con, cid, refs, {})
-            nojur = constructor.seleccionar_no_juridicas(con, cid, eqs, {})
+            # La auditoría debe reproducir exactamente la selección del
+            # constructor. En las convocatorias municipales, las categorías
+            # pueden coincidir entre C1 y C2, pero el origen las separa.
+            origen_requerido = getattr(
+                constructor, "ORIGENES_MUNICIPALES", {}
+            ).get(str(conv["codigo"]).upper())
+            nojur = constructor.seleccionar_no_juridicas(
+                con, cid, eqs, {}, origen_requerido
+            )
             esperadas = {int(p["id"]): p for p in jur["nuevas"] + nojur["nuevas"]}
 
             reales_rows = con.execute(

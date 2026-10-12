@@ -2727,6 +2727,21 @@ def submenu_materiales_tareas() -> None:
         else: print("Opción no válida.")
 
 
+def publicar_cambios_web_git_menu() -> None:
+    """
+    Publica de forma controlada los artefactos preparados en TuCoach-Web.
+    El script limita el staging a la BD Web y/o materiales autorizados.
+    """
+    cabecera_submenu(
+        "PUBLICAR CAMBIOS PREPARADOS EN GITHUB / WEB",
+        "[SELECCIONAR → COMMIT → PUSH] Publica únicamente los artefactos "
+        "preparados de TuCoach-Web. Render y Vercel despliegan después "
+        "automáticamente desde main.",
+    )
+
+    ejecutar_script("publicar_tucoach_web_git.py", "--aplicar")
+    pausa()
+
 def submenu_publicacion_tareas() -> None:
     while True:
         cabecera_submenu("5. PUBLICACIÓN", "Publicación de base de datos, contenidos y materiales en los destinos existentes.")
@@ -2735,10 +2750,11 @@ def submenu_publicacion_tareas() -> None:
         print("3. Desplegar contenidos en TuCoach-Web local")
         print("4. Actualizar contenidos Web en Supabase")
         print("5. Publicar materiales en TuCoach-Web local")
+        print("6. Publicar cambios preparados en GitHub / Web")
         print("0. Volver")
         op=input("Opción: ").strip()
         if op=="0": return
-        acciones={"1":actualizar_bd_tucoach,"2":preparar_publicacion_web_menu,"3":desplegar_publicacion_web_local_menu,"4":actualizar_publicacion_supabase_menu,"5":publicar_materiales_web_menu}
+        acciones={"1":actualizar_bd_tucoach,"2":preparar_publicacion_web_menu,"3":desplegar_publicacion_web_local_menu,"4":actualizar_publicacion_supabase_menu,"5":publicar_materiales_web_menu,"6":publicar_cambios_web_git_menu}
         fn=acciones.get(op)
         if fn: fn()
         else: print("Opción no válida.")

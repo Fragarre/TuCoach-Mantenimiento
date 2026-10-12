@@ -16,7 +16,7 @@ from calibrar_dificultad_ia import calibrar, filtrar_candidatas_altas
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_DEFECTO = ROOT / "db" / "oposiciones.sqlite3"
-ORIGENES = {"APOYO-C1-AYT": "AYTO-C1", "APOYO-C2-AYT": "AYTO-C2"}
+ORIGENES = {"APOYO-C1-AYT": "AYTO-C1", "APOYO-C2-AYT": "AYTO-C2", "MODELO DE EXAMEN-C1-AYT": "AYTO-C1", "MODELO DE EXAMEN-C2-AYT": "AYTO-C2"}
 BOOTSTRAP = {
     "procesador de textos": ("OFIMATICA_WORD",),
     "hojas de calculo": ("OFIMATICA_EXCEL",),
@@ -136,7 +136,7 @@ def main() -> int:
         existentes = base.cargar_enunciados_existentes(con)
         generados_globales: set[str] = set()
         construir_prompt_base = base.construir_prompt
-        nivel = "C1" if str(convocatoria["codigo"]).upper() == "APOYO-C1-AYT" else "C2"
+        nivel = "C1" if str(convocatoria["codigo"]).upper() in ("APOYO-C1-AYT", "MODELO DE EXAMEN-C1-AYT") else "C2"
         for tema in temas:
             muestras = muestra_calibracion(con, int(convocatoria["id"]), str(tema["titulo"]))
             perfil = calibrar(muestras, ambito=f"{convocatoria['codigo']} · {tema['titulo']}", modelo=args.modelo, seleccionar_json=seleccionar_fragmento_json)

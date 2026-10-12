@@ -30,7 +30,7 @@ DB_DEFAULT = ROOT / "db" / "oposiciones.sqlite3"
 OUT_DIR = ROOT / "auditorias" / "recuperacion_norma_articulo_ayto"
 CODIGOS = {
     "Apoyo-A1-AYT": "AYTO-A1", "Apoyo-A2-AYT": "AYTO-A2",
-    "Apoyo-C1-AYT": "AYTO-C1", "Apoyo-C2-AYT": "AYTO-C2",
+    "Apoyo-C1-AYT": "AYTO-C1", "Apoyo-C2-AYT": "AYTO-C2", "Modelo de Examen-A1-AYT": "AYTO-A1", "Modelo de Examen-A2-AYT": "AYTO-A2", "Modelo de Examen-C1-AYT": "AYTO-C1", "Modelo de Examen-C2-AYT": "AYTO-C2", "MODELO DE EXAMEN-A1-AYT": "AYTO-A1", "MODELO DE EXAMEN-A2-AYT": "AYTO-A2", "MODELO DE EXAMEN-C1-AYT": "AYTO-C1", "MODELO DE EXAMEN-C2-AYT": "AYTO-C2",
 }
 STOP = {"para", "por", "con", "una", "uno", "las", "los", "del", "que", "qué", "como", "cómo", "desde", "hasta", "sobre", "segun", "según", "esta", "este", "estos", "estas", "ser", "son", "se", "su", "sus", "la", "el", "en", "de", "y", "o", "a", "al", "no", "si"}
 

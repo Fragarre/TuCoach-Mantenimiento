@@ -30,10 +30,10 @@ CARPETA_SCRIPTS = RAIZ / "scripts"
 # y orígenes son explícitos para no mezclarlos con las convocatorias GVA A1,
 # A2, C1 y C2 que comparten denominación de grupo.
 APOYO_AYUNTAMIENTOS = (
-    ("Apoyo-A1-AYT", 4, "A1 · Técnico/a de Administración General", "AYTO-A1"),
-    ("Apoyo-A2-AYT", 5, "A2 · Gestión de Administración General", "AYTO-A2"),
-    ("Apoyo-C1-AYT", 6, "C1 · Administrativo/a", "AYTO-C1"),
-    ("Apoyo-C2-AYT", 7, "C2 · Auxiliar Administrativo/a", "AYTO-C2"),
+    ("Modelo de Examen-A1-AYT", 4, "A1 · Técnico/a de Administración General", "AYTO-A1"),
+    ("Modelo de Examen-A2-AYT", 5, "A2 · Gestión de Administración General", "AYTO-A2"),
+    ("Modelo de Examen-C1-AYT", 6, "C1 · Administrativo/a", "AYTO-C1"),
+    ("Modelo de Examen-C2-AYT", 7, "C2 · Auxiliar Administrativo/a", "AYTO-C2"),
 )
 
 
@@ -2388,7 +2388,7 @@ def seleccionar_apoyo_ayuntamiento(
 ) -> tuple[str, int, str, str] | None:
     opciones = [
         item for item in APOYO_AYUNTAMIENTOS
-        if not solo_informatica or item[0] in {"Apoyo-C1-AYT", "Apoyo-C2-AYT"}
+        if not solo_informatica or item[0] in {"Modelo de Examen-C1-AYT", "Modelo de Examen-C2-AYT"}
     ]
     print("\nCONVOCATORIAS DE APOYO AYUNTAMIENTOS")
     for indice, (codigo, _id, puesto, _origen) in enumerate(opciones, 1):

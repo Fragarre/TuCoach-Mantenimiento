@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_DEFECTO = ROOT / "db" / "oposiciones.sqlite3"
-CODIGOS_APOYO = ("Apoyo-A1-AYT", "Apoyo-A2-AYT", "Apoyo-C1-AYT", "Apoyo-C2-AYT")
+CODIGOS_APOYO = ("Modelo de Examen-A1-AYT", "Modelo de Examen-A2-AYT", "Modelo de Examen-C1-AYT", "Modelo de Examen-C2-AYT")
 
 # Variantes presentes en los CSV municipales cuyo identificador legal coincide
 # de forma unívoca con la norma del catálogo. No se aplica ninguna aproximación

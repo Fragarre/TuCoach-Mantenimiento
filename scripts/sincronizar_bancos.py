@@ -35,7 +35,7 @@ SCRIPTS = RAIZ / "scripts"
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 CONSTRUCTOR = SCRIPTS / "mantener_banco_preguntas.py"
 AUDITORIAS = RAIZ / "auditorias"
-PREFIJO_APOYO_AYUNTAMIENTOS = "APOYO-"
+PREFIJO_APOYO_AYUNTAMIENTOS = ("APOYO-", "MODELO DE EXAMEN-")
 SUFIJO_APOYO_AYUNTAMIENTOS = "-AYT"
 
 

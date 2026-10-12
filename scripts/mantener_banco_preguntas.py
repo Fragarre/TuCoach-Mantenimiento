@@ -128,7 +128,7 @@ def filtro_lote_apoyo(
         "SELECT codigo FROM convocatorias WHERE id=?", (convocatoria_id,)
     ).fetchone()
     codigo = str(fila[0] if fila else "").strip().upper()
-    match = re.fullmatch(r"APOYO-(A1|A2|C1|C2)-AYT", codigo)
+    match = re.fullmatch(r"(?:APOYO|MODELO DE EXAMEN)-(A1|A2|C1|C2)-AYT", codigo)
     if not match:
         return "", ()
 

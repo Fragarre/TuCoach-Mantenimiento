@@ -117,30 +117,14 @@ def filtro_lote_apoyo(
     conexion: sqlite3.Connection,
     convocatoria_id: int,
 ) -> tuple[str, tuple[str, ...]]:
-    """Restringe los bancos de apoyo a sus preguntas municipales aprobadas.
+    """Sin restricciones por convocatoria.
 
-    Las convocatorias ordinarias mantienen su alcance histórico. En las
-    convocatorias Apoyo-<nivel>-AYT se exige, además de la clasificación
-    JURIDICA/INFORMATICA que aplique, que la pregunta indique el nivel, la
-    fuente municipal y el criterio explícito de inclusión del banco.
+    El banco de cualquier convocatoria (ordinaria, modelo de examen o futura) se
+    construye con las mismas reglas: coincidencia norma-artículo normalizados con
+    su temario, sin filtros por nombre o tipo de convocatoria. Se conserva la
+    función, que devuelve siempre un filtro vacío, para no alterar sus llamadas.
     """
-    fila = conexion.execute(
-        "SELECT codigo FROM convocatorias WHERE id=?", (convocatoria_id,)
-    ).fetchone()
-    codigo = str(fila[0] if fila else "").strip().upper()
-    match = re.fullmatch(r"(?:APOYO|MODELO DE EXAMEN)-(A1|A2|C1|C2)-AYT", codigo)
-    if not match:
-        return "", ()
-
-    nivel = match.group(1)
-    return (
-        """
-          AND UPPER(TRIM(COALESCE(origen_oposicion, ''))) = ?
-          AND UPPER(TRIM(COALESCE(tipo_fuente, ''))) = 'AYTO-EXAMEN'
-          AND UPPER(TRIM(COALESCE(criterio_inclusion_banco, ''))) = ?
-        """,
-        (nivel, f"INCLUIR_APOYO_{nivel}_AYT"),
-    )
+    return "", ()
 
 
 def crear_parser() -> argparse.ArgumentParser:

@@ -35,8 +35,6 @@ SCRIPTS = RAIZ / "scripts"
 DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 CONSTRUCTOR = SCRIPTS / "mantener_banco_preguntas.py"
 AUDITORIAS = RAIZ / "auditorias"
-PREFIJO_APOYO_AYUNTAMIENTOS = ("APOYO-", "MODELO DE EXAMEN-")
-SUFIJO_APOYO_AYUNTAMIENTOS = "-AYT"
 
 
 @dataclass(frozen=True)
@@ -70,17 +68,9 @@ def _convocatorias(db: Path) -> list[tuple[int, str]]:
             filas = con.execute(
                 "SELECT id, codigo FROM convocatorias ORDER BY id"
             ).fetchall()
-    # Los bancos Apoyo-*-AYT se construyen y mantienen mediante su flujo
-    # municipal específico. El constructor genérico no puede reconstruirlos
-    # desde norma-artículo sin expulsar sus preguntas históricas permitidas.
-    return [
-        (int(i), str(c))
-        for i, c in filas
-        if not (
-            str(c).strip().upper().startswith(PREFIJO_APOYO_AYUNTAMIENTOS)
-            and str(c).strip().upper().endswith(SUFIJO_APOYO_AYUNTAMIENTOS)
-        )
-    ]
+    # Todas las convocatorias activas se sincronizan con las mismas reglas,
+    # sin tratamientos especiales por nombre ni por tipo de convocatoria.
+    return [(int(i), str(c)) for i, c in filas]
 
 
 def _estado_resumenes() -> dict[Path, tuple[int, int]]:
@@ -239,7 +229,6 @@ def sincronizar_todos_bancos(
     print("=" * 78)
     print(f"Base: {db}")
     print("Fase 1: revisión de convocatorias ordinarias activas")
-    print("Excluidas: Apoyo-A1/A2/C1/C2-AYT (bancos municipales propios)")
     print()
 
     revisiones: list[RevisionBanco] = []

@@ -63,6 +63,16 @@ PROMPT_VERSION = "juridicas-v4-evidencia-opciones"
 MODELO_DEFECTO = "gpt-5.4-nano"
 MAX_EJEMPLOS_DEFECTO = 25
 
+# Marca de generación. Se guarda en importaciones_ficheros.nombre_fichero de cada
+# pregunta IA nueva (sin tocar tipo_fuente, que la web usa para el filtro REAL/IA).
+# Para localizar estas preguntas:
+#   SELECT lp.* FROM lote_preguntas lp
+#   JOIN importaciones_ficheros i ON i.id = lp.importacion_fichero_id
+#   WHERE i.nombre_fichero LIKE 'IA-2026-10%';
+ORIGEN_IA = "IA-2026-10"
+# En el modo de huecos se omiten fuentes demasiado largas para un prompt fiable.
+MAX_CHARS_FUENTE_HUECOS = 20000
+
 
 @dataclass
 class ContextoReferencia:
@@ -1012,6 +1022,170 @@ def resumen_reparto_secuencia(
     ]
 
 
+def preguntas_incluidas_por_tema(
+    con: sqlite3.Connection, convocatoria_id: int
+) -> dict[int, int]:
+    """Preguntas INCLUIDAS del banco de la convocatoria, por tema_id."""
+    filas = con.execute(
+        """
+        SELECT tt.id AS tema_id, COUNT(bp.id) AS n
+        FROM temarios t
+        JOIN temario_temas tt ON tt.temario_id = t.id
+        LEFT JOIN banco_preguntas_temas bt ON bt.tema_id = tt.id
+        LEFT JOIN banco_preguntas bp
+               ON bp.id = bt.banco_pregunta_id AND bp.estado = 'INCLUIDA'
+        WHERE t.convocatoria_id = ?
+        GROUP BY tt.id
+        """,
+        (convocatoria_id,),
+    ).fetchall()
+    return {int(f["tema_id"]): int(f["n"]) for f in filas}
+
+
+def obtener_referencias_huecos(
+    con: sqlite3.Connection,
+    convocatoria_id: int,
+    tema_id: int | None = None,
+) -> tuple[list[ContextoReferencia], dict[str, int]]:
+    """
+    Referencias norma-artículo del temario SIN ninguna pregunta INCLUIDA en el
+    banco de la convocatoria. No exige ejemplos previos (a diferencia del modo
+    habitual) y descarta fuentes insuficientes o demasiado largas.
+    Solo lectura.
+    """
+    cubiertas: set[tuple[int, str]] = set()
+    for f in con.execute(
+        """
+        SELECT DISTINCT lp.norma_id_normalizada AS norma_id,
+                        lp.articulo_normalizado AS articulo
+        FROM banco_preguntas bp
+        JOIN lote_preguntas lp ON lp.id = bp.pregunta_id
+        WHERE bp.convocatoria_id = ?
+          AND bp.estado = 'INCLUIDA'
+          AND lp.tipo_clasificacion = 'JURIDICA'
+          AND lp.norma_id_normalizada IS NOT NULL
+        """,
+        (convocatoria_id,),
+    ):
+        art = normalizar_articulo(f["articulo"])
+        if art is not None:
+            cubiertas.add((int(f["norma_id"]), art))
+
+    filtro_tema = "AND tr.tema_id = ?" if tema_id is not None else ""
+    parametros: tuple[Any, ...] = (convocatoria_id,)
+    if tema_id is not None:
+        parametros += (int(tema_id),)
+
+    filas = con.execute(
+        f"""
+        SELECT tr.id AS referencia_id, tr.norma_id, tr.articulo_solicitado,
+               LENGTH(af.texto) AS largo
+        FROM temarios t
+        JOIN temario_temas tt ON tt.temario_id = t.id
+        JOIN temario_referencias tr ON tr.tema_id = tt.id
+        JOIN articulos_fuente af ON af.id = tr.articulo_fuente_id
+        WHERE t.convocatoria_id = ?
+          AND tr.norma_id IS NOT NULL
+          AND tr.articulo_fuente_id IS NOT NULL
+          {filtro_tema}
+        ORDER BY tr.id
+        """,
+        parametros,
+    ).fetchall()
+
+    resumen = {
+        "referencias": len(filas), "con_pregunta": 0,
+        "sin_pregunta": 0, "demasiado_largas": 0,
+    }
+    contextos: list[ContextoReferencia] = []
+    for f in filas:
+        art = normalizar_articulo(f["articulo_solicitado"])
+        if art is not None and (int(f["norma_id"]), art) in cubiertas:
+            resumen["con_pregunta"] += 1
+            continue
+        resumen["sin_pregunta"] += 1
+        if int(f["largo"] or 0) > MAX_CHARS_FUENTE_HUECOS:
+            resumen["demasiado_largas"] += 1
+            continue
+        contextos.append(cargar_contexto(con, convocatoria_id, int(f["referencia_id"])))
+    return contextos, resumen
+
+
+def secuencia_contextos_deficit(
+    contextos: list[ContextoReferencia],
+    cantidad: int,
+    preguntas_por_tema: dict[int, int],
+) -> list[ContextoReferencia]:
+    """
+    Reparte `cantidad` candidatas dando prioridad al tema con MENOS preguntas
+    (contando las ya planificadas en este lote). Dentro de un tema elige
+    referencias al azar sin repetir hasta agotarlas. Si todas se agotan, el
+    ciclo se reinicia.
+    """
+    if cantidad <= 0:
+        raise ValueError("cantidad debe ser positiva")
+    if not contextos:
+        raise ValueError("No hay referencias sin cubrir.")
+
+    rng = random.SystemRandom()
+    por_tema: dict[int, list[ContextoReferencia]] = {}
+    for ctx in contextos:
+        por_tema.setdefault(int(ctx.tema_id), []).append(ctx)
+
+    def reiniciar() -> dict[int, list[ContextoReferencia]]:
+        pendientes = {t: list(v) for t, v in por_tema.items()}
+        for v in pendientes.values():
+            rng.shuffle(v)
+        return pendientes
+
+    pendientes = reiniciar()
+    carga = {t: int(preguntas_por_tema.get(t, 0)) for t in por_tema}
+    secuencia: list[ContextoReferencia] = []
+    while len(secuencia) < cantidad:
+        activos = [t for t, v in pendientes.items() if v]
+        if not activos:
+            pendientes = reiniciar()
+            continue
+        menor = min(carga[t] for t in activos)
+        tema = rng.choice([t for t in activos if carga[t] == menor])
+        secuencia.append(pendientes[tema].pop())
+        carga[tema] += 1
+    return secuencia
+
+
+def informe_huecos(con: sqlite3.Connection, convocatoria_id: int) -> None:
+    """Informe de solo lectura: temas con pocas preguntas y referencias generables."""
+    por_tema = preguntas_incluidas_por_tema(con, convocatoria_id)
+    contextos, resumen = obtener_referencias_huecos(con, convocatoria_id)
+    generables_por_tema: dict[int, int] = {}
+    for ctx in contextos:
+        if fuente_oficial_suficiente(ctx.texto_articulo, "TEORICA"):
+            generables_por_tema[int(ctx.tema_id)] = generables_por_tema.get(int(ctx.tema_id), 0) + 1
+    temas = con.execute(
+        """
+        SELECT tt.id, tt.parte, tt.numero_tema, tt.titulo
+        FROM temarios t JOIN temario_temas tt ON tt.temario_id = t.id
+        WHERE t.convocatoria_id = ? AND tt.tipo_contenido = 'JURIDICO'
+        ORDER BY tt.parte, tt.numero_tema
+        """,
+        (convocatoria_id,),
+    ).fetchall()
+    print("=" * 78)
+    print("INFORME DE HUECOS (solo lectura)")
+    print("=" * 78)
+    print(f"Referencias del temario................ {resumen['referencias']}")
+    print(f"Con alguna pregunta en el banco........ {resumen['con_pregunta']}")
+    print(f"Sin pregunta........................... {resumen['sin_pregunta']}")
+    print(f"  de ellas, fuente demasiado larga..... {resumen['demasiado_largas']}")
+    print(f"  de ellas, generables................. {sum(generables_por_tema.values())}")
+    print()
+    print(f"{'Parte':<9}{'Tema':>5}  {'Preg.':>6} {'Generables':>11}  Título")
+    for t in sorted(temas, key=lambda t: por_tema.get(int(t['id']), 0)):
+        n = por_tema.get(int(t["id"]), 0)
+        g = generables_por_tema.get(int(t["id"]), 0)
+        print(f"{t['parte']:<9}{t['numero_tema']:>5}  {n:>6} {g:>11}  {str(t['titulo'])[:48]}")
+
+
 def elegir_referencia_del_tema(
     con: sqlite3.Connection,
     convocatoria_id: int,
@@ -1733,6 +1907,33 @@ def validar_estructura_pregunta(p: dict[str, Any]) -> None:
     p["respuesta_correcta"] = correcta
 
 
+_RE_OPCION_DEPENDIENTE = re.compile(
+    r"(anteriores|\bambas\b|\bambos\b|\b[abcd]\s*(y|e|,|o)\s*[abcd]\b|opci[oó]n(es)?\s+[abcd]\b|ninguna de las|todas las)",
+    re.IGNORECASE,
+)
+
+
+def barajar_opciones(p: dict[str, Any]) -> None:
+    """
+    Reordena al azar las 4 opciones y recalcula la letra correcta.
+
+    El modelo tiende a colocar siempre la correcta en A. Se baraja antes de
+    las validaciones para que el validador y el auditor vean la versión final.
+    Si alguna opción depende de otras ("todas las anteriores", "A y B"...),
+    se conserva el orden original para no romper su sentido.
+    """
+    letras = ["a", "b", "c", "d"]
+    textos = [str(p[f"opcion_{l}"]) for l in letras]
+    if any(_RE_OPCION_DEPENDIENTE.search(t) for t in textos):
+        return
+    correcta = letras.index(str(p["respuesta_correcta"]).strip().lower())
+    orden = list(range(4))
+    random.SystemRandom().shuffle(orden)
+    for nueva, vieja in enumerate(orden):
+        p[f"opcion_{letras[nueva]}"] = textos[vieja]
+    p["respuesta_correcta"] = letras[orden.index(correcta)].upper()
+
+
 def clave_exacta(p: dict[str, Any]) -> tuple[str, str, str, str, str]:
     def n(v: Any) -> str:
         return re.sub(r"\s+", " ", str(v or "").strip().casefold())
@@ -2247,7 +2448,7 @@ def generar(
                 "La generación no devolvió una pregunta PRACTICA."
             )
 
-    validar_estructura_pregunta(pregunta); comprobar_no_duplicada(con,pregunta)
+    validar_estructura_pregunta(pregunta); barajar_opciones(pregunta); comprobar_no_duplicada(con,pregunta)
     validacion1=seleccionar_fragmento_json(
         prompt=construir_prompt_validacion(ctx,ejemplos,pregunta,1),
         modelo=modelo_validacion,
@@ -2387,7 +2588,7 @@ def generar(
         except Exception as exc:
             with conectar_auxiliar() as aux:
                 aux.execute("UPDATE generaciones_preguntas_ia SET estado='ERROR_PUBLICACION', observaciones=? WHERE id=?",(f"Validada por doble check, pero no publicada: {exc}",generacion_id)); aux.commit()
-            if mostrar_detalle: print(f"ERROR al publicar automáticamente: {exc}")
+            print(f"ERROR al publicar automáticamente (generación {generacion_id}): {exc!r}")
     if mostrar_detalle:
         r=resumen_generacion(generacion_id)
         print("\n"+"="*78); print(f"GENERACIÓN {generacion_id} | {r['estado']}"); print("="*78)
@@ -2428,6 +2629,7 @@ def generar_lote(
     modelo_validacion: str,
     max_ejemplos: int,
     usar_modelo_examen: bool = True,
+    preguntas_por_tema: dict[int, int] | None = None,
 ) -> list[dict[str, Any]]:
     iniciar_ejecucion_generacion()
 
@@ -2473,6 +2675,13 @@ def generar_lote(
             contextos_validos,
             modelo,
             cantidad,
+        )
+    elif preguntas_por_tema is not None:
+        # Modo huecos: prioridad al tema con menos preguntas.
+        secuencia = secuencia_contextos_deficit(
+            contextos_validos,
+            cantidad,
+            preguntas_por_tema,
         )
     else:
         # Tema/referencia/todos-temas, y PRACTICA: se limita estrictamente a los
@@ -2548,11 +2757,11 @@ def generar_lote(
 
         validadas = [
             r for r in resultados
-            if str(r.get("dictamen", "")).startswith("VALIDADA")
+            if str(r.get("estado", "")).upper() == "APROBADA"
         ]
         rechazadas = [
             r for r in resultados
-            if str(r.get("dictamen", "")).startswith("RECHAZADA")
+            if str(r.get("estado", "")).upper() == "RECHAZADA_IA"
         ]
 
         ruta = exportar_informe_ultima_ejecucion(
@@ -2792,7 +3001,7 @@ def aprobar(
             "registros/preguntas_ia_ultima_ejecucion.html"
         )
         nombre_archivo = (
-            "preguntas_ia_ultima_ejecucion.html"
+            f"{ORIGEN_IA}_{PROMPT_VERSION}_gen{generacion_id}.html"
         )
         inicio = ahora_iso()
 
@@ -3158,7 +3367,7 @@ def detalle_generacion(generacion_id: int) -> None:
     print("="*78)
 
 def crear_parser() -> argparse.ArgumentParser:
-    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); return p
+    p=argparse.ArgumentParser(description="Generación experimental de preguntas jurídicas con IA."); p.add_argument("--db",default=str(DB_DEFECTO)); g=p.add_mutually_exclusive_group(); g.add_argument("--convocatoria-id",type=int); g.add_argument("--codigo"); p.add_argument("--listar-referencias",action="store_true"); seleccion=p.add_mutually_exclusive_group(); seleccion.add_argument("--referencia-id",type=int); seleccion.add_argument("--tema-id",type=int); seleccion.add_argument("--todos-temas",action="store_true"); p.add_argument("--tipo",choices=["TEORICA","PRACTICA"],default="TEORICA"); p.add_argument("--modelo-generacion",default=MODELO_DEFECTO); p.add_argument("--modelo-validacion",default=MODELO_DEFECTO); p.add_argument("--max-ejemplos",type=int,default=MAX_EJEMPLOS_DEFECTO); p.add_argument("--cantidad",type=int,default=1); p.add_argument("--listar-generaciones",action="store_true"); p.add_argument("--detalle",type=int); p.add_argument("--aprobar",type=int); p.add_argument("--retirar",type=int); p.add_argument("--exportar-csv",action="store_true"); p.add_argument("--rechazar",type=int); p.add_argument("--observaciones"); p.add_argument("--informe-huecos",action="store_true",help="Solo lectura: temas con pocas preguntas y referencias generables."); p.add_argument("--rellenar-huecos",action="store_true",help="Genera para referencias SIN pregunta en el banco, priorizando los temas con menos preguntas (admite --tema-id)."); return p
 
 def main() -> int:
     args=crear_parser().parse_args(); ruta_db=Path(args.db).resolve()
@@ -3186,18 +3395,41 @@ def main() -> int:
             listar_referencias(con,convocatoria_id)
             return 0
 
+        if args.informe_huecos:
+            informe_huecos(con, convocatoria_id)
+            return 0
+
         if args.max_ejemplos<=0 or args.cantidad<=0:
             print("ERROR: cantidades deben ser positivas.")
             return 1
 
+        preguntas_por_tema = None
         usar_modelo_examen = (
-            args.referencia_id is None
+            not args.rellenar_huecos
+            and args.referencia_id is None
             and args.tema_id is None
             and not args.todos_temas
             and args.tipo == "TEORICA"
         )
 
-        if args.referencia_id is not None:
+        if args.rellenar_huecos:
+            if args.referencia_id is not None or args.todos_temas:
+                print("ERROR: --rellenar-huecos solo admite --tema-id como filtro.")
+                return 1
+            contextos_aptos, resumen_huecos = obtener_referencias_huecos(
+                con, convocatoria_id, args.tema_id
+            )
+            if not contextos_aptos:
+                print("No hay referencias sin pregunta con fuente utilizable.")
+                return 0
+            preguntas_por_tema = preguntas_incluidas_por_tema(con, convocatoria_id)
+            temas_aptos = len({int(c.tema_id) for c in contextos_aptos})
+            ambito_texto = (
+                "huecos (referencias sin pregunta) · "
+                f"{resumen_huecos['sin_pregunta']} sin pregunta, "
+                f"{resumen_huecos['demasiado_largas']} omitidas por longitud"
+            )
+        elif args.referencia_id is not None:
             contextos_aptos = [
                 cargar_contexto(con, convocatoria_id, int(args.referencia_id))
             ]
@@ -3255,6 +3487,7 @@ def main() -> int:
             args.modelo_validacion,
             args.max_ejemplos,
             usar_modelo_examen=usar_modelo_examen,
+            preguntas_por_tema=preguntas_por_tema,
         )
 
     # La conexión maestra ya está cerrada. Una única operación común

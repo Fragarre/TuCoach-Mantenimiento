@@ -45,9 +45,10 @@ DB_DEFECTO = RAIZ / "db" / "oposiciones.sqlite3"
 GENERADOR = SCRIPTS / "generar_preguntas_juridicas_ia.py"
 REGISTROS = RAIZ / "registros"
 
-# Orden por defecto: de menor a mayor hueco. No incluye los bancos municipales
+# Orden por defecto: de menor a mayor hueco (A1-ADM antes que CCJJ: tras la
+# ejecución del 13/10 es la que conserva más huecos generables). No incluye los bancos municipales
 # Modelo de Examen-*-AYT (ids 4-7): su banco solo admite origen AYTO-examen.
-CONVOCATORIAS_DEFECTO = (2, 1, 8, 3)
+CONVOCATORIAS_DEFECTO = (2, 1, 3, 8)
 
 COSTE_ESTIMADO_POR_CANDIDATA_USD = 0.0045
 ES_CONTINUOUS = 0x80000000
@@ -243,6 +244,8 @@ def main() -> int:
     try:
         for cid, codigo, _ in plan:
             enviadas_conv = 0
+            sin_progreso = 0
+            restantes_previos: int | None = None
             registro.escribir(f"--- Convocatoria {cid} ({codigo}) ---")
             while True:
                 if (time.time() - inicio) / 3600 >= args.max_horas:
@@ -257,6 +260,14 @@ def main() -> int:
                 restantes, _ = generables(db, cid)
                 if restantes == 0:
                     registro.escribir(f"{codigo}: sin referencias generables pendientes.")
+                    break
+                # Una tanda que no evalúa nada y no reduce los huecos se repetiría
+                # indefinidamente (13/10/2026: 514 tandas sobre 1 referencia de CCJJ).
+                if restantes_previos is not None and restantes >= restantes_previos and sin_progreso >= 2:
+                    registro.escribir(
+                        f"{codigo}: {restantes} referencia(s) no generables tras "
+                        f"{sin_progreso} tandas sin progreso; se pasa a la siguiente convocatoria."
+                    )
                     break
                 cantidad = min(cantidad, restantes)
                 previsto = cantidad * COSTE_ESTIMADO_POR_CANDIDATA_USD
@@ -306,6 +317,11 @@ def main() -> int:
                 fallos_seguidos = 0
 
                 evaluadas = int(a["aprobadas"]) + int(a["rechazadas"])
+                if evaluadas == 0 and int(a["aprobadas"]) == 0:
+                    sin_progreso += 1
+                else:
+                    sin_progreso = 0
+                restantes_previos = restantes
                 if evaluadas >= 10 and int(a["rechazadas"]) / evaluadas > args.max_rechazo:
                     motivo_parada = (
                         f"tasa de rechazo anormal ({a['rechazadas']}/{evaluadas}) en {codigo}"

@@ -170,7 +170,7 @@ def main() -> int:
     catalogo = json.loads(MANIFIESTO.read_text(encoding="utf-8")) if MANIFIESTO.is_file() else []
     por_clave = {(x["codigo"], int(x["norma_id"])): x for x in catalogo}
     for norma_id, item in normas.items():
-        clave = (args.codigo, norma_id); archivo = f"{args.codigo}_{norma_id:04d}_{_slug(item['norma'])}_extracto.pdf"; destino = EXTRACTOS / archivo
+        clave = (args.codigo, norma_id); archivo = f"{args.codigo.replace(' ', '_')}_{norma_id:04d}_{_slug(item['norma'])}_extracto.pdf"; destino = EXTRACTOS / archivo
         actual = por_clave.get(clave)
         if actual and actual.get("hash") == item["hash"] and destino.is_file():
             print(f"SIN CAMBIOS: {archivo}"); continue

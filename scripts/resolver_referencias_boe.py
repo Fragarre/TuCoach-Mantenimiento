@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import shutil
 import sqlite3
 import sys
@@ -307,6 +308,10 @@ def cargar_referencias(
 
 def articulo_base(articulo_solicitado: str) -> str:
     valor = limpiar(articulo_solicitado).replace(",", ".")
+    # Numeración compuesta (Ley 20/2017 GVA: "1.3-1") no se trunca a "1".
+    compuesto = re.match(r"^(\d+\.\d+-\d+)(?=$|[.\s])", valor)
+    if compuesto:
+        return compuesto.group(1)
     return valor.split(".", 1)[0]
 
 

@@ -588,6 +588,46 @@ def normalizar_articulo(articulo: str) -> str:
 
     return resultado
 
+# Solo para diagnóstico/reparación: reproduce la detección anterior a la
+# corrección de remisiones (scripts/reparar_corpus_pdf_local.py).
+_ENCABEZADOS_LEGADO = False
+
+
+# Inicio de la parte final de la norma (encabezado con mayúscula a inicio de
+# línea). Delimita el último artículo y las entradas del índice.
+_FIN_ARTICULADO = re.compile(
+    r"(?m)^[ \t]*(?:"
+    r"Disposici[o\u00f3]n(?:es)?[ \t]+(?:adicional|transitoria|derogatoria|final)(?:es)?\b"
+    r"|DISPOSICI[O\u00d3]N(?:ES)?[ \t]+(?:ADICIONAL|TRANSITORIA|DEROGATORIA|FINAL)(?:ES)?\b"
+    r"|DISPOSICIONES[ \t]*$"
+    r"|ANEXO\b|Anexo[ \t]+(?:[IVXLC]+|\d+|\u00fanico)\b"
+    r")"
+)
+
+
+def _es_remision_en_linea(bruto: str, resto: str) -> bool:
+    """
+    Distingue un encabezado real de una remisión partida al inicio de línea.
+
+    Encabezados válidos: "Artículo 2", "Artículo 2. Ámbito", "ARTÍCULO 5.- Objeto",
+    "Artículo 1.3-1. Hecho imponible".
+    Remisiones: "Artículo 10 del Decreto 42/2019...", "Artículo 55 o 56, o por...",
+    "Artículo 17, apartado 4, ...", "Artículo 32.c de esta ley...".
+    """
+    m = re.match(
+        r"^\d+(?:\.\d+-\d+|\.\d+)?(?:\s+(?:bis|ter|quater))?",
+        bruto,
+        flags=re.I,
+    )
+    if not m:
+        return False
+    cola = bruto[m.end():].lstrip()
+    if cola:
+        return cola[0] in ",;:)" or cola[0].islower()
+    resto = (resto or "").lstrip(" .-–")
+    return bool(resto) and resto[0].islower()
+
+
 def _encabezados(
     texto: str,
     *,
@@ -602,13 +642,25 @@ def _encabezados(
         # como carácter de sustitución durante la extracción. Se acepta esa
         # variante exclusivamente en el encabezado para no perder artículos
         # presentes y legibles en el documento original.
+        # El encabezado real empieza con mayúscula ("Artículo"/"ARTÍCULO").
+        # Una remisión que el PDF parte al inicio de línea ("artículo 10 del
+        # Decreto 42/2019...") empieza en minúscula y NO debe abrir bloque:
+        # si lo hace, sustituye el texto del artículo real y trunca el anterior.
         patron = re.compile(
             r"(?im)^[ \t]*art[i\u00ed\ufffd]culo[ \t]+([^\n.]+(?:\.[0-9]+(?:-[0-9]+)?)?)[ \t]*\.?[ \t]*([^\n]*)$"
+        ) if _ENCABEZADOS_LEGADO else re.compile(
+            r"(?m)^[ \t]*(?:Art[i\u00ed\ufffd]culo|ART[I\u00cd\ufffd]CULO)[ \t]+([^\n.]+(?:\.[0-9]+(?:-[0-9]+)?)?)[ \t]*\.?[ \t]*([^\n]*)$"
         )
 
     salida: list[tuple[int, int, str, str]] = []
     for m in patron.finditer(texto):
         bruto = m.group(1).strip()
+        if (
+            not doctrinal
+            and not _ENCABEZADOS_LEGADO
+            and _es_remision_en_linea(bruto, m.group(2))
+        ):
+            continue
         # Numérico, eventualmente 4.3.
         num = None
 
@@ -673,6 +725,11 @@ def _bloque_articulo(
     for posicion, _, _, titulo in candidatos:
         siguientes = [h for h in encabezados if h[0] > posicion]
         fin_bloque = siguientes[0][0] if siguientes else len(texto)
+        if not es_gen and not _ENCABEZADOS_LEGADO:
+            # El último artículo no debe absorber disposiciones ni anexos.
+            cierre = _FIN_ARTICULADO.search(texto, posicion + 1, fin_bloque)
+            if cierre:
+                fin_bloque = cierre.start()
         bloque = limpiar_texto(texto[posicion:fin_bloque])
         opciones.append((len(normalizar(bloque)), titulo, bloque))
 

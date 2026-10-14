@@ -20,6 +20,8 @@ Comprueba:
 9. auditar_bancos_seleccion.py contra el constructor vigente.
 10. Modelos de examen configurados (si existe la nueva tabla).
 11. auditar_bd.py.
+12. Corpus IA de temarios (solo AVISO): referencias no completadas, textos
+    que son remisiones y numeración compuesta mal enlazada.
 
 No usa --guardar ni modifica tablas.
 """
@@ -447,6 +449,51 @@ def validar_constructor(convocatoria_id: int, codigo: str) -> tuple[bool, str]:
     return True, "0 incidencias y 0 nuevas"
 
 
+def avisos_corpus_temarios() -> dict[str, int]:
+    """Comprobaciones offline del corpus IA de los temarios (solo AVISO).
+
+    - referencias del temario que no están COMPLETADAS;
+    - textos enlazados que empiezan por "artículo" en minúscula: proceden de
+      una remisión tomada como encabezado (texto de otro artículo);
+    - numeración compuesta (1.3-1) enlazada a un bloque de otro artículo.
+    """
+    with sqlite3.connect(f"file:{RUTA_DB.as_posix()}?mode=ro", uri=True) as con:
+        no_completadas = con.execute(
+            "SELECT COUNT(*) FROM temario_referencias "
+            "WHERE COALESCE(estado,'') <> 'COMPLETADO'"
+        ).fetchone()[0]
+        textos = con.execute(
+            """
+            SELECT DISTINCT af.id, af.texto
+            FROM temario_referencias tr
+            JOIN articulos_fuente af ON af.id = tr.articulo_fuente_id
+            """
+        ).fetchall()
+        remisiones = sum(
+            1 for _, texto in textos
+            if re.match(r"art[ií]culo\b", str(texto or "").lstrip())
+        )
+        compuestas = 0
+        for solicitado, titulo in con.execute(
+            """
+            SELECT tr.articulo_solicitado, af.titulo_bloque
+            FROM temario_referencias tr
+            JOIN articulos_fuente af ON af.id = tr.articulo_fuente_id
+            """
+        ):
+            m = re.match(r"^\s*(\d+\.\d+-\d+)", str(solicitado or ""))
+            if m and not re.match(
+                rf"^\s*Art[ií]culo\s+{re.escape(m.group(1))}(?:$|[.\s])",
+                str(titulo or ""),
+            ):
+                compuestas += 1
+    return {
+        "no_completadas": int(no_completadas),
+        "remisiones": remisiones,
+        "compuestas": compuestas,
+    }
+
+
 def main() -> int:
     inicio = datetime.now()
     RUTA_LOG.parent.mkdir(parents=True, exist_ok=True)
@@ -502,6 +549,17 @@ def main() -> int:
     print("    Norma/artículo..................... no aplicable")
     if not ok_sqlite:
         fallos += 1
+
+    try:
+        corpus = avisos_corpus_temarios()
+        print("\nCorpus IA de temarios (AVISO, no bloquea):")
+        print(f"  Referencias no completadas.......... {corpus['no_completadas']}")
+        print(f"  Textos que son remisiones........... {corpus['remisiones']}")
+        print(f"  Numeración 1.x-y mal enlazada....... {corpus['compuestas']}")
+        if corpus["remisiones"] or corpus["compuestas"]:
+            print("  -> python scripts/reparar_corpus_pdf_local.py (vista previa)")
+    except sqlite3.Error as exc:
+        print(f"\nCorpus IA de temarios (AVISO).......... no evaluable: {exc}")
 
     print("\nConstructores en modo revisión:")
     convocatorias = obtener_convocatorias()

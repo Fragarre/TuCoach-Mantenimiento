@@ -45,6 +45,7 @@ import csv
 import json
 import shutil
 import sqlite3
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -345,6 +346,11 @@ def estados_a_procesar(
     return estados
 
 
+# El proceso hijo escribe en UTF-8 para que la lectura en UTF-8 no muestre
+# "art\ufffdculo" en consolas Windows (cp1252).
+_ENTORNO_UTF8 = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+
+
 def ejecutar_resolvedor(
     python: str,
     resolvedor: Path,
@@ -369,6 +375,7 @@ def ejecutar_resolvedor(
         encoding="utf-8",
         errors="replace",
         check=False,
+        env=_ENTORNO_UTF8,
     )
 
 
@@ -403,6 +410,7 @@ def ejecutar_resolvedor_temario(
         encoding="utf-8",
         errors="replace",
         bufsize=1,
+        env=_ENTORNO_UTF8,
     )
     salida: list[str] = []
     assert proceso.stdout is not None

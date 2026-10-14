@@ -192,12 +192,21 @@ def clasificar_documentos(ids: list[str]) -> tuple[list[str], list[str], list[st
     return boe, dogv, doue, desconocidos
 
 
+# Fuentes de la BD cuyo PDF está inventariado con otro identificador
+# (mismo documento físico). Se lee el PDF del alias y se completa la fuente BD.
+ALIAS_PDF = {
+    "LOCAL-PDF-REGLAMENTO-UE-2016-679": "DOUE-CELEX-32016R0679",
+    "LOCAL-PDF-REAL-DECRETO-500-1990-DE-20-DE-ABRIL": "BOE-A-1990-9664",
+}
+
+
 def ejecutar_pdf_local(db: Path, id_fuente: str, aplicar: bool) -> int:
     cmd = [
         sys.executable,
         str(SCRIPTS / "ampliar_corpus_pdf_local.py"),
         "--db", str(db),
-        "--id-fuente", id_fuente,
+        "--id-fuente", ALIAS_PDF.get(id_fuente, id_fuente),
+        "--id-fuente-destino", id_fuente,
     ]
     if aplicar:
         cmd.append("--aplicar")
@@ -393,6 +402,10 @@ def main() -> int:
         print("Añada esos PDF completos a fuentes_normativas/ y vuelva a ejecutar.")
     else:
         print("Documentos completos pendientes para RAG: 0")
+    # En modo plan se devuelve 0 para que el menú pueda ofrecer la aplicación.
+    # Tras aplicar, un resultado parcial no debe anunciarse como correcto.
+    if args.aplicar and not (ia_completo and not faltantes_rag):
+        return 3
     return 0
 
 

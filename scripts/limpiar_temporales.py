@@ -5,7 +5,8 @@ Por defecto SOLO muestra una propuesta de limpieza. Para ejecutar borrados o
 recortes se exige --aplicar.
 
 Principios:
-- nunca toca ninguna base de datos ni las carpetas de entrada data_*;
+- nunca toca la base maestra (db/oposiciones.sqlite3) ni las carpetas de
+  entrada data_*; solo copias de seguridad antiguas, conservando las últimas;
 - conserva los registros acumulativos de valor operativo (por ejemplo coste_ia.csv);
 - conserva un pequeño conjunto de auditorías, backups y publicaciones recientes;
 - elimina historiales de trabajo antiguos y artefactos regenerables;
@@ -88,7 +89,7 @@ def _mtime(ruta: Path) -> float | None:
 
 def _familia_nombre(nombre: str) -> str:
     """Quita una marca temporal final YYYYMMDD_HHMMSS/HHMM para agrupar."""
-    base = re.sub(r"[_-]\d{8}_\d{6}(?=\.|$)", "", nombre)
+    base = re.sub(r"[_-]\d{8}_\d{4}(?:\d{2})?(?=\.|$)", "", nombre)
     base = re.sub(r"[_-]\d{8}(?=\.|$)", "", base)
     return base
 
@@ -176,6 +177,51 @@ def candidatos_backups(
         for c in candidatos
         if not c.ruta.name.startswith("oposiciones_backup_unico_")
     ]
+
+
+# Copias automáticas que varios scripts escriben JUNTO a la base maestra
+# (db.with_name(...)), no en db/copias_seguridad/. Sin esta regla nunca se
+# limpiaban: cada sincronización de bancos deja una copia completa por
+# convocatoria.
+PATRON_BACKUP_JUNTO_A_BD = re.compile(
+    r"^oposiciones_(?:backup|antes)_.+\.sqlite3$"
+)
+
+
+def candidatos_backups_junto_bd(
+    dias: int = 14,
+    conservar_ultimos_por_familia: int = 2,
+) -> list[Candidato]:
+    carpeta = RAIZ / "db"
+    if not carpeta.is_dir():
+        return []
+    maestra = (carpeta / "oposiciones.sqlite3").resolve()
+    entradas = [
+        p for p in carpeta.iterdir()
+        if p.is_file()
+        and PATRON_BACKUP_JUNTO_A_BD.match(p.name)
+        and p.resolve() != maestra
+        and _mtime(p) is not None
+    ]
+    entradas.sort(key=lambda p: _mtime(p) or 0, reverse=True)
+    grupos: dict[str, list[Path]] = {}
+    for p in entradas:
+        grupos.setdefault(_familia_nombre(p.name), []).append(p)
+    limite = _ahora() - dias * 86400
+    resultado: list[Candidato] = []
+    for grupo in grupos.values():
+        for p in grupo[conservar_ultimos_por_familia:]:
+            m = _mtime(p)
+            if m is not None and m < limite:
+                resultado.append(
+                    Candidato(
+                        p,
+                        f"copia junto a la BD > {dias} días; se conservan "
+                        f"{conservar_ultimos_por_familia} por familia",
+                        _tamano(p),
+                    )
+                )
+    return resultado
 
 
 def candidatos_publicaciones_web(
@@ -375,6 +421,7 @@ def main() -> int:
     candidatos = (
         candidatos_auditorias(args.dias_auditorias, args.conservar_auditorias)
         + candidatos_backups(args.dias_backups, args.conservar_backups)
+        + candidatos_backups_junto_bd(args.dias_backups, args.conservar_backups)
         + candidatos_publicaciones_web(args.dias_publicaciones, args.conservar_publicaciones)
         + candidatos_cache_boe(args.dias_cache_boe)
         + candidatos_logs_rotados(args.dias_logs_rotados)

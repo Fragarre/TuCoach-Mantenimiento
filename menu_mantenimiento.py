@@ -552,8 +552,9 @@ def construir_corpus() -> None:
     if opcion == "2":
         argumentos.append("--aplicar")
         print(
-            "\nSe construirá primero el corpus IA. Solo si queda completo se ampliarán "
-            "las normas del RAG correspondientes exclusivamente a esta convocatoria."
+            "\nSe construirá primero el corpus IA y después se ampliarán las normas "
+            "del RAG de esta convocatoria con todo lo que ya esté resuelto. Si algo "
+            "queda pendiente, el resultado se mostrará como PARCIAL."
         )
         if not pedir_si_no("¿Continuar con la construcción de ambos corpus?"):
             pausa()

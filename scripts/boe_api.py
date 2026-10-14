@@ -966,13 +966,15 @@ def extraer_articulo_desde_html(
         re.escape(variante) for variante in sorted(variantes, key=len, reverse=True)
     )
     patron_inicio = re.compile(
-        rf"(?im)^(?:art[ií]culo|art\.?)\s*(?:{alternativas})"
+        # Solo encabezados con mayúscula: una remisión que empieza un párrafo
+        # ("artículo 10 del Decreto...") no es el artículo 10 de esta norma.
+        rf"(?im)^(?-i:Art[ií]culo|ART[IÍ]CULO|Art\.?)\s*(?:{alternativas})"
         rf"(?=\.|\s|$)\.?\s*(.*)$"
     )
     patron_siguiente = re.compile(
         r"(?im)^(?:"
-        r"(?:art[ií]culo|art\.?)\s*"
-        r"(?:\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
+        r"(?-i:Art[ií]culo|ART[IÍ]CULO|Art\.?)\s*"
+        r"(?:\d+(?:\.\d+)*(?:-\d+)?(?:\s+(?:bis|ter|quater|quinquies|"
         r"sexies|septies|octies|nonies|decies))?|[uú]nico)"
         r"(?=\.|\s|$)"
         r"|disposici[oó]n\s+(?:adicional|transitoria|derogatoria|final)\b"
@@ -1014,6 +1016,22 @@ def extraer_articulo_desde_html(
     # evita capturar accidentalmente texto posterior al artículo solicitado.
     candidatos_suficientes.sort(key=lambda item: len(item[2]))
     return candidatos_suficientes[0]
+
+
+def base_articulo(articulo: str) -> str:
+    """
+    Número de artículo sin apartados.
+
+    "23.2" -> "23" y "149.1.18" -> "149", pero conserva la numeración
+    compuesta de algunas leyes valencianas: "1.3-1" -> "1.3-1" y
+    "1.3-1.2" -> "1.3-1". Antes se truncaba a "1" y todas las
+    referencias "1.x-y" se resolvían contra un mismo bloque.
+    """
+    valor = normalizar_numero_articulo(articulo)
+    compuesto = re.match(r"^(\d+\.\d+-\d+)(?=$|[.\s])", valor)
+    if compuesto:
+        return compuesto.group(1)
+    return valor.split(".", 1)[0]
 
 
 def normalizar_numero_articulo(articulo: str) -> str:
@@ -1068,7 +1086,7 @@ def encabezado_articulo(texto: str) -> tuple[str, str]:
     texto = limpiar(texto)
     m = re.match(
         r"^articulo\s+("
-        r"(?:\d+(?:\.\d+)*(?:\s+(?:bis|ter|quater|quinquies|"
+        r"(?:\d+(?:\.\d+)*(?:-\d+)?(?:\s+(?:bis|ter|quater|quinquies|"
         r"sexies|septies|octies|nonies|decies))?)"
         r"|unico"
         r")(?:\.|\s|$)\s*(.*)$",
@@ -1181,7 +1199,7 @@ def obtener_articulo(nombre_norma: str, articulo: str) -> ArticuloBOE:
     """
     norma = buscar_norma(nombre_norma)
     solicitado = limpiar(articulo).replace(",", ".")
-    base = normalizar_numero_articulo(solicitado).split(".", 1)[0]
+    base = base_articulo(solicitado)
 
     if not base:
         raise BOEError(f"Número de artículo no válido: {articulo}")

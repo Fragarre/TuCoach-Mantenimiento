@@ -203,6 +203,7 @@ def llamar_responses(
     operacion="general",
     formato_texto=None,
     max_output_tokens=4096,
+    razonamiento=None,
 ):
     if modelo not in PRECIOS:
         raise ValueError(
@@ -225,6 +226,11 @@ def llamar_responses(
         parametros["text"] = {
             "format": formato_texto,
         }
+
+    # Opcional: esfuerzo de razonamiento ("minimal", "low", "medium", "high")
+    # para modelos de razonamiento. Sin valor, la llamada es idéntica a la de siempre.
+    if razonamiento is not None:
+        parametros["reasoning"] = {"effort": razonamiento}
 
     respuesta = cliente.responses.create(**parametros)
 
@@ -299,6 +305,7 @@ def seleccionar_fragmento_json(
     modelo="gpt-5.4-nano",
     operacion="general",
     max_output_tokens=4096,
+    razonamiento=None,
 ):
     """
     Ejecuta una llamada en modo JSON y convierte la respuesta.
@@ -314,6 +321,7 @@ def seleccionar_fragmento_json(
             "type": "json_object",
         },
         max_output_tokens=max_output_tokens,
+        razonamiento=razonamiento,
     )
 
     if (

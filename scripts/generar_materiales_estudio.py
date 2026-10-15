@@ -81,9 +81,9 @@ def _validar_rag_existente(
     """
     tipo = _clasificar_fuente(id_fuente)
 
-    # Si el BOE no ofrece índice consolidado pero hay un PDF oficial local
+    # Si el BOE/DOUE no ofrece índice consolidado pero hay un PDF oficial local
     # con la misma identidad, el validador PDF es el respaldo trazable.
-    if tipo == "BOE":
+    if tipo in ("BOE", "DOUE"):
         try:
             from pdf_normas import buscar_norma_por_id
             buscar_norma_por_id(id_fuente)
@@ -857,7 +857,7 @@ def _extraer_y_validar_hechos_sin_fallback(
         # La revisión sólo devuelve un booleano y una lista breve de errores.
         # Limitar su salida evita pagar una explicación extensa sin reducir la
         # fuente revisada ni la independencia de la comprobación jurídica.
-        max_output_tokens=1536,
+        max_output_tokens=4096,
     )
 
     errores_revision = _errores(revision)
@@ -878,7 +878,7 @@ def _extraer_y_validar_hechos_sin_fallback(
         _prompt_validar_hechos(norma, bloque, propuesta2),
         modelo_validacion,
         "material_estudio_revalidar_hechos",
-        max_output_tokens=1536,
+        max_output_tokens=4096,
     )
     errores_revision2 = _errores(revision2)
     if revision2.get("valido") is not True and errores_revision2:
@@ -897,7 +897,7 @@ def _extraer_y_validar_hechos_sin_fallback(
             _prompt_validar_hechos(norma, bloque, propuesta3),
             modelo_validacion,
             "material_estudio_rerevalidar_hechos",
-            max_output_tokens=1536,
+            max_output_tokens=4096,
         )
         errores_revision3 = _errores(revision3)
         if revision3.get("valido") is not True and errores_revision3:
@@ -1002,6 +1002,8 @@ def _fragmentar_fila_sobredimensionada(
         re.compile(r"(?<![\d.])(?=[1-9]\d{0,2}\.\s+[A-ZÁÉÍÓÚÜÑ])"),
         re.compile(r"\s+(?=\d{1,3}\)\s+[«\"A-ZÁÉÍÓÚÜÑ])"),
         re.compile(r"\s+(?=[a-zñ]\)\s+[«\"A-ZÁÉÍÓÚÜÑ])"),
+        # Letras de enumeración seguidas de minúscula (p. ej. RGPD art. 70: "a) supervisar...").
+        re.compile(r"(?<=[;:.])\s+(?=[a-zñ]\)\s+[a-zñáéíóú])"),
         re.compile(r"(?<=[.])\s+(?=[A-ZÁÉÍÓÚÜÑ])"),
         re.compile(r"(?<=[;])\s+(?=[A-ZÁÉÍÓÚÜÑ])"),
     )

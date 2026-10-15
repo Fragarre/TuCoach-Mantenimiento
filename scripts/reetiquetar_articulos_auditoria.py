@@ -6,6 +6,8 @@ Uso:
 
 Cada caso: {pregunta_id, norma_id, articulo_anterior, articulo_nuevo, motivo}.
 Solo cambia el artículo dentro de la MISMA norma (no cambia la norma).
+Opcional por caso: enunciado_anterior + enunciado_nuevo, para corregir el número de
+artículo citado en el propio enunciado (se verifica que el enunciado no haya cambiado).
 
 Sin ``--aplicar``: solo lectura. Muestra los casos y el impacto previsible en los
 bancos (cuántas preguntas quedarían dentro/fuera del temario de sus convocatorias).
@@ -63,11 +65,14 @@ def cargar(ruta: Path) -> tuple[dict, list[dict]]:
             raise SystemExit(f"ERROR: ID duplicado {pid}.")
         vistos.add(pid)
         nuevo = str(c["articulo_nuevo"]).strip()
-        if not nuevo or base(nuevo) == base(c.get("articulo_anterior")):
+        if not nuevo or (base(nuevo) == base(c.get("articulo_anterior"))
+                         and c.get("enunciado_nuevo") is None):
             raise SystemExit(f"ERROR: artículo nuevo no válido en {pid}.")
         casos.append({"pregunta_id": pid, "norma_id": int(c["norma_id"]),
                       "articulo_anterior": c.get("articulo_anterior"),
-                      "articulo_nuevo": nuevo, "motivo": str(c.get("motivo") or "")})
+                      "articulo_nuevo": nuevo, "motivo": str(c.get("motivo") or ""),
+                      "enunciado_anterior": c.get("enunciado_anterior"),
+                      "enunciado_nuevo": c.get("enunciado_nuevo")})
     if not casos:
         raise SystemExit("ERROR: el fichero no contiene casos.")
     return doc, casos
@@ -88,10 +93,16 @@ def inspeccionar(db: Path, casos: list[dict]) -> dict:
             if int(fila[0] or 0) != c["norma_id"]:
                 incid.append((c["pregunta_id"], "cambió de norma"))
                 continue
+            if c.get("enunciado_nuevo") is not None:
+                enun = con.execute("SELECT enunciado FROM lote_preguntas WHERE id=?",
+                                   (c["pregunta_id"],)).fetchone()[0]
+                if enun != c.get("enunciado_anterior"):
+                    incid.append((c["pregunta_id"], "el enunciado cambió desde la propuesta"))
+                    continue
             if (fila[1] or None) != (c["articulo_anterior"] or None):
                 incid.append((c["pregunta_id"], f"artículo actual {fila[1]!r} distinto"))
                 continue
-            existe = any(
+            existe = base(c["articulo_nuevo"]) == base(c["articulo_anterior"]) or any(
                 base(a) == base(c["articulo_nuevo"])
                 for (a,) in con.execute(
                     "SELECT af.articulo_boe FROM articulos_fuente af JOIN norma_fuentes nf "
@@ -147,7 +158,8 @@ def main() -> int:
         print(f"   {pid}: {msg}")
     print()
     for c in casos[:12]:
-        print(f"  {c['pregunta_id']:>6}  art {c['articulo_anterior']} -> {c['articulo_nuevo']}")
+        print(f"  {c['pregunta_id']:>6}  art {c['articulo_anterior']} -> {c['articulo_nuevo']}"
+              + ("  (+ corrige el número de artículo en el enunciado)" if c.get("enunciado_nuevo") else ""))
     if len(casos) > 12:
         print(f"  ... y {len(casos) - 12} más")
 
@@ -179,6 +191,12 @@ def main() -> int:
                  c["norma_id"], c["articulo_anterior"]))
             if cur.rowcount != 1:
                 raise RuntimeError(f"No se pudo actualizar {c['pregunta_id']}.")
+            if c.get("enunciado_nuevo") is not None:
+                cur = con.execute(
+                    "UPDATE lote_preguntas SET enunciado=? WHERE id=? AND enunciado=?",
+                    (c["enunciado_nuevo"], c["pregunta_id"], c["enunciado_anterior"]))
+                if cur.rowcount != 1:
+                    raise RuntimeError(f"No se pudo corregir el enunciado de {c['pregunta_id']}.")
         con.commit()
     except Exception as exc:
         con.rollback()
@@ -196,7 +214,8 @@ def main() -> int:
                         "articulo_nuevo", "motivo", "backup"])
         for c in casos:
             w.writerow([ahora, c["pregunta_id"], c["norma_id"], c["articulo_anterior"],
-                        c["articulo_nuevo"], c["motivo"], backup.name])
+                        c["articulo_nuevo"], c["motivo"] + (" | enunciado corregido" if c.get("enunciado_nuevo") else ""),
+                        backup.name])
     print(f"\nAPLICADO: {len(casos)} preguntas reetiquetadas.")
     print(f"Copia de seguridad: {backup}")
     print("Siguiente: sincronizar bancos (menú 3 → 1) y publicar (menú 5).")

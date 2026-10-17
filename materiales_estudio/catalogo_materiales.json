@@ -18,7 +18,7 @@
     "norma_id": 7,
     "norma": "Decreto 30/2025, de 25 de febrero",
     "archivo": "0007_DECRETO_30_2025.pdf",
-    "hash_corpus": "b961849187fd46d0488839c14bd464a3cfd0d9a2a5d1dee63e99d0024f493200",
+    "hash_corpus": "7d207ba6e4e95c504d13ca13b46d4fb60cfca2377e974ca626603ae1d902c7d3",
     "fuente_canonica_inicial": "DOGV-2025-3226",
     "filas_corpus_inicial": 46,
     "fecha_inicializacion": "2026-08-25",
@@ -27,13 +27,13 @@
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-26T11:33:34"
+    "fecha_actualizacion": "2026-10-14T22:28:09"
   },
   {
     "norma_id": 10,
     "norma": "Decreto 42/2019, de 22 de marzo",
     "archivo": "0010_DECRETO_42_2019.pdf",
-    "hash_corpus": "1c9cdbf4b5dea27de05461ab27f081a59fecef52eee9d500af08fc493528dc6a",
+    "hash_corpus": "51b72c44e925108edab487cd2b81677af7a5cc83f777d4ed889a5e6fe51a2893",
     "fuente_canonica_inicial": "LOCAL-DOGV-DECRETO-42-2019",
     "filas_corpus_inicial": 54,
     "fecha_inicializacion": "2026-08-25",
@@ -42,13 +42,13 @@
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-21T23:29:45"
+    "fecha_actualizacion": "2026-10-14T22:33:13"
   },
   {
     "norma_id": 12,
     "norma": "Decreto 54/2025, de 15 de abril, del Consell, de simplificación administrativa y transformación digital",
     "archivo": "0012_DECRETO_54_2025.pdf",
-    "hash_corpus": "c7bbfd51e56e2bfbb47c8ae1b300f4d46bb1a1e4be4447539ff32acfcf07206b",
+    "hash_corpus": "bb35a484f942baa80d40377ae89e04bf4daafc34fe48d5ab4e0a12c6d825cdca",
     "fuente_canonica_inicial": "LOCAL-DOGV-DECRETO-54-2025",
     "filas_corpus_inicial": 62,
     "fecha_inicializacion": "2026-08-25",
@@ -57,7 +57,7 @@
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-22T12:05:06"
+    "fecha_actualizacion": "2026-10-14T22:39:08"
   },
   {
     "norma_id": 13,
@@ -78,7 +78,7 @@
     "norma_id": 14,
     "norma": "DECRETO 77/2019",
     "archivo": "0014_DECRETO_77_2019.pdf",
-    "hash_corpus": "97c309d9ec2b413f70b9e20a1ea70e7d36c91a11126260ab22526ad19a32f478",
+    "hash_corpus": "0baf61f4150a7a3289a678f9681b77471ec417320a6bee27ecfa01cfb9f709b8",
     "fuente_canonica_inicial": "DOGV-CONSOLIDADO-D-2019-077",
     "filas_corpus_inicial": 41,
     "fecha_inicializacion": "2026-08-25",
@@ -87,7 +87,7 @@
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-23T16:47:11"
+    "fecha_actualizacion": "2026-10-14T22:44:57"
   },
   {
     "norma_id": 20,
@@ -183,7 +183,7 @@
     "norma_id": 10145,
     "norma": "Ley 4/2026, de 22 de julio",
     "archivo": "10145_ley_4_2026_de_22_de_julio.pdf",
-    "hash_corpus": "6f61c39804d01b9fe5bd96fe4173be1a129c6113bbc8f7c4e74a0f36979b603a",
+    "hash_corpus": "2362ad0ef0e00968e202dd5cd23ace661b37bd363247322aea5efa05fe9fb965",
     "fuente_canonica_inicial": "LOCAL-DOGV-LEY-4-2026",
     "filas_corpus_inicial": 59,
     "fecha_inicializacion": "2026-08-25",
@@ -192,7 +192,7 @@
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T12:59:12"
+    "fecha_actualizacion": "2026-10-15T10:40:23"
   },
   {
     "norma_id": 45,
@@ -378,22 +378,22 @@
     "norma_id": 73,
     "norma": "Ley Orgánica 5/1982, de 1 de julio, de Estatuto de Autonomía de la Comunitat Valenciana",
     "archivo": "0073_LEY_ORGANICA_5_1982.pdf",
-    "hash_corpus": "81f0a55f74613b4b5f23e1ebe8ecfcc7ce9edbe05184cf3dfb9ec83e51f6ac30",
+    "hash_corpus": "d7a921220ca14685d683fdeb62e094bc5354e11cb4d8472e1d90e820b36c091c",
     "fuente_canonica_inicial": "BOE-A-1982-17235",
     "filas_corpus_inicial": 139,
     "fecha_inicializacion": "2026-08-25",
     "fuente_canonica_actual": "BOE-A-1982-17235",
-    "articulos_corpus_actual": 81,
+    "articulos_corpus_actual": 106,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-22T13:46:45"
+    "fecha_actualizacion": "2026-10-15T11:10:49"
   },
   {
     "norma_id": 1281,
     "norma": "orden 19 2013 de 3 de diciembre",
     "archivo": "1281_orden_19_2013_de_3_de_diciembre.pdf",
-    "hash_corpus": "b20e4214e5fdd6f0b5f80253f22b47a19f48ee4aafd7aa23ced7fbb48d805c23",
+    "hash_corpus": "11970f000d52bf819cf7d4d3951667affff7983ea593faa4f1483d1ee1538805",
     "fuente_canonica_inicial": "LOCAL-DOGV-ORDEN-19-2013",
     "filas_corpus_inicial": 23,
     "fecha_inicializacion": "2026-08-25",
@@ -402,7 +402,7 @@
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T17:30:09"
+    "fecha_actualizacion": "2026-10-15T11:22:23"
   },
   {
     "norma_id": 80,
@@ -501,25 +501,25 @@
     "norma_id": 70,
     "norma": "Ley Orgánica 3/1981, de 6 de abril, del Defensor del Pueblo",
     "archivo": "0070_Ley_Org_nica_3_1981_de_6_de_abril_del_Defensor_del_Pueblo.pdf",
-    "hash_corpus": "9f45b00f9b99d68281bc7cd506a6c82168c9b5275e91a68996959d2de454c215",
+    "hash_corpus": "c3bf4c8ee5b9e0eb3ec5cb9679a4dacb2362de034035cc46bdf7fc7efd855e93",
     "fuente_canonica_actual": "BOE-A-1981-10325",
     "articulos_corpus_actual": 33,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T16:30:16"
+    "fecha_actualizacion": "2026-10-15T11:04:34"
   },
   {
     "norma_id": 75,
     "norma": "Ley Orgánica 8/1980, de 22 de septiembre, de Financiación de las Comunidades Autónomas",
     "archivo": "0075_Ley_Org_nica_8_1980_de_22_de_septiembre_de_Financiaci_n_de_las_Comunidades_Aut_nomas.pdf",
-    "hash_corpus": "95fbad2094ccfc3a78466aa254f09ec8c3033b1dc13d8d4c1c64364ba14654df",
+    "hash_corpus": "476e365ef87baff43dc193ff4cb9fa8550456e2c96233c301b8507508c69663b",
     "fuente_canonica_actual": "BOE-A-1980-21166",
     "articulos_corpus_actual": 22,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T17:07:25"
+    "fecha_actualizacion": "2026-10-15T11:21:09"
   },
   {
     "norma_id": 249,
@@ -669,13 +669,13 @@
     "norma_id": 35,
     "norma": "Ley 20/2017, de 28 de diciembre, de tasas",
     "archivo": "0035_Ley_20_2017_de_28_de_diciembre_de_tasas.pdf",
-    "hash_corpus": "51ca68cfebfd054050a4d869b7b70df9f9859deeff55c4c3ef6bc8db35a78a86",
+    "hash_corpus": "e03c227fb6d3627ca9d88ac3434f6ef2b413eb73a320f3b50d51be89b339bd12",
     "fuente_canonica_actual": "BOE-A-2018-1870",
-    "articulos_corpus_actual": 1,
+    "articulos_corpus_actual": 25,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T00:53:08"
+    "fecha_actualizacion": "2026-10-15T12:56:16"
   },
   {
     "norma_id": 36,
@@ -705,25 +705,25 @@
     "norma_id": 39,
     "norma": "Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa",
     "archivo": "0039_Ley_29_1998_de_13_de_julio_reguladora_de_la_Jurisdicci_n_Contencioso_administrativa.pdf",
-    "hash_corpus": "41dae8fac8e97c7af1a3114c3bc0dbf1f89e609f1e0fdfd503bddaa41d240fa2",
+    "hash_corpus": "fa9625d702c9266c462cb255d6677c4a701ecd3df0419c127f0b83a2e6c8545f",
     "fuente_canonica_actual": "BOE-A-1998-16718",
-    "articulos_corpus_actual": 53,
+    "articulos_corpus_actual": 126,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T12:18:06"
+    "fecha_actualizacion": "2026-10-15T10:23:25"
   },
   {
     "norma_id": 40,
     "norma": "Ley 3/2019, de 18 de febrero, de servicios sociales inclusivos de la Comunitat Valenciana",
     "archivo": "0040_Ley_3_2019_de_18_de_febrero_de_servicios_sociales_inclusivos_de_la_Comunitat_Valenciana.pdf",
-    "hash_corpus": "ecc28faab93334a807d889f5997c68906a6273e566b780f1c354afac3162b24a",
+    "hash_corpus": "149b7eec7a96471966f0bee6b59aee15d147ca54ff5738df4787b7c378beb238",
     "fuente_canonica_actual": "BOE-A-2019-3489",
-    "articulos_corpus_actual": 7,
+    "articulos_corpus_actual": 21,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T12:20:06"
+    "fecha_actualizacion": "2026-10-15T10:25:50"
   },
   {
     "norma_id": 2042,
@@ -741,37 +741,37 @@
     "norma_id": 2125,
     "norma": "Carta de los Derechos Fundamentales de la Unión Europea",
     "archivo": "2125_Carta_de_los_Derechos_Fundamentales_de_la_Uni_n_Europea.pdf",
-    "hash_corpus": "46d57131dd99fe545df15b60031248431772f69815411c6d3812916d2a5a6fd7",
+    "hash_corpus": "81e4bae5c33f80af15b6ec6bbbe89cc291c873e8f7601039fccdc354121d03d7",
     "fuente_canonica_actual": "DOUE-C-2010-083-CARTA",
     "articulos_corpus_actual": 8,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T10:51:01"
+    "fecha_actualizacion": "2026-10-15T18:29:19"
   },
   {
     "norma_id": 909,
     "norma": "Código Civil",
     "archivo": "0909_C_digo_Civil.pdf",
-    "hash_corpus": "41beb675b7a32abbc0d4b651fb7dfd207cd382ea57a2477ca4315eb53c934337",
+    "hash_corpus": "78e731debcb3b79c5434aed3d2adc2b2037f753848a8a576b2830777d286c2d3",
     "fuente_canonica_actual": "BOE-A-1889-4763",
-    "articulos_corpus_actual": 2,
+    "articulos_corpus_actual": 86,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T10:51:29"
+    "fecha_actualizacion": "2026-10-14T22:20:27"
   },
   {
     "norma_id": 914,
     "norma": "Decreto 103/2014, de 4 de julio, del Consell, por el que se regulan los precios públicos de la Generalitat",
     "archivo": "0914_Decreto_103_2014_de_4_de_julio_del_Consell_por_el_que_se_regulan_los_precios_p_blicos_de_la_Gen.pdf",
-    "hash_corpus": "65051d035d8d94be9e2d303357c4d2ecdae82d8479c3a206b78b6e78afeae3f4",
+    "hash_corpus": "ac7d2eb8d78561ad9d65efce9fc4ce2d6f602419f260c79eae3721cd35a1df04",
     "fuente_canonica_actual": "LOCAL-PDF-DECRETO-103-2014",
     "articulos_corpus_actual": 8,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-24T18:48:57"
+    "fecha_actualizacion": "2026-10-15T18:30:00"
   },
   {
     "norma_id": 9,
@@ -789,37 +789,37 @@
     "norma_id": 15,
     "norma": "Decreto Legislativo 1/2021, de 18 de junio, del Consell, texto refundido de la Ley de ordenación del territorio, urbanismo y paisaje",
     "archivo": "0015_Decreto_Legislativo_1_2021_de_18_de_junio_del_Consell_texto_refundido_de_la_Ley_de_ordenaci_n_d.pdf",
-    "hash_corpus": "fd159cac6e27eeb387feeb92ff0beb27127a28a34da914cfc1267f2ec8ef697a",
+    "hash_corpus": "6b4acbbbbe60dafc3337ffc896ce3b4b9257c84199b642f27a9b425fdc6a68fa",
     "fuente_canonica_actual": "LOCAL-PDF-DECRETO-LEGISLATIVO-1-2021",
-    "articulos_corpus_actual": 2,
+    "articulos_corpus_actual": 26,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T11:36:41"
+    "fecha_actualizacion": "2026-10-14T22:54:11"
   },
   {
     "norma_id": 11749,
     "norma": "Decreto-ley 1/2011, de 30 de septiembre, del Consell, de medidas urgentes de régimen económico-financiero del sector público empresarial y fundacional",
     "archivo": "11749_Decreto_ley_1_2011_de_30_de_septiembre_del_Consell_de_medidas_urgentes_de_r_gimen_econ_mico_fin.pdf",
-    "hash_corpus": "d3b2f7ff46a20a38e30f3911fd610f0183065005691a5eee77cdd2afc79a16f5",
+    "hash_corpus": "64b00f34955bd17a03c58598a550aecc52d1330e8ac1ceecfb4860a619440cb6",
     "fuente_canonica_actual": "LOCAL-PDF-DECRETO-LEY-1-2011",
     "articulos_corpus_actual": 13,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T11:37:48"
+    "fecha_actualizacion": "2026-10-14T22:55:27"
   },
   {
     "norma_id": 11750,
     "norma": "Directiva (UE) 2019/1937, de 23 de octubre de 2019, relativa a la protección de las personas que informen sobre infracciones del Derecho de la Unión",
     "archivo": "11750_Directiva_UE_2019_1937_de_23_de_octubre_de_2019_relativa_a_la_protecci_n_de_las_personas_que_in.pdf",
-    "hash_corpus": "df603877efc271a9aa7bc619c59fbe82cbf1797a6f0584ede7c173c0ffcb9f2d",
+    "hash_corpus": "cb427d150a9c4b0ccc190ff624f69880b04911a089ee67b4ae41594d3b1d2013",
     "fuente_canonica_actual": "LOCAL-PDF-DIRECTIVA-UE-2019-1937",
     "articulos_corpus_actual": 29,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-26T11:38:12"
+    "fecha_actualizacion": "2026-10-15T18:33:34"
   },
   {
     "norma_id": 11751,
@@ -1053,13 +1053,13 @@
     "norma_id": 10412,
     "norma": "Ley 33/2003, de 3 de noviembre, del Patrimonio de las Administraciones Públicas",
     "archivo": "10412_Ley_33_2003_de_3_de_noviembre_del_Patrimonio_de_las_Administraciones_P_blicas.pdf",
-    "hash_corpus": "91a3877f567242f7ef11bf66760bd84b1287e648835c2490fd16a4da8457bff7",
+    "hash_corpus": "ef42e6a1d742c8e3e65ddfe975dd31d4c5ce6496105abfe162b998e1b72e111d",
     "fuente_canonica_actual": "BOE-A-2003-20254",
-    "articulos_corpus_actual": 40,
+    "articulos_corpus_actual": 117,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T12:25:12"
+    "fecha_actualizacion": "2026-10-15T10:33:30"
   },
   {
     "norma_id": 971,
@@ -1197,13 +1197,13 @@
     "norma_id": 670,
     "norma": "Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local",
     "archivo": "0670_Ley_7_1985_de_2_de_abril_Reguladora_de_las_Bases_del_R_gimen_Local.pdf",
-    "hash_corpus": "53ae4ee488c57ffb62372b20d4392caf9a84c83da38ba80bce8689624d50dbf2",
+    "hash_corpus": "78570cf4fee510080a546479bd3245f77c3b96b596d9fdb25f01526d64da511a",
     "fuente_canonica_actual": "BOE-A-1985-5392",
-    "articulos_corpus_actual": 59,
+    "articulos_corpus_actual": 83,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T13:25:06"
+    "fecha_actualizacion": "2026-10-15T10:49:18"
   },
   {
     "norma_id": 58,
@@ -1233,13 +1233,13 @@
     "norma_id": 60,
     "norma": "Ley 8/2010, de 23 de junio, de régimen local de la Comunitat Valenciana",
     "archivo": "0060_Ley_8_2010_de_23_de_junio_de_r_gimen_local_de_la_Comunitat_Valenciana.pdf",
-    "hash_corpus": "360b6fe735d0398ca04430d30fd96e2661f465f59ad8a8964818081f68f0bdda",
+    "hash_corpus": "241f4585ee7923035a8ffb57a8bfe75cdf41a711d3a8a2fdffcb44b6bbe3ea4c",
     "fuente_canonica_actual": "BOE-A-2010-11729",
-    "articulos_corpus_actual": 4,
+    "articulos_corpus_actual": 10,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T13:26:16"
+    "fecha_actualizacion": "2026-10-15T10:51:58"
   },
   {
     "norma_id": 1391,
@@ -1257,25 +1257,25 @@
     "norma_id": 64,
     "norma": "LEY DE EXPROPIACIÓN FORZOSA DE 1954",
     "archivo": "0064_LEY_DE_EXPROPIACI_N_FORZOSA_DE_1954.pdf",
-    "hash_corpus": "d5b2a6efdb0db755114f8dd3b8e2fc5be7a5d33f498fadd4ec68e05354c28b96",
+    "hash_corpus": "f3df3ff7e1b7c0adfbd7736bb0c640443f4dba68133135a0111ad9a3350b6fb5",
     "fuente_canonica_actual": "BOE-A-1954-15431",
     "articulos_corpus_actual": 58,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T13:31:47"
+    "fecha_actualizacion": "2026-10-15T10:54:16"
   },
   {
     "norma_id": 66,
     "norma": "Ley Orgánica 2/1979, de 3 de octubre, del Tribunal Constitucional",
     "archivo": "0066_Ley_Org_nica_2_1979_de_3_de_octubre_del_Tribunal_Constitucional.pdf",
-    "hash_corpus": "1258835edd8c555a7df05e9a4c31657289c928a694d1bcf688e5982545d5b3c5",
+    "hash_corpus": "514dbec974739563f1a2d1a898c3de71042942d6ec6b6ebf3114eb2f3659f242",
     "fuente_canonica_actual": "BOE-A-1979-23709",
     "articulos_corpus_actual": 67,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T16:11:22"
+    "fecha_actualizacion": "2026-10-15T11:02:44"
   },
   {
     "norma_id": 8570,
@@ -1305,25 +1305,25 @@
     "norma_id": 74,
     "norma": "Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial",
     "archivo": "0074_Ley_Org_nica_6_1985_de_1_de_julio_del_Poder_Judicial.pdf",
-    "hash_corpus": "0eb81d861703a32518d8c1ee2acd357f7584eb44679b648f7d91d1b049eec5af",
+    "hash_corpus": "af612fe6ac68dcadae709f3a5788ed24e733710c22fe47d09cefc1a4c445f87c",
     "fuente_canonica_actual": "BOE-A-1985-12666",
     "articulos_corpus_actual": 91,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T16:43:03"
+    "fecha_actualizacion": "2026-10-15T12:38:41"
   },
   {
     "norma_id": 77,
     "norma": "Real Decreto 203/2021, de 30 de marzo, por el que se aprueba el Reglamento de actuación y funcionamiento del sector público por medios electrónicos",
     "archivo": "0077_Real_Decreto_203_2021_de_30_de_marzo_por_el_que_se_aprueba_el_Reglamento_de_actuaci_n_y_funcion.pdf",
-    "hash_corpus": "3f6946f081e3d3ffef00a71534b1f47db5e3476e892425588677435b751c2e3c",
+    "hash_corpus": "5c0c05233368aa15dd24d06209e3676635ed513393a2df161330cdcd55410ca1",
     "fuente_canonica_actual": "BOE-A-2021-5032",
-    "articulos_corpus_actual": 55,
+    "articulos_corpus_actual": 62,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T17:35:41"
+    "fecha_actualizacion": "2026-10-15T11:27:56"
   },
   {
     "norma_id": 81,
@@ -1341,13 +1341,13 @@
     "norma_id": 11832,
     "norma": "Reglamento (UE) 2016/679, de 27 de abril de 2016, General de Protección de Datos",
     "archivo": "11832_Reglamento_UE_2016_679_de_27_de_abril_de_2016_General_de_Protecci_n_de_Datos.pdf",
-    "hash_corpus": "5ffd8e5ff1bd6cb3951880d38bfa7cf3e88c66e4c13f289add248bd413c030aa",
-    "fuente_canonica_actual": "LOCAL-PDF-REGLAMENTO-UE-2016-679",
+    "hash_corpus": "29dd942e070dc93193b8314dab6b46d173ba6737378ad825b3b85dcdd73ee0ea",
+    "fuente_canonica_actual": "DOUE-CELEX-32016R0679",
     "articulos_corpus_actual": 99,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-27T19:59:37"
+    "fecha_actualizacion": "2026-10-15T18:46:23"
   },
   {
     "norma_id": 11833,
@@ -1377,13 +1377,13 @@
     "norma_id": 890,
     "norma": "Ley Orgánica 5/1985, de 19 de junio, del Régimen Electoral General",
     "archivo": "0890_Ley_Org_nica_5_1985_de_19_de_junio_del_R_gimen_Electoral_General.pdf",
-    "hash_corpus": "06943d1f77a6514858e40fd8c8ecdeec139ef6a16db3a71392bd77a37e3c76e2",
+    "hash_corpus": "1e595e3333eb867f817a41caa340d92afb4c2685c37ae4ac9476f795b5803c42",
     "fuente_canonica_actual": "BOE-A-1985-11672",
     "articulos_corpus_actual": 23,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-30T11:59:15"
+    "fecha_actualizacion": "2026-10-15T11:14:10"
   },
   {
     "norma_id": 1021,
@@ -1413,12 +1413,144 @@
     "norma_id": 11850,
     "norma": "Real Decreto Legislativo 2/2004, de 5 de marzo, texto refundido de la Ley Reguladora de las Haciendas Locales",
     "archivo": "11850_Real_Decreto_Legislativo_2_2004_de_5_de_marzo_texto_refundido_de_la_Ley_Reguladora_de_las_Hacie.pdf",
-    "hash_corpus": "c883c5f410d99806aba58769a03b06dedab9ed0b388fad7fdc4b61b884d3ba88",
+    "hash_corpus": "4d32ef27cfe488af26b0624e2d9ba49ead508928a00be6dea9781b6ef13b714f",
     "fuente_canonica_actual": "BOE-A-2004-4214",
     "articulos_corpus_actual": 149,
     "version_formato": "resumen-estudio-v3",
     "modelo_generacion": "gpt-5.4-nano",
     "modelo_validacion": "gpt-5.4-nano",
-    "fecha_actualizacion": "2026-09-30T12:21:10"
+    "fecha_actualizacion": "2026-10-15T12:44:05"
+  },
+  {
+    "norma_id": 183,
+    "norma": "Decreto Legislativo 1/2019, de 13 de diciembre, del Consell, texto refundido de la Ley del Estatuto de las personas consumidoras y usuarias de la Comunitat Valenciana",
+    "archivo": "0183_Decreto_Legislativo_1_2019_de_13_de_diciembre_del_Consell_texto_refundido_de_la_Ley_del_Estatut.pdf",
+    "hash_corpus": "5704c1afc6de0e031a1017934501041633bf180d35184729084a644a884465b5",
+    "fuente_canonica_actual": "LOCAL-PDF-DECRETO-LEGISLATIVO-1-2019-DE-13-DE-DICIEMBRE",
+    "articulos_corpus_actual": 23,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-14T22:47:16"
+  },
+  {
+    "norma_id": 11855,
+    "norma": "Ley 14/2008, de 18 de noviembre, de Asociaciones de la Comunitat Valenciana",
+    "archivo": "11855_Ley_14_2008_de_18_de_noviembre_de_Asociaciones_de_la_Comunitat_Valenciana.pdf",
+    "hash_corpus": "0659d08badeed7c3e3902a31c4f0456f4bf6c34ca42bf26543909c60b0382b19",
+    "fuente_canonica_actual": "BOE-A-2008-19735",
+    "articulos_corpus_actual": 33,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-14T23:01:14"
+  },
+  {
+    "norma_id": 3077,
+    "norma": "Ley 21/2013, de 9 de diciembre, de evaluación ambiental",
+    "archivo": "3077_Ley_21_2013_de_9_de_diciembre_de_evaluaci_n_ambiental.pdf",
+    "hash_corpus": "bfc9d08a198ae8ec6cc0182c3447e993f4750fbb5cf8742454a1ad3025a47c10",
+    "fuente_canonica_actual": "BOE-A-2013-12913",
+    "articulos_corpus_actual": 12,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:13:08"
+  },
+  {
+    "norma_id": 11851,
+    "norma": "Ley 36/2011, de 10 de octubre, reguladora de la jurisdicción social",
+    "archivo": "11851_Ley_36_2011_de_10_de_octubre_reguladora_de_la_jurisdicci_n_social.pdf",
+    "hash_corpus": "b02b3fe165063e41d65f7fe30a80f54b464a2443b613221b6d398050ebf39158",
+    "fuente_canonica_actual": "BOE-A-2011-15936",
+    "articulos_corpus_actual": 24,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:36:42"
+  },
+  {
+    "norma_id": 11856,
+    "norma": "Ley 50/2002, de 26 de diciembre, de Fundaciones",
+    "archivo": "11856_Ley_50_2002_de_26_de_diciembre_de_Fundaciones.pdf",
+    "hash_corpus": "839cc4d9bd8e351850e8a42058a9f54d027c768f8bd6b3e7a17f12bb95033bca",
+    "fuente_canonica_actual": "BOE-A-2002-25180",
+    "articulos_corpus_actual": 19,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:41:56"
+  },
+  {
+    "norma_id": 11857,
+    "norma": "Ley 8/1998, de 9 de diciembre, de Fundaciones de la Comunitat Valenciana",
+    "archivo": "11857_Ley_8_1998_de_9_de_diciembre_de_Fundaciones_de_la_Comunitat_Valenciana.pdf",
+    "hash_corpus": "90e5c131e98d5cd7561583ad0b0fa3fefbc531d3b82a8d6a04f6a88dea75537e",
+    "fuente_canonica_actual": "BOE-A-1999-1367",
+    "articulos_corpus_actual": 19,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:51:13"
+  },
+  {
+    "norma_id": 11853,
+    "norma": "Ley Orgánica 1/1996, de 15 de enero, de Protección Jurídica del Menor",
+    "archivo": "11853_Ley_Org_nica_1_1996_de_15_de_enero_de_Protecci_n_Jur_dica_del_Menor.pdf",
+    "hash_corpus": "2dceecc7d1eff017ce254d32d4509636a490f63b2353e71ad2f6aa77d02a737c",
+    "fuente_canonica_actual": "BOE-A-1996-1069",
+    "articulos_corpus_actual": 7,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:55:54"
+  },
+  {
+    "norma_id": 11854,
+    "norma": "Ley Orgánica 1/2002, de 22 de marzo, reguladora del Derecho de Asociación",
+    "archivo": "11854_Ley_Org_nica_1_2002_de_22_de_marzo_reguladora_del_Derecho_de_Asociaci_n.pdf",
+    "hash_corpus": "6104fc75a345bd92789079a5d9701119e3f82e83ce1cd52f3ad862641e3fd62f",
+    "fuente_canonica_actual": "BOE-A-2002-5852",
+    "articulos_corpus_actual": 17,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:57:22"
+  },
+  {
+    "norma_id": 11852,
+    "norma": "Ley Orgánica 10/1995, de 23 de noviembre, del Código Penal",
+    "archivo": "11852_Ley_Org_nica_10_1995_de_23_de_noviembre_del_C_digo_Penal.pdf",
+    "hash_corpus": "82564ce9f126197f6ce3409e6f787f72305ea7c75a64fbe074d9eede7401fda8",
+    "fuente_canonica_actual": "BOE-A-1995-25444",
+    "articulos_corpus_actual": 41,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T10:59:16"
+  },
+  {
+    "norma_id": 11858,
+    "norma": "Real Decreto Legislativo 1/2010, de 2 de julio, texto refundido de la Ley de Sociedades de Capital",
+    "archivo": "11858_Real_Decreto_Legislativo_1_2010_de_2_de_julio_texto_refundido_de_la_Ley_de_Sociedades_de_Capita.pdf",
+    "hash_corpus": "3ee51145cecdfbf623d7355c165129cdaad4ec9d1b53ed36649be796ef64e1c3",
+    "fuente_canonica_actual": "BOE-A-2010-10544",
+    "articulos_corpus_actual": 48,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T11:30:27"
+  },
+  {
+    "norma_id": 79,
+    "norma": "Real Decreto Legislativo 2/2015, de 23 de octubre, texto refundido de la Ley del Estatuto de los Trabajadores",
+    "archivo": "0079_Real_Decreto_Legislativo_2_2015_de_23_de_octubre_texto_refundido_de_la_Ley_del_Estatuto_de_los_.pdf",
+    "hash_corpus": "d6b9d77d876ae7b5122927984f7059139b7e797cb09b53718192137b22e191d5",
+    "fuente_canonica_actual": "BOE-A-2015-11430",
+    "articulos_corpus_actual": 39,
+    "version_formato": "resumen-estudio-v3",
+    "modelo_generacion": "gpt-5.4-nano",
+    "modelo_validacion": "gpt-5.4-nano",
+    "fecha_actualizacion": "2026-10-15T11:52:41"
   }
 ]

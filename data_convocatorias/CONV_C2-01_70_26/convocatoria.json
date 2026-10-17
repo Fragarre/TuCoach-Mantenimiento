@@ -7,9 +7,9 @@
     "numero_preguntas": 95,
     "tiene_partes": 1,
     "valoracion_test_acierto": 1.0,
-    "valoracion_test_fallo": 0.3333,
+    "valoracion_test_fallo": -0.3333,
     "valoracion_test_no_contesta": 0.0,
-    "formula_nota": "(acertadas - falladas * valoracion_test_fallo) / numero_preguntas",
+    "formula_nota": "(acertadas + falladas * valoracion_test_fallo) / numero_preguntas",
     "factor_escala_nota": 10.0,
     "temario_csv": "data_convocatorias/CONV_C2-01_70_26/temario.csv",
     "examen_modelo": "data_convocatorias/CONV_C2-01_70_26/Examen_modelo_70_26.pdf"

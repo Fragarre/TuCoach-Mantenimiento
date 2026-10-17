@@ -153,6 +153,13 @@ def validar_configuracion(
 
     if anio <= 0:
         raise ValueError("convocatoria.anio debe ser positivo.")
+    # La Web calcula puntos = aciertos*acierto + fallos*fallo: la penalización debe ser
+    # NEGATIVA (p. ej. -0.3333). Un valor positivo sumaría puntos por cada fallo.
+    if float(convocatoria.get("valoracion_test_fallo") or 0) > 0:
+        raise ValueError(
+            "convocatoria.valoracion_test_fallo debe ser 0 o negativo (p. ej. -0.3333): "
+            "la Web suma fallos * valoracion_test_fallo."
+        )
     if numero_preguntas <= 0:
         raise ValueError(
             "convocatoria.numero_preguntas debe ser mayor que cero."

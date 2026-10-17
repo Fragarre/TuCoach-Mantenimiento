@@ -49,6 +49,65 @@ TABLAS_WEB_OBLIGATORIAS = {
 }
 
 
+# Tablas solo de mantenimiento que la Web nunca lee (verificado en el código de TuCoach-Web,
+# 17/10/2026). Se quitan de la copia de la Web para que la SQLite del repositorio no supere
+# el límite de 100 MB por fichero de GitHub. El snapshot y Supabase no cambian.
+TABLAS_SOLO_MANTENIMIENTO = (
+    "importaciones_ficheros",
+    "lote_revision_preguntas",
+    "preguntas_exclusiones",
+    "resoluciones_boe",
+    "sesiones_coste_mantenimiento",
+    "perfil_generacion_ia",
+    "preguntas_examen_oficial",
+    "preguntas_reescritas",
+)
+
+
+def reducir_para_web(ruta: Path) -> None:
+    """Deja en la copia de la Web solo lo que la Web usa.
+
+    - quita las tablas de mantenimiento (y los disparadores que las referencian);
+    - quita los vínculos de banco que no están INCLUIDA (la Web solo sirve INCLUIDA);
+    - compacta el fichero (VACUUM).
+    lote_preguntas se conserva completo (la Web muestra su recuento total).
+    """
+    con = sqlite3.connect(ruta)
+    try:
+        con.execute("PRAGMA foreign_keys = OFF")
+        with con:
+            for nombre, sql in con.execute(
+                    "SELECT name, sql FROM sqlite_master WHERE type='trigger'").fetchall():
+                if any(t in (sql or "") for t in TABLAS_SOLO_MANTENIMIENTO):
+                    con.execute(f'DROP TRIGGER "{nombre}"')
+            for tabla in TABLAS_SOLO_MANTENIMIENTO:
+                con.execute(f'DROP TABLE IF EXISTS "{tabla}"')
+            con.execute(
+                "DELETE FROM banco_preguntas_temas WHERE banco_pregunta_id IN "
+                "(SELECT id FROM banco_preguntas WHERE estado <> 'INCLUIDA')")
+            con.execute("DELETE FROM banco_preguntas WHERE estado <> 'INCLUIDA'")
+        con.execute("VACUUM")
+    finally:
+        con.close()
+
+
+def huella_contenido_web(ruta: Path) -> dict[str, int]:
+    """Recuentos de lo que la Web sirve; deben coincidir entre snapshot y copia reducida."""
+    con = conectar_solo_lectura(ruta)
+    try:
+        salida = {}
+        for tabla in sorted(TABLAS_WEB_OBLIGATORIAS - {"banco_preguntas", "banco_preguntas_temas"}):
+            salida[tabla] = int(con.execute(f'SELECT COUNT(*) FROM "{tabla}"').fetchone()[0])
+        salida["banco_preguntas_incluidas"] = int(con.execute(
+            "SELECT COUNT(*) FROM banco_preguntas WHERE estado='INCLUIDA'").fetchone()[0])
+        salida["banco_temas_incluidas"] = int(con.execute(
+            "SELECT COUNT(*) FROM banco_preguntas_temas bpt JOIN banco_preguntas bp "
+            "ON bp.id = bpt.banco_pregunta_id WHERE bp.estado='INCLUIDA'").fetchone()[0])
+        return salida
+    finally:
+        con.close()
+
+
 def sha256_archivo(ruta: Path) -> str:
     h = hashlib.sha256()
     with ruta.open("rb") as f:
@@ -285,6 +344,17 @@ def desplegar(
     temporal = copiar_a_temporal(snapshot, destino)
     print(f"Temporal validado:\n{temporal}")
 
+    print("\nReduciendo la copia para la Web (sin tablas de mantenimiento ni vínculos en revisión)...")
+    tamano_antes = temporal.stat().st_size
+    reducir_para_web(temporal)
+    validar_sqlite(temporal)
+    huella_snapshot = huella_contenido_web(snapshot)
+    if huella_contenido_web(temporal) != huella_snapshot:
+        temporal.unlink(missing_ok=True)
+        raise RuntimeError("La copia reducida no conserva el mismo contenido Web que el snapshot.")
+    print(f"Tamaño: {tamano_antes / 1e6:.1f} MB -> {temporal.stat().st_size / 1e6:.1f} MB "
+          "(límite de GitHub: 100 MB)")
+
     try:
         print("\nSustituyendo la BD Web...")
         try:
@@ -300,11 +370,12 @@ def desplegar(
         resumen_destino = validar_sqlite(destino)
 
         hash_destino = sha256_archivo(destino)
-        hash_snapshot = sha256_archivo(snapshot)
-        if hash_destino != hash_snapshot:
+        if huella_contenido_web(destino) != huella_snapshot:
             raise RuntimeError(
-                "La BD instalada no coincide con el snapshot publicado."
+                "La BD instalada no conserva el contenido Web del snapshot publicado."
             )
+        if destino.stat().st_size > 95_000_000:
+            print("AVISO: la BD Web supera 95 MB; GitHub rechaza ficheros de más de 100 MB.")
 
         print("\n" + "=" * 78)
         print("DESPLIEGUE LOCAL COMPLETADO")

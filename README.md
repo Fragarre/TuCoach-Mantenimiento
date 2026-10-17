@@ -3,11 +3,14 @@
 Este documento describe el procedimiento operativo para incorporar
 nuevas preguntas a **TuCoach**, generar preguntas mediante IA, mantener
 los bancos por convocatoria, realizar comprobaciones y actualizar la
-base de datos utilizada por la aplicación **TuCoach (Streamlit)**.
+base de datos utilizada por la aplicación web **TuCoach-Web**.
 
 > **Principio general:** `TuCoach-Mantenimiento` es la base maestra. La
-> aplicación Streamlit **no realiza tareas de mantenimiento**: consume
-> una copia ya validada de `db/oposiciones.sqlite3`.
+> web **no realiza tareas de mantenimiento**: consume una copia ya
+> validada de `db/oposiciones.sqlite3` (SQLite local y Supabase).
+>
+> La antigua aplicación Streamlit dejó de usarse en octubre de 2026; su
+> repositorio `TuCoach-Streamlit` está archivado.
 
 ## 1. Proyectos
 
@@ -25,9 +28,9 @@ TuCoach-Mantenimiento/
     auditorias/
     registros/
 
-TuCoach/
-    db/oposiciones.sqlite3      ← copia utilizada por Streamlit
-    ...
+TuCoach-Web/
+    backend/data/oposiciones.sqlite3   ← copia utilizada por la web local
+    ...                                (en producción: Supabase, esquema contenidos)
 ```
 
 El punto normal de entrada al mantenimiento es:
@@ -368,68 +371,26 @@ Estas herramientas son útiles para **diagnóstico y reparación**.
 
 ------------------------------------------------------------------------
 
-## 8. Actualizar la base de la aplicación TuCoach (Streamlit)
+## 8. Publicar la base en TuCoach-Web
 
 Una vez terminado el mantenimiento y con la base maestra correcta:
 
 ``` text
-1. FLUJO HABITUAL
-   └─ 6. Actualizar BD de TuCoach
+5. PUBLICACIÓN
+   ├─ 1. Preparar publicación TuCoach-Web      (validación completa + snapshot)
+   ├─ 2. Desplegar contenidos en TuCoach-Web local
+   ├─ 3. Actualizar contenidos Web en Supabase
+   ├─ 4. Publicar materiales en TuCoach-Web local   (solo si hay materiales nuevos)
+   └─ 5. Publicar cambios preparados en GitHub / Web (Render y Vercel despliegan desde main)
 ```
 
-La misma operación está disponible en:
-
-``` text
-6. ADMINISTRACIÓN
-   └─ 1. Actualizar BD de TuCoach
-```
-
-El proceso realiza:
-
-``` text
-VALIDACIÓN COMPLETA OBLIGATORIA
-        ↓
-BACKUP DE LA BASE ACTUAL DE TuCoach
-        ↓
-COPIA DE LA BASE MAESTRA
-        ↓
-TuCoach/db/oposiciones.sqlite3
-```
-
-Origen:
-
-``` text
-TuCoach-Mantenimiento/db/oposiciones.sqlite3
-```
-
-Destino:
-
-``` text
-TuCoach/db/oposiciones.sqlite3
-```
-
-Antes de sustituir una base existente se crea automáticamente una copia
-en:
-
-``` text
-TuCoach/db/copias_seguridad/
-```
-
-con un nombre del tipo:
-
-``` text
-oposiciones_antes_actualizacion_AAAAMMDD_HHMMSS.sqlite3
-```
-
-La copia **no se realiza** si `TuCoach-Mantenimiento` no supera
-previamente `validacion_completa.py`.
-
-Al terminar también se comprueba que el fichero de destino existe y que
-su tamaño coincide con el origen.
+La preparación **no se realiza** si `TuCoach-Mantenimiento` no supera
+previamente `validacion_completa.py`. Cada paso crea copia de seguridad
+del destino antes de sustituirlo.
 
 ### Regla importante
 
-**TuCoach (Streamlit) utiliza datos ya preparados.**\
+**TuCoach-Web utiliza datos ya preparados.**\
 La importación, normalización, BOE, generación IA, corpus, auditorías y
 construcción de bancos pertenecen a `TuCoach-Mantenimiento`.
 
@@ -505,18 +466,14 @@ Bancos sincronizados
 Validación completa
 ```
 
-### Publicar los cambios en Streamlit
+### Publicar los cambios en la web
 
 ``` text
 Base maestra validada
         ↓
-Actualizar BD de TuCoach
+5.1 Preparar publicación (validación + snapshot)
         ↓
-Validación obligatoria
-        ↓
-Backup de la BD anterior
-        ↓
-Copia a TuCoach/db/oposiciones.sqlite3
+5.2 Web local · 5.3 Supabase · 5.5 GitHub/Render
 ```
 
 ------------------------------------------------------------------------
@@ -562,8 +519,8 @@ Para el mantenimiento cotidiano basta con recordar:
     `Flujo habitual → Generar preguntas de informática IA`.
 4.  **Recuperar pendientes** →
     `Flujo habitual → Recuperar preguntas PENDIENTE`.
-5.  **Publicar en Streamlit** →
-    `Flujo habitual → Actualizar BD de TuCoach`.
+5.  **Publicar en la web** →
+    `Publicación → 1, 2, 3 y 5`.
 
 Los cuatro primeros procesos dejan los bancos sincronizados y terminan
 con la validación correspondiente. Las auditorías específicas se

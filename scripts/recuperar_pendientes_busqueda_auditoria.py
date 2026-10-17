@@ -717,7 +717,7 @@ def main() -> int:
     parser.add_argument(
         "--db-control",
         default=str(DB_CONTROL_DEFECTO),
-        help="Base auxiliar de control; no es utilizada por Streamlit.",
+        help="Base auxiliar de control; no es utilizada por la web.",
     )
     parser.add_argument("--id", type=int)
     parser.add_argument("--limite", type=int, default=20)

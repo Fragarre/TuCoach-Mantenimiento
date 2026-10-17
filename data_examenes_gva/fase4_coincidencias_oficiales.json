@@ -1,0 +1,681 @@
+[
+ {
+  "pregunta_id": 4599,
+  "examen": "A2-141/21",
+  "numero": 1,
+  "similitud": 0.869,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 24624,
+  "examen": "A2-141/21",
+  "numero": 4,
+  "similitud": 0.943,
+  "fuente": "AYTO-examen"
+ },
+ {
+  "pregunta_id": 6059,
+  "examen": "A2-141/21",
+  "numero": 9,
+  "similitud": 1.0,
+  "fuente": "apoyo"
+ },
+ {
+  "pregunta_id": 3245,
+  "examen": "A2-141/21",
+  "numero": 12,
+  "similitud": 0.902,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 8663,
+  "examen": "A2-141/21",
+  "numero": 20,
+  "similitud": 0.938,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 9773,
+  "examen": "C1-7/22",
+  "numero": 3,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6329,
+  "examen": "C1-7/22",
+  "numero": 4,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 11188,
+  "examen": "C1-7/22",
+  "numero": 5,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 12512,
+  "examen": "C1-7/22",
+  "numero": 7,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 13747,
+  "examen": "C1-7/22",
+  "numero": 8,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 11454,
+  "examen": "C1-7/22",
+  "numero": 11,
+  "similitud": 0.88,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10274,
+  "examen": "C1-7/22",
+  "numero": 12,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2178,
+  "examen": "C1-7/22",
+  "numero": 15,
+  "similitud": 0.96,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2177,
+  "examen": "C1-7/22",
+  "numero": 17,
+  "similitud": 0.994,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 12676,
+  "examen": "C1-7/22",
+  "numero": 18,
+  "similitud": 0.997,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16439,
+  "examen": "C1-7/22",
+  "numero": 19,
+  "similitud": 0.989,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 1701,
+  "examen": "C1-7/22",
+  "numero": 20,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 3077,
+  "examen": "C1-7/22",
+  "numero": 21,
+  "similitud": 0.95,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4130,
+  "examen": "C1-7/22",
+  "numero": 22,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10460,
+  "examen": "C1-7/22",
+  "numero": 23,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10683,
+  "examen": "C1-7/22",
+  "numero": 24,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 3781,
+  "examen": "C1-7/22",
+  "numero": 25,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4899,
+  "examen": "C1-7/22",
+  "numero": 26,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 5070,
+  "examen": "C1-7/22",
+  "numero": 27,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6751,
+  "examen": "C1-7/22",
+  "numero": 28,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 13219,
+  "examen": "C1-7/22",
+  "numero": 30,
+  "similitud": 0.991,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 15485,
+  "examen": "C1-7/22",
+  "numero": 31,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4388,
+  "examen": "C1-7/22",
+  "numero": 33,
+  "similitud": 0.975,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16564,
+  "examen": "C1-7/22",
+  "numero": 36,
+  "similitud": 0.977,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6584,
+  "examen": "C1-7/22",
+  "numero": 37,
+  "similitud": 0.987,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16980,
+  "examen": "C1-7/22",
+  "numero": 38,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6838,
+  "examen": "C1-7/22",
+  "numero": 39,
+  "similitud": 0.979,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 7380,
+  "examen": "C1-7/22",
+  "numero": 41,
+  "similitud": 0.999,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10986,
+  "examen": "C1-7/22",
+  "numero": 42,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2356,
+  "examen": "C1-7/22",
+  "numero": 43,
+  "similitud": 0.984,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 25168,
+  "examen": "C1-7/22",
+  "numero": 45,
+  "similitud": 0.915,
+  "fuente": "AYTO-examen"
+ },
+ {
+  "pregunta_id": 7054,
+  "examen": "C1-7/22",
+  "numero": 50,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6772,
+  "examen": "C1-7/22",
+  "numero": 52,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10780,
+  "examen": "C1-7/22",
+  "numero": 55,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 8437,
+  "examen": "C1-7/22",
+  "numero": 57,
+  "similitud": 0.971,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6599,
+  "examen": "C1-7/22",
+  "numero": 58,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 1869,
+  "examen": "C1-7/22",
+  "numero": 59,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 3982,
+  "examen": "C1-7/22",
+  "numero": 61,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 9243,
+  "examen": "C1-7/22",
+  "numero": 66,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6392,
+  "examen": "C1-7/22",
+  "numero": 67,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4940,
+  "examen": "C1-7/22",
+  "numero": 70,
+  "similitud": 0.998,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2265,
+  "examen": "C1-7/22",
+  "numero": 71,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2259,
+  "examen": "C1-7/22",
+  "numero": 72,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 3207,
+  "examen": "C1-7/22",
+  "numero": 73,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 7395,
+  "examen": "C1-7/22",
+  "numero": 75,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 15637,
+  "examen": "C1-7/22",
+  "numero": 76,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 13524,
+  "examen": "C1-7/22",
+  "numero": 77,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16252,
+  "examen": "C1-7/22",
+  "numero": 78,
+  "similitud": 0.978,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4274,
+  "examen": "C1-7/22",
+  "numero": 79,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4508,
+  "examen": "C1-7/22",
+  "numero": 80,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4015,
+  "examen": "C1-7/22",
+  "numero": 81,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 9720,
+  "examen": "C1-7/22",
+  "numero": 82,
+  "similitud": 0.999,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 13197,
+  "examen": "C1-7/22",
+  "numero": 83,
+  "similitud": 0.999,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10808,
+  "examen": "C1-7/22",
+  "numero": 86,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10337,
+  "examen": "C1-7/22",
+  "numero": 88,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16564,
+  "examen": "C1-8/22",
+  "numero": 2,
+  "similitud": 0.977,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6584,
+  "examen": "C1-8/22",
+  "numero": 3,
+  "similitud": 0.987,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16980,
+  "examen": "C1-8/22",
+  "numero": 4,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6838,
+  "examen": "C1-8/22",
+  "numero": 5,
+  "similitud": 0.979,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 7380,
+  "examen": "C1-8/22",
+  "numero": 7,
+  "similitud": 0.999,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10986,
+  "examen": "C1-8/22",
+  "numero": 8,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2356,
+  "examen": "C1-8/22",
+  "numero": 9,
+  "similitud": 0.984,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 25168,
+  "examen": "C1-8/22",
+  "numero": 11,
+  "similitud": 0.915,
+  "fuente": "AYTO-examen"
+ },
+ {
+  "pregunta_id": 7054,
+  "examen": "C1-8/22",
+  "numero": 16,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6772,
+  "examen": "C1-8/22",
+  "numero": 18,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10780,
+  "examen": "C1-8/22",
+  "numero": 21,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 8437,
+  "examen": "C1-8/22",
+  "numero": 23,
+  "similitud": 0.971,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6599,
+  "examen": "C1-8/22",
+  "numero": 24,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 1869,
+  "examen": "C1-8/22",
+  "numero": 25,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 3982,
+  "examen": "C1-8/22",
+  "numero": 27,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 9243,
+  "examen": "C1-8/22",
+  "numero": 32,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6392,
+  "examen": "C1-8/22",
+  "numero": 33,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4940,
+  "examen": "C1-8/22",
+  "numero": 36,
+  "similitud": 0.998,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2265,
+  "examen": "C1-8/22",
+  "numero": 37,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 2259,
+  "examen": "C1-8/22",
+  "numero": 38,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 3207,
+  "examen": "C1-8/22",
+  "numero": 39,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 7395,
+  "examen": "C1-8/22",
+  "numero": 41,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 15637,
+  "examen": "C1-8/22",
+  "numero": 42,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 13524,
+  "examen": "C1-8/22",
+  "numero": 43,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 16252,
+  "examen": "C1-8/22",
+  "numero": 44,
+  "similitud": 0.978,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4274,
+  "examen": "C1-8/22",
+  "numero": 45,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4508,
+  "examen": "C1-8/22",
+  "numero": 46,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4015,
+  "examen": "C1-8/22",
+  "numero": 47,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 9720,
+  "examen": "C1-8/22",
+  "numero": 48,
+  "similitud": 0.999,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 13197,
+  "examen": "C1-8/22",
+  "numero": 49,
+  "similitud": 0.999,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10808,
+  "examen": "C1-8/22",
+  "numero": 52,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 10337,
+  "examen": "C1-8/22",
+  "numero": 54,
+  "similitud": 1.0,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 6041,
+  "examen": "APF-179/21",
+  "numero": 2,
+  "similitud": 0.959,
+  "fuente": "apoyo"
+ },
+ {
+  "pregunta_id": 16072,
+  "examen": "APF-179/21",
+  "numero": 26,
+  "similitud": 0.939,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 5070,
+  "examen": "APF-179/21",
+  "numero": 30,
+  "similitud": 0.882,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 4758,
+  "examen": "A2-138/21",
+  "numero": 8,
+  "similitud": 0.987,
+  "fuente": "tests"
+ },
+ {
+  "pregunta_id": 20879,
+  "examen": "A2-138/21",
+  "numero": 39,
+  "similitud": 0.941,
+  "fuente": "ia_generada"
+ }
+]

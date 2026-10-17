@@ -61,13 +61,21 @@ cliente = OpenAI(
 )
 
 
+# Precios oficiales por millón de tokens (revisados el 17/10/2026). Antes gpt-5-mini tenía los
+# de gpt-5.4-mini (0,75/4,50) y el registro de costes sobrevaloraba la generación unas 2,5 veces.
 PRECIOS = {
     "gpt-5-mini": {
+        "input": 0.25,
+        "output": 2.00,
+    },
+    "gpt-5.4-mini": {
         "input": 0.75,
+        "cached_input": 0.075,
         "output": 4.50,
     },
     "gpt-5.4": {
         "input": 2.50,
+        "cached_input": 0.25,
         "output": 15.00,
     },
     "gpt-5.4-nano": {

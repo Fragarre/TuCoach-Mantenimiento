@@ -1667,24 +1667,23 @@ def generar_juridicas_ia_menu() -> None:
                     pausa()
                     continue
                 args.extend(["--tema-id", str(tema_id)])
-            elif ambito == "3":
-                args.append("--todos-temas")
+            elif ambito == "1":
+                args.append("--modelo-examen")
         else:
+            args.append("--solo-practica")
             if ambito == "1":
                 tema_id = seleccionar_tema_temario(args)
                 if tema_id is None:
                     pausa()
                     continue
                 args.extend(["--tema-id", str(tema_id)])
-            else:
-                args.append("--todos-temas")
 
         cantidad = (
             pedir_texto(
-                "Número de preguntas a generar [5]: ",
+                "Número de preguntas APROBADAS que se quieren obtener [10]: ",
                 obligatorio=False,
             )
-            or "5"
+            or "10"
         )
         if not cantidad.isdigit() or int(cantidad) <= 0:
             print("Cantidad no válida.")
@@ -1692,9 +1691,10 @@ def generar_juridicas_ia_menu() -> None:
             continue
 
         print(
-            "\nSe borrará el registro de la ejecución anterior. "
-            "Al terminar quedará únicamente "
-            "registros/preguntas_ia_ultima_ejecucion.html."
+            "\nGenerador v5 (dificultad alta). Coste orientativo: 0,04-0,06 USD por "
+            "pregunta aprobada. Las aprobadas se publican en lote_preguntas, se "
+            "sincronizan todos los bancos y se recalculan los niveles de dificultad. "
+            "Informe: registros/preguntas_v5_<fecha>.csv"
         )
 
         if tipo == "TEORICA" and ambito == "1":
@@ -1720,12 +1720,11 @@ def generar_juridicas_ia_menu() -> None:
             continue
 
         ejecutar_script(
-            "generar_preguntas_juridicas_ia.py",
+            "generar_preguntas_juridicas_v5.py",
             *args,
             "--cantidad",
             cantidad,
-            "--tipo",
-            tipo,
+            "--publicar",
         )
         pausa()
 

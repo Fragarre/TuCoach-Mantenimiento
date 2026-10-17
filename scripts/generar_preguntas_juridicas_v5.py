@@ -28,6 +28,8 @@ Prueba sin publicar (por defecto NO publica nada):
     python scripts/generar_preguntas_juridicas_v5.py --codigo C2-01_70_26 --cantidad 20
 Elegir modelos:
     --modelo-generacion gpt-5-mini --modelo-auditoria gpt-5.4 --modelo-control gpt-5.4-nano
+Reparto proporcional al modelo de examen (convocatoria_modelo_bloques):  --modelo-examen
+Limitar a un tema:     --tema-id 123
 Limitar a una norma:   --norma-id 10145
 Rellenar artículos sin preguntas:  --huecos
 Publicar las aprobadas en lote_preguntas y sincronizar bancos:  --publicar
@@ -53,9 +55,19 @@ base.PROMPT_VERSION = "juridicas-v5-dificultad"
 DIFICULTAD_OBJETIVO = "SUPERIOR_EXAMEN_OFICIAL"
 RUTA_METADATOS = base.ROOT / "db" / "metadatos_preguntas_ia.sqlite3"
 
+# Regla de la "opción central" desactivada (17/10/2026): rechazaba el 33 % de las candidatas y
+# también un 15 % de las preguntas de exámenes reales. La auditoría y el control sin enunciado
+# siguen descartando las que se aciertan por descarte.
+USAR_CORRECTA_CENTRAL = False
+# Reparación dirigida: si una candidata falla SOLO por pistas/longitudes, se pide reescribir
+# únicamente los distractores (enunciado y opción correcta no pueden cambiar).
+FALLOS_REPARABLES_DISTRACTORES = {"pistas", "eco_enunciado", "longitudes_desequilibradas", "opcion_demasiado_larga"}
+
 # "negativa" queda fuera: la auditoría ciega exige una única opción CORRECTA y en una
 # pregunta negativa hay tres afirmaciones verdaderas (incompatibilidad del método).
-FORMATOS = ["directa", "supuesto_practico", "directa", "combinada", "directa", "supuesto_practico"]
+# Combinadas (I, II, III) eliminadas el 17/10/2026: son raras en los exámenes reales y en el piloto
+# salían más fáciles (una afirmación falsa evidente). Se conserva el código por si se reactivan.
+FORMATOS = ["directa", "supuesto_practico", "directa", "directa", "supuesto_practico", "directa"]
 NIVELES = ["DIFICIL", "MUY_DIFICIL", "DIFICIL", "MEDIO", "MUY_DIFICIL", "DIFICIL"]
 TIPOS_TRAMPA = ["plazo", "organo", "sujeto", "efecto", "excepcion", "requisito",
                 "verbo_podra_debera", "cuantia_porcentaje", "procedimiento", "otro"]
@@ -137,7 +149,7 @@ def comprobaciones_deterministas(p: dict[str, Any], formato: str, patron_norma) 
     corr = p["respuesta_correcta"]
     if puntuacion_pistas(p["enunciado"], ops, corr) >= 20:
         fallos.append("pistas")
-    if formato in ("directa", "supuesto_practico") and correcta_central_destacada(ops, corr):
+    if USAR_CORRECTA_CENTRAL and formato in ("directa", "supuesto_practico") and correcta_central_destacada(ops, corr):
         fallos.append("correcta_central")
     largos = sorted(len(v) for v in ops.values())
     if largos[-1] > 170:
@@ -215,8 +227,9 @@ REGLAS OBLIGATORIAS
    La correcta NO debe ser la opción que más se parece a las otras tres.
 4. Distractores verosímiles: cada uno cambia un dato preciso (plazo, órgano, sujeto, efecto, excepción,
    requisito, "podrá"/"deberá", cuantía). Mejor si el dato cambiado existe en otro lugar de la norma.
-5. Prohibidas en los distractores las palabras absolutas (siempre, nunca, en todo caso, en ningún caso,
-   exclusivamente, únicamente, solo, con independencia de), salvo que la correcta también las tenga.
+5. Prohibidas en los distractores las palabras absolutas (siempre, nunca, jamás, en todo caso, en ningún
+   caso, exclusivamente, únicamente, solo, sólo, cualquier, todos los, todas las, sin excepción, con
+   independencia de), salvo que la correcta también las tenga. Usa en su lugar datos concretos falsos.
 6. LONGITUD: redacta primero la opción correcta y después los distractores con igual o mayor
    longitud; al menos UN distractor debe ser más largo que la correcta. Diferencia máxima ±20%.
    Máximo 140 caracteres por opción. Pon el contexto en el enunciado, no en las opciones.
@@ -279,6 +292,53 @@ la norma explícita en el enunciado y una sola respuesta correcta según la fuen
 puede superar 140 caracteres y al menos un distractor debe ser más largo que la correcta.
 Devuelve SOLO JSON con las mismas claves: enunciado, opcion_a, opcion_b, opcion_c, opcion_d,
 respuesta_correcta, formato, trampas (lista de {{"opcion","tipo","detalle"}}).
+""".strip()
+
+
+def instrucciones_distractores(p: dict[str, Any], fallos: list[str]) -> list[str]:
+    ops = {k: str(p.get(f"opcion_{k.lower()}") or "") for k in "ABCD"}
+    corr = p["respuesta_correcta"]
+    out = []
+    if "pistas" in fallos or "longitudes_desequilibradas" in fallos:
+        largo = len(ops[corr])
+        if largo >= max(len(v) for k, v in ops.items() if k != corr):
+            out.append(f"la opción correcta ({corr}) mide {largo} caracteres y es la más larga: al menos un "
+                       f"distractor debe medir MÁS de {largo} caracteres y ninguno menos de {int(largo * 0.8)}")
+        malas = [k for k, v in ops.items() if k != corr and _ABS.search(v)]
+        if malas:
+            out.append("los distractores " + ", ".join(malas) + " contienen palabras absolutas (siempre, nunca, "
+                       "solo, únicamente, cualquier, todos los, en todo caso…): sustitúyelas por un dato concreto falso")
+    if "eco_enunciado" in fallos or "pistas" in fallos:
+        e = _palabras(p["enunciado"])
+        co = {k: len(e & _palabras(v)) for k, v in ops.items()}
+        if co[corr] and co[corr] >= max(v for k, v in co.items() if k != corr):
+            out.append("la correcta repite más palabras del enunciado que los distractores: haz que los "
+                       "distractores repitan también esas palabras del enunciado")
+    if "opcion_demasiado_larga" in fallos:
+        out.append("ningún distractor puede superar 170 caracteres")
+    return out or ["equilibra longitud y redacción de los distractores con la opción correcta"]
+
+
+def construir_prompt_distractores(ctx, p: dict[str, Any], fallos: list[str]) -> str:
+    corr = p["respuesta_correcta"]
+    distractores = {k: p[f"opcion_{k.lower()}"] for k in "ABCD" if k != corr}
+    instr = "\n".join(f"- {x}" for x in instrucciones_distractores(p, fallos))
+    return f"""
+Mejora SOLO los distractores de esta pregunta de oposición. NO cambies el enunciado ni la opción correcta.
+Fuente (única referencia válida):
+---
+{ctx.texto_articulo}
+---
+ENUNCIADO (no se cambia): {p["enunciado"]}
+OPCIÓN CORRECTA {corr} (no se cambia): {p[f"opcion_{corr.lower()}"]}
+DISTRACTORES ACTUALES: {json.dumps(distractores, ensure_ascii=False)}
+
+QUÉ HAY QUE CORREGIR
+{instr}
+
+Cada distractor debe seguir siendo FALSO según la fuente, verosímil y cambiar un dato preciso (plazo,
+órgano, sujeto, efecto, requisito…). Devuelve SOLO JSON con las letras de los tres distractores:
+{{{", ".join(f'"{k}": "..."' for k in distractores)}}}
 """.strip()
 
 
@@ -357,7 +417,8 @@ def guardar_auxiliar(ctx, p, analisis, validacion, auditoria, auditoria2, clasif
 
 
 def procesar_referencia(con, ctx, k, modelos, control_sin_enunciado, publicar, informe, meta,
-                        restantes=10**9, cupos=None, reparar=False, solo_practica=False):
+                        restantes=10**9, cupos=None, reparar=False, solo_practica=False,
+                        reparar_distractores=True):
     from openai_api import seleccionar_fragmento_json
 
     if not base.fuente_oficial_suficiente(ctx.texto_articulo, "TEORICA"):
@@ -366,6 +427,8 @@ def procesar_referencia(con, ctx, k, modelos, control_sin_enunciado, publicar, i
     formatos = [FORMATOS[(inicio + i) % len(FORMATOS)] for i in range(k)]
     if solo_practica:
         formatos = ["supuesto_practico"] * k
+    elif cupos is not None and cupos["combinada"] >= cupos["max_combinada"]:
+        formatos = ["directa" if f == "combinada" else f for f in formatos]
     niveles = [NIVELES[(inicio + i) % len(NIVELES)] for i in range(k)]
     patron_norma = marca_norma(ctx.nombre_norma_csv)
     prompt = construir_prompt_v5(ctx, aspectos_ya_preguntados(con, ctx), formatos, niveles)
@@ -409,6 +472,21 @@ def procesar_referencia(con, ctx, k, modelos, control_sin_enunciado, publicar, i
             fila.update(estado="RECHAZADA", motivo="cupo de formato combinada completo")
             continue
         fallos = comprobaciones_deterministas(p, formato, patron_norma)
+        if (reparar_distractores and fallos and formato != "combinada"
+                and set(fallos) <= FALLOS_REPARABLES_DISTRACTORES):
+            try:
+                corr = p["respuesta_correcta"]
+                r = seleccionar_fragmento_json(
+                    prompt=construir_prompt_distractores(ctx, p, fallos), modelo=modelos["generacion"],
+                    operacion="reparar_distractores_v5", max_output_tokens=8000, razonamiento="low")
+                nuevos = {k: str(r.get(k) or "").strip() for k in "ABCD" if k != corr}
+                if all(nuevos.values()):
+                    for k, v in nuevos.items():
+                        p[f"opcion_{k.lower()}"] = v
+                    fila["reparada"] = "SI"
+                    fallos = comprobaciones_deterministas(p, formato, patron_norma)
+            except Exception:
+                pass
         if reparar and fallos and set(fallos) <= REPARABLES:
             try:
                 r = seleccionar_fragmento_json(
@@ -507,6 +585,8 @@ def main() -> int:
     ap.add_argument("--norma-id", type=int, help="Limitar a una norma (id del catálogo).")
     ap.add_argument("--tema-id", type=int)
     ap.add_argument("--huecos", action="store_true", help="Solo artículos sin preguntas en el banco.")
+    ap.add_argument("--modelo-examen", action="store_true",
+                    help="Reparte las llamadas según el modelo de examen (bloques NORMA/LIBRE de cada parte).")
     ap.add_argument("--solo-practica", action="store_true",
                     help="Solo supuestos prácticos (preguntas PRACTICA) de las partes del temario que los admiten.")
     ap.add_argument("--cantidad", type=int, default=20, help="Preguntas aprobadas objetivo.")
@@ -518,6 +598,8 @@ def main() -> int:
     ap.add_argument("--sin-control-enunciado", action="store_true")
     ap.add_argument("--reparar", action="store_true",
                     help="Intenta reparar una vez las preguntas que fallan solo por la forma (desactivado: no compensa).")
+    ap.add_argument("--sin-reparar-distractores", action="store_true",
+                    help="No intentar corregir los distractores de las candidatas que fallan solo por pistas.")
     ap.add_argument("--razonamiento", default="low", choices=["low", "medium", "high"],
                     help="Esfuerzo de razonamiento en la generación (por defecto low: más barato).")
     ap.add_argument("--publicar", action="store_true",
@@ -565,6 +647,19 @@ def main() -> int:
             random.shuffle(contextos)
             # Con ~20 % de aprobación y 3 preguntas por llamada hacen falta ~1,7 llamadas por aprobada.
             max_llamadas = a.max_llamadas or max(5, a.cantidad * 2 + 5)
+            secuencia = contextos * 3
+            if a.modelo_examen:
+                if a.tema_id is not None or a.huecos or a.norma_id is not None or a.solo_practica:
+                    print("--modelo-examen no se combina con --tema-id, --huecos, --norma-id ni --solo-practica.")
+                    return 1
+                aptos = [c for c in contextos if base.fuente_oficial_suficiente(c.texto_articulo, "TEORICA")]
+                modelo = base.cargar_modelo_generacion_ia(con, cid)
+                secuencia, avisos = base.secuencia_contextos_segun_modelo(aptos, modelo, max_llamadas)
+                print("Reparto según el modelo de examen (llamadas previstas por parte y norma):")
+                for parte, norma, n in base.resumen_reparto_secuencia(secuencia):
+                    print(f"  {parte:<10} | {norma[:45]:<45} | {n:>3}")
+                for aviso in avisos:
+                    print(f"  AVISO: {aviso}")
             print("=" * 78)
             print(f"GENERADOR v5 · {conv['codigo']} · referencias aptas: {len(contextos)}")
             print(f"Objetivo: {a.cantidad} aprobadas · {a.por_llamada} por llamada · máx. {max_llamadas} llamadas")
@@ -573,8 +668,8 @@ def main() -> int:
             print("Modo:", "PUBLICAR" if a.publicar else "SOLO PRUEBA (no se publica nada)")
             print("=" * 78)
             aprobadas, llamadas = 0, 0
-            cupos = {"combinada": 0, "max_combinada": max(1, round(a.cantidad * 0.25))}
-            for ctx in contextos * 3:
+            cupos = {"combinada": 0, "max_combinada": 0}
+            for ctx in secuencia:
                 if aprobadas >= a.cantidad or llamadas >= max_llamadas:
                     break
                 llamadas += 1
@@ -582,7 +677,8 @@ def main() -> int:
                     n = procesar_referencia(con, ctx, a.por_llamada, modelos,
                                             not a.sin_control_enunciado, a.publicar, informe, meta,
                                             restantes=a.cantidad - aprobadas, cupos=cupos,
-                                            reparar=a.reparar, solo_practica=a.solo_practica)
+                                            reparar=a.reparar, solo_practica=a.solo_practica,
+                                            reparar_distractores=not a.sin_reparar_distractores)
                 except Exception as exc:
                     print(f"  ! referencia {ctx.referencia_id}: {exc}")
                     continue
